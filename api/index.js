@@ -29,7 +29,7 @@ const connect = async () => {
 
     // Log để kiểm tra connection string
     console.log("MongoDB URI:", process.env.MONGO);
-
+    console.log(mongoose.version);
     // Log trạng thái kết nối
     console.log("Connection state:", mongoose.connection.readyState);
   } catch (error) {
