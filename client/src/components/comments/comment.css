@@ -1,0 +1,67 @@
+.Form {
+    width: 60%;
+    height: auto;
+    position: relative;
+    margin: 0 auto;
+  }
+  
+  .Form .flex-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .Form textarea {
+    width: 100%;
+    height: 120px;
+    padding: 16px;
+    background-color: white;
+    border-radius: 15px;
+    border: 1px solid #757575;
+    color: #333;
+    font-size: 16px;
+    font-family: 'Times New Roman', serif;
+    font-weight: normal;
+  }
+  
+  .Form .flex-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .Form input[type="text"],
+  .Form input[type="email"] {
+    width: 50%;
+    height: 47px;
+    padding-left: 19px;
+    background-color: white;
+    border-radius: 30px;
+    border: 1px solid #757575;
+    color: #333;
+    font-size: 16px;
+    font-family: 'Times New Roman', serif;
+    font-weight: normal;
+  }
+  
+  
+  
+  .Form .submit-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  
+  .Form button {
+    width: 167.77px;
+    height: 40px;
+    background-color: #1E90FF;
+    border-radius: 15px;
+    color: white;
+    font-size: 18px;
+    font-family: 'Times New Roman', serif;
+    font-weight: normal;
+  }
+  

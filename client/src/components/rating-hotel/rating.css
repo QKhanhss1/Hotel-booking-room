@@ -1,0 +1,49 @@
+.rating-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px auto;
+    width: 60%;
+    height: 500px;
+}
+
+.reviews-count {
+    flex: 1;
+    font-size: 18px;
+}
+
+.rating-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.rating-button button {
+    width: 120px;
+    height: 40px;
+    padding: 10px;
+    font-size: 16px;
+    background-color: #1E90FF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.rating-result {
+    margin-top: 10px;
+    font-size: 18px;
+}
+
+.stars {
+    margin-top: 5px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+

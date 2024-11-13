@@ -1,0 +1,44 @@
+# Node modules
+node_modules/
+
+# Thư mục build
+/build/
+
+# Thư mục log
+*.log
+
+# Thư mục tạm thời của IDE
+*.iml
+.idea/
+
+# Các file nhị phân
+*.exe
+*.class
+*.o
+*.dll
+
+# Thư mục chứa phụ thuộc Python (nếu bạn đang sử dụng Python)
+venv/
+*.pyc
+__pycache__/
+
+# Các file môi trường
+.env
+.env.local
+
+# Thư mục tạm thời
+tmp/
+temp/
+
+# Các file hệ thống
+.DS_Store
+Thumbs.db
+
+# Các file khác
+*.bak
+*.swp
+*.tmp
+
+# Bỏ qua các thư mục cụ thể
+nodemon/
+semver.cmd

@@ -1,0 +1,89 @@
+
+.navbar {
+  background-color: #004080;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 10; /* Ensure navbar itself is above other content */
+}
+
+.navContainer {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.navItems {
+  display: flex;
+  gap: 10px;
+}
+
+.navButton {
+  padding: 8px 16px;
+  border: none;
+  background-color: #00bfff;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.navButton:hover {
+  background-color: #0099cc;
+}
+
+/* User menu styles */
+.userMenu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.userName {
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 8px 12px;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  margin-top: 8px;
+  overflow: hidden;
+  z-index: 20; /* Ensures dropdown menu is above header */
+}
+
+.favoriteButton,
+.logoutButton {
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px; 
+  font-family: inherit;
+  color: #004080;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.favoriteButton:hover,
+.logoutButton:hover {
+  background-color: #f0f0f0;
+}
