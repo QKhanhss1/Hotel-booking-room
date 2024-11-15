@@ -16,16 +16,15 @@ import Reserve from "../../components/reserve/Reserve";
 
 const Hotel = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const id = location.pathname.split("/")[2];
   const [slideNumber, setSlideNumber] = useState(0);
   const [open, setOpen] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-
   const { data, loading } = useFetch(`/hotels/find/${id}`);
   const { user } = useContext(AuthContext);
   const { favorites, dispatch } = useContext(FavoriteContext);
-  const navigate = useNavigate();
   const { dates = [], options = {} } = useContext(SearchContext);
 
   const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -34,12 +33,34 @@ const Hotel = () => {
     return Math.ceil(timeDiff / MILLISECONDS_PER_DAY);
   }
 
+  //Lưu Giá tiền vào localStorage
+  const [totalprice, setTotalPrice] = useState(() => {
+    
+    const storedPrice = localStorage.getItem("totalprice");
+    return storedPrice ? parseFloat(storedPrice) : 1; 
+  });
+
+
   const days = dates?.[0] ? dayDifference(dates[0].endDate, dates[0].startDate) : 0;
 
+
+  { console.log('giá:',totalprice) }
+
+  console.log('days:',days)
   // Kiểm tra xem khách sạn có trong danh sách yêu thích không
   useEffect(() => {
     setIsFavorite(favorites.some((hotel) => hotel._id === id));
   }, [favorites, id]);
+
+  
+  useEffect(() => {
+    if (data && options.room && days) {
+      const calculatedPrice = days * data.cheapestPrice * options.room;
+      setTotalPrice(calculatedPrice);
+      localStorage.setItem("totalprice", calculatedPrice);  // Store the price in localStorage
+    }
+  }, [days, data, options]);
+
 
   const handleFavoriteClick = async () => {
     if (!user) {
@@ -168,7 +189,7 @@ const Hotel = () => {
                   excellent location score of 9.8!
                 </span>
                 <h2>
-                  <b>${days * data.cheapestPrice * options.room}</b> ({days} nights)
+                  <b>${totalprice}</b> ({days} nights)
                 </h2>
                 <button onClick={handleClick}>Reserve or Book Now!</button>
               </div>
