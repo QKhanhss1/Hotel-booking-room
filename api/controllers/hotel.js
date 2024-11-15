@@ -42,14 +42,24 @@ export const getHotel = async (req, res, next) => {
 export const getHotels = async (req, res, next) => {
   const { min, max, ...others } = req.query;
   try {
-    const limit = parseInt(req.query.limit) || 4;
     const hotels = await Hotel.find({
       ...others,
       cheapestPrice: { $gte: min || 0, $lte: max || 999 },
-    }).limit(limit);
+    })
     res.status(200).json(hotels);
   } catch (err) {
     next(err);
+  }
+};
+export const getFeaturedHotels = async (req, res, next) => {
+  try {
+    // Truy vấn chỉ các khách sạn có `featured=true` và giới hạn số lượng là 4
+    const featuredHotels = await Hotel.find({ featured: true }).limit(4);
+    
+    // Trả về kết quả
+    res.status(200).json(featuredHotels);
+  } catch (err) {
+    next(err); // Xử lý lỗi nếu có
   }
 };
 export const countByCity = async (req, res, next) => {
