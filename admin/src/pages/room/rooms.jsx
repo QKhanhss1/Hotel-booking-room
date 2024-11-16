@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import Navbar from "../navbar/Navbar";
 
 function Rooms() {
   const [searchParams] = useSearchParams();
@@ -291,7 +292,8 @@ function Rooms() {
 
   return (
     <div className="w-full overflow-x-hidden">
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      <Navbar />
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{ marginLeft: '220px' }}>
         {/* Header section */}
         {hotel && (
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
