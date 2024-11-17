@@ -1,14 +1,22 @@
 import React from "react";
 import "./navbar.css";
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
 function Navbar() {
+  const navigate = useNavigate(); // Khởi tạo useNavigate
+
+  const handleLogout = () => {
+    // Xóa thông tin người dùng khỏi local storage
+    localStorage.removeItem("user"); // Hoặc sessionStorage.removeItem("user") nếu bạn sử dụng session storage
+
+    // Chuyển hướng về trang đăng nhập
+    navigate("/login"); // Thay đổi đường dẫn nếu cần
+  };
   return (
     <div className="layout">
       {/* Navbar */}
       <div className="navbar">
         <input type="text" className="search-bar" placeholder="Tìm kiếm..." />
-        <button className="btn">Đăng xuất</button>
+        <button className="btn"  onClick={handleLogout}>Đăng xuất</button>
       </div>
 
       {/* Sidebar */}
