@@ -44,19 +44,19 @@ mongoose.connection.on("disconnected", () => {
 
 //middlewares
 app.use(cors({
-  origin: "http://localhost:3000", // Chỉ cho phép yêu cầu từ localhost:3000
+  origin: ['http://localhost:3000', 'http://localhost:3002'],
   credentials: true, // Cho phép gửi cookie
 }));
 app.use(cookieParser());
 app.use(express.json());
 
-app.use("/api", imageRoutes); 
+app.use("/api", imageRoutes);
 app.use("/api/auth", authRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 app.use("/api/rooms", roomsRoute);
 app.use("/api/favorites", favoriteRoute);
-app.use("/api/payment",paymentRoute)
+app.use("/api/payment", paymentRoute)
 
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
