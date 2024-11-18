@@ -1,67 +1,92 @@
 import express from 'express';
 import config from 'config';
 import crypto from 'crypto';
+import moment from 'moment';
+import querystring from 'qs';
 
 const router = express.Router();
 
-// VNPay Payment route
+// Hàm sắp xếp tham số theo thứ tự tăng dần (A-Z)
+const sortObject = (obj) => {
+    const sorted = {};
+    Object.keys(obj)
+        .sort()
+        .forEach((key) => {
+            sorted[key] = obj[key]; // Không encode ở đây
+        });
+    return sorted;
+};
+
+// Hàm tạo Secure Hash
+const createSecureHash = (params, secretKey) => {
+    // Lọc chỉ tham số bắt đầu với "vnp_"
+    const filteredParams = {};
+    Object.keys(params)
+        .filter(key => key.startsWith('vnp_'))
+        .sort()
+        .forEach(key => {
+            filteredParams[key] = params[key]; // Không encode
+        });
+
+    const queryString = querystring.stringify(filteredParams, { encode: false }); // Không mã hóa
+    console.log("String to Sign:", queryString); // Kiểm tra chuỗi ký
+
+    const hmac = crypto.createHmac('sha512', secretKey);
+    return hmac.update(queryString).digest('hex');
+};
+
+// Route xử lý tạo URL thanh toán VNPay
 router.post('/vnpay', (req, res) => {
-    try {
-        const { selectedRooms, hotelId, totalPrice } = req.body;
-        const transactionId = `VNPAY${Date.now()}`; // ID giao dịch duy nhất
-        if (!selectedRooms || !hotelId || !totalPrice) {
-            return res.status(400).json({ error: "Missing required parameters" });
-        }
+    const { selectedRooms, hotelId, totalPrice } = req.body;
 
-        // Your VNPay payment logic here
-        const vnp_Params = {
-            vnp_Version: '2.1.0',
-            vnp_Command: 'pay',
-            vnp_TmnCode: config.get('vnp_TmnCode'),
-            vnp_Amount: totalPrice * 100, // Convert amount to VND (VNPay expects the value in cents)
-            vnp_CreateDate: new Date().toISOString().replace(/[-T:.Z]/g, ''),
-            vnp_CurrCode: 'VND',
-            vnp_IpAddr: req.ip,
-            vnp_Locale: 'vn',
-            vnp_OrderInfo: `Payment for rooms in hotel ${hotelId}`,
-            vnp_OrderType: 'other',
-            vnp_ReturnUrl: config.get('vnp_ReturnUrl'),
-            vnp_TxnRef: crypto.randomBytes(10).toString('hex'),
-        };
-
-        // Create the secure hash
-        const queryString = new URLSearchParams(vnp_Params).toString();
-        const hashData = config.get('vnp_HashSecret') + queryString;
-        vnp_Params.vnp_SecureHash = crypto.createHash('sha256').update(hashData).digest('hex');
-
-        // Send the response with the VNPay URL
-        res.json({ url: `${config.get('vnp_Url')}?${new URLSearchParams(vnp_Params)}` });
-
-    } catch (error) {
-        console.error("Error processing VNPay payment:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+    if (!selectedRooms || !hotelId || !totalPrice) {
+        return res.status(400).json({ error: 'Missing required parameters' });
     }
+
+    const createDate = moment().format('YYYYMMDDHHmmss');
+    const orderId = moment().format('DDHHmmss');
+
+    const vnp_Params = {
+        vnp_Version: '2.1.0',
+        vnp_Command: 'pay',
+        vnp_TmnCode: config.get('vnp_TmnCode'),
+        vnp_Amount: totalPrice * 100,
+        vnp_CreateDate: createDate,
+        vnp_CurrCode: 'VND',
+        vnp_IpAddr: req.headers['x-forwarded-for'] || req.ip,  // Lấy địa chỉ IP thực tế của client
+        vnp_Locale: 'vn',
+        vnp_OrderInfo: `Payment for rooms in hotel ${hotelId}`,
+        vnp_OrderType: 'other',
+        vnp_ReturnUrl: config.get('vnp_ReturnUrl'),
+        vnp_TxnRef: orderId,
+    };
+
+    const secureHash = createSecureHash(vnp_Params, config.get('vnp_HashSecret'));
+    
+    vnp_Params['vnp_SecureHash'] = secureHash;
+
+    const paymentUrl = `${config.get('vnp_Url')}?${querystring.stringify(vnp_Params, { encode: false })}`;
+    res.json({ url: paymentUrl });
 });
+
+// Route xử lý phản hồi từ VNPay
 router.post('/vnpay_return', (req, res) => {
-    const vnp_SecureHash = req.body.vnp_SecureHash;
-    const vnp_Params = req.body;
+    const { vnp_SecureHash, ...vnp_Params } = req.body;
 
-    // Tạo lại chuỗi hash với tham số từ VNPay và so sánh với vnp_SecureHash
-    const queryString = new URLSearchParams(vnp_Params).toString();
-    const hashData = config.get('vnp_HashSecret') + queryString;
-    const checkSecureHash = crypto.createHash('sha256').update(hashData).digest('hex');
+    console.log("VNPay Response:", vnp_Params);
 
-    if (checkSecureHash !== vnp_SecureHash) {
-        return res.status(400).json({ error: "Invalid secure hash" });
+    const secureHash = createSecureHash(vnp_Params, config.get('vnp_HashSecret'));
+    console.log("Generated Secure Hash:", secureHash);
+    console.log("VNPay Secure Hash:", vnp_SecureHash);
+
+    if (secureHash !== vnp_SecureHash) {
+        return res.status(400).json({ error: 'Invalid Secure Hash' });
     }
 
-    // Kiểm tra trạng thái giao dịch
     if (vnp_Params.vnp_ResponseCode === '00') {
-        // Giao dịch thành công
-        res.send('Payment successful');
+        res.json({ message: 'Payment successful', data: vnp_Params });
     } else {
-        // Giao dịch không thành công
-        res.send('Payment failed');
+        res.json({ message: 'Payment failed', data: vnp_Params });
     }
 });
 

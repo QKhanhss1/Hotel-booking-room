@@ -1,15 +1,15 @@
-import { createContext, useReducer } from "react";
+import { createContext, useReducer, useEffect } from "react";
 
 const INITIAL_STATE = {
   destination: "",
-  dates: [
+  dates: JSON.parse(localStorage.getItem("dates")) || [
     {
       startDate: new Date(),
       endDate: new Date(),
       key: "selection",
     },
   ],
-  options: {
+  options: JSON.parse(localStorage.getItem("options")) || {
     adult: 1,
     children: 0,
     room: 1,
@@ -26,6 +26,8 @@ const SearchReducer = (state, action) => {
       return { ...state, destination: action.payload };
     case "UPDATE_DATES":
       return { ...state, dates: action.payload };
+    case "UPDATE_OPTIONS":
+      return { ...state, options: action.payload };
     default:
       return state;
   }
@@ -33,6 +35,12 @@ const SearchReducer = (state, action) => {
 
 export const SearchContextProvider = ({ children }) => {
   const [state, dispatch] = useReducer(SearchReducer, INITIAL_STATE);
+
+  // Lưu dates và options vào localStorage mỗi khi chúng thay đổi
+  useEffect(() => {
+    localStorage.setItem("dates", JSON.stringify(state.dates));
+    localStorage.setItem("options", JSON.stringify(state.options));
+  }, [state.dates, state.options]);
 
   return (
     <SearchContext.Provider

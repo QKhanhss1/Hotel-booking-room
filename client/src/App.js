@@ -9,6 +9,7 @@ import FavoritePage from "./pages/fa/FavoritePage";
 import { FavoriteContextProvider } from "./context/FavoriteContext";
 import { useContext } from "react";
 import { AuthContext, AuthContextProvider } from "./context/AuthContext"; 
+import Payment from "./pages/payment/payment";
 function App() {
   const { user } = useContext(AuthContext);
 
@@ -23,6 +24,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signUp" element={<SingUp />} />
             <Route path="/favorites" element={<FavoritePage />} />
+            <Route path="/payment" element={<Payment />} />
           </Routes>
         </BrowserRouter>
       </FavoriteContextProvider>

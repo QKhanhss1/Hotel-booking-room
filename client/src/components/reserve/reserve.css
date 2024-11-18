@@ -1,3 +1,4 @@
+/* Reserve container */
 .reserve {
   width: 100vw;
   height: 100vh;
@@ -52,7 +53,7 @@
   font-weight: 500;
 }
 
-.rSelectRooms{
+.rSelectRooms {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
@@ -60,11 +61,20 @@
   color: gray;
 }
 
-.room{
+.room {
   display: flex;
   flex-direction: column;
 }
 
+/* Disabled checkbox style */
+input[type="checkbox"]:disabled {
+  cursor: not-allowed; /* Indicate non-interactive state */
+  background-color: #d3d3d3; /* Light gray background */
+  border-color: #a9a9a9; /* Gray border */
+  color: #a9a9a9; 
+}
+
+/* Button style */
 .rButton {
   border: none;
   padding: 10px 20px;
@@ -75,4 +85,9 @@
   border-radius: 5px;
   width: 100%;
   margin-top: 20px;
+}
+
+.rButton:disabled {
+  background-color: #a9a9a9; 
+  cursor: not-allowed;
 }

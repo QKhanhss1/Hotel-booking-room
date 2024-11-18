@@ -29,30 +29,30 @@ const Hotel = () => {
 
   const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
   function dayDifference(date1, date2) {
-    const timeDiff = Math.abs(date2.getTime() - date1.getTime());
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    const timeDiff = Math.abs(d2.getTime() - d1.getTime());
     return Math.ceil(timeDiff / MILLISECONDS_PER_DAY);
   }
 
   //Lưu Giá tiền vào localStorage
   const [totalprice, setTotalPrice] = useState(() => {
-    
+
     const storedPrice = localStorage.getItem("totalprice");
-    return storedPrice ? parseFloat(storedPrice) : 1; 
+    return storedPrice ? parseFloat(storedPrice) : 1;
   });
 
 
   const days = dates?.[0] ? dayDifference(dates[0].endDate, dates[0].startDate) : 0;
 
 
-  { console.log('giá:',totalprice) }
-
-  console.log('days:',days)
+  console.log('days:', days)
   // Kiểm tra xem khách sạn có trong danh sách yêu thích không
   useEffect(() => {
     setIsFavorite(favorites.some((hotel) => hotel._id === id));
   }, [favorites, id]);
 
-  
+
   useEffect(() => {
     if (data && options.room && days) {
       const calculatedPrice = days * data.cheapestPrice * options.room;
