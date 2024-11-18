@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Rooms from "./pages/room/rooms.jsx";
 import Hotels from "./pages/hotels/hotels.jsx";
 import Login from "./pages/login/login.jsx";
+import Users from "./pages/users/Users.jsx";
+
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 import "./index.css";
@@ -19,6 +21,8 @@ function App() {
             <Route path="/room" element={<Rooms />} />
             <Route path="/hotel/:id/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<Rooms />} />
+            <Route path="/users" element={<Users />} />
+
           </>
         )}
         <Route path="/login" element={<Login />} />
