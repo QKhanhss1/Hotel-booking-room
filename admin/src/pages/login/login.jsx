@@ -27,7 +27,7 @@ const Login = () => {
             if (res.data.isAdmin) {
                 if (res.data.token) {
                     localStorage.setItem("token", res.data.token);
-                dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
+                    dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
                     console.log("có token")
                 } else {
                     console.log("không có token")
