@@ -5,11 +5,13 @@ import List from "./pages/list/List";
 import Login from "./pages/login/Login";
 import SingUp from "./pages/singup/singUp";
 import FavoritePage from "./pages/fa/FavoritePage";
+import { HashRouter } from "react-router-dom"; 
 
 import { FavoriteContextProvider } from "./context/FavoriteContext";
 import { useContext } from "react";
 import { AuthContext, AuthContextProvider } from "./context/AuthContext"; 
 import Payment from "./pages/payment/payment";
+import PaymentStatus from "./pages/payment/paymentStatus";
 function App() {
   const { user } = useContext(AuthContext);
 
@@ -25,6 +27,7 @@ function App() {
             <Route path="/signUp" element={<SingUp />} />
             <Route path="/favorites" element={<FavoritePage />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/payment/:status" element={<PaymentStatus />} />
           </Routes>
         </BrowserRouter>
       </FavoriteContextProvider>

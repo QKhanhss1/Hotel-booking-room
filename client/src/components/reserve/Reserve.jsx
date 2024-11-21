@@ -59,7 +59,12 @@ const Reserve = ({ setOpen, hotelId }) => {
       const roomPricesMap = {};
       data.forEach((room) => {
         room.roomNumbers.forEach((roomNumber) => {
-          roomPricesMap[roomNumber._id] = room.price || 0;
+          roomPricesMap[roomNumber._id] = 
+          {
+            price: room.price || 0,
+            title: room.title || "Unknown Room"
+          }
+          
         });
       });
       setRoomPrices(roomPricesMap);
@@ -73,10 +78,14 @@ const Reserve = ({ setOpen, hotelId }) => {
     }
 
     const totalPrice = selectedRooms.reduce((total, roomId) => {
-      const roomPrice = roomPrices[roomId] || 0;
-      return total + roomPrice * days;
+      const room = roomPrices[roomId] || {};
+      return total + (room.price || 0) * days;
     }, 0);
-
+    const selectedRoomDetails = selectedRooms.map((roomId) => ({
+      title: roomPrices[roomId]?.title || "Unknown Room",
+      price: roomPrices[roomId]?.price || 0,
+    }));
+    console.log("Selected Room Details:", selectedRoomDetails);
     try {
       await Promise.all(
         selectedRooms.map((roomId) =>
@@ -88,7 +97,11 @@ const Reserve = ({ setOpen, hotelId }) => {
 
       localStorage.setItem(
         "reservationData",
-        JSON.stringify({ totalPrice, selectedRooms, hotelId })
+        JSON.stringify({ 
+          totalPrice, 
+          selectedRooms: selectedRoomDetails, 
+          hotelId 
+        })
       );
       setShowPaymentModal(true);
       console.log("Modal Payment Sẽ Mở.");

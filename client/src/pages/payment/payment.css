@@ -1,58 +1,167 @@
+/* Modal payment */
 .payment-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6); /* Để làm nền tối */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  
-  .payment-container {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    width: 400px; /* Bạn có thể điều chỉnh chiều rộng tùy ý */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
-  }
-  
-  .payment-container h1 {
-    font-size: 24px;
-    margin-bottom: 20px;
-  }
-  
-  .payment-container p {
-    font-size: 16px;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  .payment-container button {
-    background-color: #4CAF50;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 5px;
-    margin: 10px;
-    width: 100%;
-    transition: background-color 0.3s ease;
-  }
-  
-  .payment-container button:hover {
-    background-color: #45a049;
-  }
-  
-  .payment-container .cancel-button {
-    background-color: #f44336;
-  }
-  
-  .payment-container .cancel-button:hover {
-    background-color: #e53935;
-  }
-  
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6); /* Để làm nền tối */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.payment-container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.payment-container h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.payment-container p {
+  font-size: 16px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.payment-container button {
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin: 10px;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+.payment-container button:hover {
+  background-color: #45a049;
+}
+
+.payment-container .cancel-button {
+  background-color: #f44336;
+}
+
+.payment-container .cancel-button:hover {
+  background-color: #e53935;
+}
+
+/* Body container */
+.body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Chiều cao toàn bộ viewport */
+  margin: 0;
+  background-color: #f8f8f8;
+}
+
+/* Container */
+.container {
+  text-align: center;
+}
+
+/* Title */
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+/* Description */
+.description {
+  color: gray;
+  margin-top: 10px;
+  font-size: 1rem;
+}
+
+/* Button */
+.button {
+  display: inline-block;
+  background-color: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  text-decoration: none;
+  margin-top: 20px;
+  font-size: 1rem;
+}
+/* Font Awesome Icons */
+.icon {
+  font-size: 70px;
+}
+
+.error-icon {
+  font-size: 50px; /* Kích thước biểu tượng lỗi */
+  color: red; /* Màu đỏ */
+  margin-bottom: 20px; /* Khoảng cách phía dưới biểu tượng */
+}
+
+.success {
+  color: #28a745; /* Màu xanh lá cho thành công */
+}
+
+.payment-container ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.success-icon {
+  font-size: 50px; /* Kích thước biểu tượng thành công */
+  color: #28a745; /* Màu xanh lá */
+  margin-bottom: 20px;
+}
+
+/* Tiêu đề và mô tả chung */
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.error {
+  color: #dc3545; /* Màu đỏ cho lỗi */
+}
+
+/* CSS cho các button */
+.button-error {
+  display: inline-block;
+  background-color: #dc3545;  /* Màu đỏ cho lỗi */
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  text-decoration: none;
+  margin-top: 20px;
+  font-size: 1rem;
+}
+
+.button-error:hover {
+  background-color: #c82333;  /* Đổi sang màu đỏ đậm khi hover */
+}
+
+.button-success {
+  display: inline-block;
+  background-color: #28a745;  /* Màu xanh lá cho thành công */
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  text-decoration: none;
+  margin-top: 20px;
+  font-size: 1rem;
+}
+
+.button-success:hover {
+  background-color: #218838;  /* Đổi sang màu xanh đậm khi hover */
+}

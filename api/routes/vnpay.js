@@ -156,13 +156,13 @@ router.get('/vnpay_return', function (req, res, next) {
     if (secureHash === signed) {
         // Xác định trạng thái giao dịch
         let orderStatus = vnp_Params['vnp_ResponseCode'] === '00' ? 'success' : 'error';
-        console.log("Order status:", orderStatus);
-
+        let total = vnp_Params['vnp_Amount'] ? parseInt(vnp_Params['vnp_Amount'], 10) / 100 : 0; 
+    
         // Trả về trang thành công hoặc lỗi tương ứng
         const redirectToPaymentSuccessPage = (status) => `
         <html>
         <head>
-            <meta http-equiv="refresh" content="0; url=http://localhost:3000/payment=${status}" />
+            <meta http-equiv="refresh" content="0; url=http://localhost:3000/payment/${status}?amount=${total}" />
         </head>
         <body>
             <p>Redirecting to payment ${status} page...</p>
@@ -171,13 +171,10 @@ router.get('/vnpay_return', function (req, res, next) {
         `;
 
         // Trả về trang sau khi kiểm tra thành công
-        res.status(200).send(redirectToPaymentSuccessPage(orderStatus));
+        res.status(200).send(redirectToPaymentSuccessPage(orderStatus,total));
     } else {
         console.error("Signature validation failed");
         res.status(400).send("Invalid signature");
     }
 });
-
-
-
 export default router;
