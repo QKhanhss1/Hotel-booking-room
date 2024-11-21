@@ -1,0 +1,154 @@
+.users-container {
+  margin-top: 70px; 
+  display: flex;
+  justify-content: center; 
+  align-items: center; /* Đặt form và bảng nằm chính giữa */
+  padding: 20px;
+  flex-direction: column; 
+}
+
+
+
+.users {
+  padding: 30px; 
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Cải tiến bảng người dùng */
+.usersTable {
+  max-width: 90%; 
+  margin: 0 auto; 
+  margin-top: 20px; 
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Cải tiến định dạng ô bảng */
+.usersTable th,
+.usersTable td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: left;
+  font-size: 14px;
+}
+
+/* Đổi màu nền cho header */
+.usersTable th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+/* Định dạng nút xóa */
+.deleteButton {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.deleteButton:hover {
+  background-color: #c0392b;
+}
+
+/* Hover cho dòng bảng */
+.usersTable tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Button cho hành động "Chỉnh sửa" */
+.editButton {
+  background-color: #4CAF50;
+  color: white;
+  padding: 5px 10px;
+  margin: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  background-color: #45a049;
+}
+
+/* Form chỉnh sửa */
+.editForm {
+  width: 50%; /* Giới hạn chiều rộng form */
+  margin: 20px auto; /* Căn giữa form */
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.editForm label {
+  font-size: 16px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.editForm select {
+  padding: 10px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  width: 100%;
+  max-width: 300px;
+}
+
+.editForm button {
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin: 5px; /* Khoảng cách giữa các nút */
+}
+
+.editForm button:hover {
+  background-color: #2980b9;
+}
+
+.editForm .cancelButton {
+  background-color: #e74c3c;
+}
+
+.editForm .cancelButton:hover {
+  background-color: #c0392b;
+}
+.saveButton, .cancelButton {
+  margin-top: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.saveButton {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.saveButton:hover {
+  background-color: #45a049;
+}
+
+.cancelButton {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: #da190b;
+}

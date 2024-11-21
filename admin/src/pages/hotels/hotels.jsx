@@ -1,8 +1,11 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
+import { AuthContext } from "../../context/AuthContext";
+
 function Hotels() {
+  const { user } = useContext(AuthContext);
   const [hotels, setHotels] = useState([]);
   const [newHotel, setNewHotel] = useState({
     name: "",
@@ -11,8 +14,9 @@ function Hotels() {
     desc: "",
     rating: "",
     cheapestPrice: "",
-    // type
-    // photos:[],
+    type: "",
+    distance: "",
+    title: "",
   });
   const [selectedImage, setSelectedImage] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -62,7 +66,7 @@ function Hotels() {
     const file = event.target.files[0];
     if (file) {
       setSelectedImage(file);
-      console.log("Selected image:", file); // Thêm log để kiểm tra
+      console.log("Selected image:", file);
     } else {
       console.log("Không có ảnh nào được chọn");
     }
@@ -72,21 +76,22 @@ function Hotels() {
     try {
       if (
         !newHotel.name ||
+        !newHotel.type ||
         !newHotel.city ||
         !newHotel.address ||
+        !newHotel.desc ||
         !newHotel.cheapestPrice
       ) {
         alert("Vui lòng điền đầy đủ thông tin!");
         return;
       }
 
-
       // Bước 1: Tải ảnh lên server
       const formData = new FormData();
-      formData.append('image', selectedImage);
+      formData.append("image", selectedImage);
       const imageResponse = await axios.post("http://localhost:8800/api/upload", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -97,10 +102,14 @@ function Hotels() {
         photos: imageResponse.data._id, // Giả sử server trả về ID của ảnh đã lưu
       };
 
-
       const response = await axios.post(
         "http://localhost:8800/api/hotels",
-        newHotelData
+        newHotelData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+          },
+        }
       );
 
       setHotels([...hotels, response.data]);
@@ -113,6 +122,8 @@ function Hotels() {
         rating: "",
         cheapestPrice: "",
         type: "",
+        distance: "",
+        title: "",
         photos: null,
       });
       setShowAddForm(false);
@@ -123,17 +134,22 @@ function Hotels() {
       alert("Có lỗi xảy ra khi thêm khách sạn: " + error.message);
     }
   };
+
   const handleHotelClick = (hotelId) => {
-    // Chuyển hướng đến trang rooms với hotelId
-    // Ngăn chặn sự kiện lan truyền
-    console.log("Navigating to hotel:", hotelId); // Debug log
+    console.log("Navigating to hotel:", hotelId);
     navigate(`/rooms/${hotelId}`);
   };
+
   const handleUpdate = async (id) => {
     try {
       const response = await axios.put(
         `http://localhost:8800/api/hotels/${id}`,
-        editingHotel
+        editingHotel,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+          },
+        }
       );
       setHotels(
         hotels.map((hotel) => (hotel._id === id ? response.data : hotel))
@@ -147,9 +163,16 @@ function Hotels() {
   };
 
   const handleDelete = async (id) => {
+    console.log("Xác nhận xóa khách sạn với ID:", id);
+    const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa khách sạn này không?");
+    if (!confirmDelete) return;
     try {
-      await axios.delete(`http://localhost:8800/api/hotels/${id}`);
-      setHotels(hotels.filter((hotel) => hotel._id !== id)); // Xóa khách sạn khỏi danh sách
+      await axios.delete(`http://localhost:8800/api/hotels/${id}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+        },
+      });
+      setHotels(hotels.filter((hotel) => hotel._id !== id));
     } catch (error) {
       console.error("Error deleting hotel:", error);
     }
@@ -182,8 +205,8 @@ function Hotels() {
 
   return (
     <div className="w-full overflow-x-hidden">
-       <Navbar />
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{marginLeft:'220px'}}>
+      <Navbar />
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{ marginLeft: '220px' }}>
         <div className="flex justify-between items-center mb-12 px-4">
           <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
             Danh Sách Khách Sạn
@@ -210,14 +233,13 @@ function Hotels() {
                   }
                   className="p-2 border rounded-md"
                 />
-                {/* <input
-                                    type="text"
-                                    placeholder="Thành phố"
-                                    value={newHotel.city}
-                                    onChange={(e) => setNewHotel({...newHotel, city: e.target.value})}
-                                    className="p-2 border rounded-md"
-                                />
-                                 */}
+                <input
+                  type="text"
+                  placeholder="Loại khách sạn"
+                  value={newHotel.type}
+                  onChange={(e) => setNewHotel({ ...newHotel, type: e.target.value })}
+                  className="p-2 border rounded-md"
+                />
                 <input
                   type="text"
                   placeholder="Thành phố"
@@ -233,6 +255,24 @@ function Hotels() {
                   value={newHotel.address}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, address: e.target.value })
+                  }
+                  className="p-2 border rounded-md"
+                />
+                <input
+                  type="text"
+                  placeholder="Khoảng cách"
+                  value={newHotel.distance}
+                  onChange={(e) =>
+                    setNewHotel({ ...newHotel, distance: e.target.value })
+                  }
+                  className="p-2 border rounded-md"
+                />
+                <input
+                  type="text"
+                  placeholder="Tiêu đề"
+                  value={newHotel.title}
+                  onChange={(e) =>
+                    setNewHotel({ ...newHotel, title: e.target.value })
                   }
                   className="p-2 border rounded-md"
                 />
@@ -262,7 +302,6 @@ function Hotels() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-
                   className="p-2 border rounded-md"
                 />
               </div>
@@ -280,9 +319,6 @@ function Hotels() {
               <div className="md:col-span-2 flex justify-end">
                 <button
                   onClick={handleCreate}
-                  Thêm
-                  Khách
-                  Sạn
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   Thêm Khách Sạn
@@ -322,10 +358,10 @@ function Hotels() {
                   />
                   <input
                     type="text"
-                    placeholder="Thành phố"
-                    value={editingHotel.city}
+                    placeholder="Loại"
+                    value={editingHotel.type}
                     onChange={(e) =>
-                      setEditingHotel({ ...editingHotel, city: e.target.value })
+                      setEditingHotel({ ...editingHotel, type: e.target.value })
                     }
                     className="p-2 border rounded-md"
                   />
@@ -346,6 +382,30 @@ function Hotels() {
                       setEditingHotel({
                         ...editingHotel,
                         address: e.target.value,
+                      })
+                    }
+                    className="p-2 border rounded-md"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Khoảng cách"
+                    value={editingHotel.distance}
+                    onChange={(e) =>
+                      setEditingHotel({
+                        ...editingHotel,
+                        distance: e.target.value,
+                      })
+                    }
+                    className="p-2 border rounded-md"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Tiêu đề"
+                    value={editingHotel.title}
+                    onChange={(e) =>
+                      setEditingHotel({
+                        ...editingHotel,
+                        title: e.target.value,
                       })
                     }
                     className="p-2 border rounded-md"
@@ -441,17 +501,15 @@ function Hotels() {
         <div className="Room w-full max-w-full mx-auto px-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-8 auto-rows-fr">
             {hotels.map((hotel) => (
-            
               <div
                 key={hotel._id}
                 className="Room-1 flex-col justify-start items-start gap-2 flex px-2"
-
               >
                 <div className="flex flex-col items-center h-full w-full">
                   <img
                     className="Image h-60 relative w-full object-cover rounded-lg"
                     src={`http://localhost:8800/api/images/${hotel.photos}`}
-                    alt="Uploaded Image"
+                    alt={hotel.name}
                     onClick={() => handleHotelClick(hotel._id)}
                   />
 
@@ -462,7 +520,7 @@ function Hotels() {
                   {/* Loại khách sạn */}
                   <div className="Type flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
                     <span className="font-semibold">Loại khách sạn:</span>
-                    <span>{hotelTypes[hotel.type] || "Đang cập nhật"}</span>
+                    <span>{hotel.type}</span>
                   </div>
 
                   {/* Thành phố */}
@@ -475,6 +533,18 @@ function Hotels() {
                   <div className="Address flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
                     <span className="font-semibold">Địa chỉ:</span>
                     <span>{hotel.address}</span>
+                  </div>
+
+                  {/* Khoảng cách */}
+                  <div className="Distance flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
+                    <span className="font-semibold">Khoảng cách:</span>
+                    <span>{hotel.distance}</span>
+                  </div>
+
+                  {/* Tiêu đề */}
+                  <div className="Title flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
+                    <span className="font-semibold">Tiêu đề:</span>
+                    <span>{hotel.title}</span>
                   </div>
 
                   {/* Đánh giá */}

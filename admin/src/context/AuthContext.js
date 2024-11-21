@@ -18,7 +18,7 @@ const AuthReducer = (state, action) => {
       };
     case "LOGIN_SUCCESS":
       return {
-        user: action.payload,
+        user: { ...action.payload, token: localStorage.getItem("token") },
         loading: false,
         error: null,
       };

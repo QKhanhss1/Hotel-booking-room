@@ -10,6 +10,7 @@ const Login = () => {
         password: undefined,
     });
 
+
     const { loading, error, dispatch } = useContext(AuthContext);
 
     const navigate = useNavigate();
@@ -24,7 +25,13 @@ const Login = () => {
         try {
             const res = await axios.post("/auth/login", credentials);
             if (res.data.isAdmin) {
-                dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
+                if (res.data.token) {
+                    localStorage.setItem("token", res.data.token);
+                    dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
+                    console.log("có token")
+                } else {
+                    console.log("không có token")
+                }
 
                 navigate("/");
             } else {
