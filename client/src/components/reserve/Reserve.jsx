@@ -59,12 +59,12 @@ const Reserve = ({ setOpen, hotelId }) => {
       const roomPricesMap = {};
       data.forEach((room) => {
         room.roomNumbers.forEach((roomNumber) => {
-          roomPricesMap[roomNumber._id] = 
+          roomPricesMap[roomNumber._id] =
           {
             price: room.price || 0,
             title: room.title || "Unknown Room"
           }
-          
+
         });
       });
       setRoomPrices(roomPricesMap);
@@ -97,10 +97,10 @@ const Reserve = ({ setOpen, hotelId }) => {
 
       localStorage.setItem(
         "reservationData",
-        JSON.stringify({ 
-          totalPrice, 
-          selectedRooms: selectedRoomDetails, 
-          hotelId 
+        JSON.stringify({
+          totalPrice,
+          selectedRooms: selectedRoomDetails,
+          hotelId
         })
       );
       setShowPaymentModal(true);
@@ -116,7 +116,10 @@ const Reserve = ({ setOpen, hotelId }) => {
         <FontAwesomeIcon
           icon={faCircleXmark}
           className="rClose"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setSelectedRooms([]); // Reset danh sách phòng đã chọn
+            setOpen(false); // Đóng modal
+          }}
         />
         <span>Select your rooms:</span>
 
@@ -165,7 +168,7 @@ const Reserve = ({ setOpen, hotelId }) => {
         <div className="modal-overlay">
           <Payment onClose={() => setShowPaymentModal(false)} />
         </div>
-        )}
+      )}
     </div>
   );
 };
