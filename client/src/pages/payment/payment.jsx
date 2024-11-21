@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 
 const Payment = () => {
   const [reservationData, setReservationData] = useState(null);
-  const [total, totalMoney] = useState(null);
-
+  
   useEffect(() => {
     // Lấy dữ liệu từ localStorage
     const data = localStorage.getItem("reservationData");
@@ -26,22 +25,17 @@ const Payment = () => {
     try {
       const newPayment = {
         bankCode: null,
-        selectedRooms,
-        hotelId,
-        totalPrice,
+        amount: totalPrice,
         language: "vn",
       };
       const response = await axios.post(
-        `http://localhost:8800/api/payment/vnpay`,
+        "http://localhost:8800/api/v1/vnpay/create_payment_url",
         newPayment
       );
   
-      if (response.status === 200 && response.data?.url) {
-        // Chuyển hướng đến URL trả về
-        window.location.href = response.data.url;
-      } else {
-        console.error("Invalid response format:", response.data);
-      }
+      if (response.status === 200 && response.data) {
+				window.location.href = response.data
+			}
     } catch (err) {
       alert(`Lỗi: ${err.message}`);
     }
