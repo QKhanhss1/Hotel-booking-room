@@ -6,12 +6,14 @@ import { useContext, useState, useEffect } from "react";
 import { SearchContext } from "../../context/SearchContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Payment from "../../pages/payment/payment";
 
 const Reserve = ({ setOpen, hotelId }) => {
   const [selectedRooms, setSelectedRooms] = useState([]);
   const { data, loading, error } = useFetch(`/hotels/room/${hotelId}`);
   const [roomPrices, setRoomPrices] = useState({});
   const { dates } = useContext(SearchContext);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
 
   // Hàm lấy danh sách ngày trong phạm vi
@@ -88,8 +90,8 @@ const Reserve = ({ setOpen, hotelId }) => {
         "reservationData",
         JSON.stringify({ totalPrice, selectedRooms, hotelId })
       );
-      navigate("/payment");
-      setOpen(false);
+      setShowPaymentModal(true);
+      console.log("Modal Payment Sẽ Mở.");
     } catch (err) {
       console.error("Error updating room availability:", err);
     }
@@ -146,6 +148,11 @@ const Reserve = ({ setOpen, hotelId }) => {
           Reserve Now!
         </button>
       </div>
+      {showPaymentModal && (
+        <div className="modal-overlay">
+          <Payment onClose={() => setShowPaymentModal(false)} />
+        </div>
+        )}
     </div>
   );
 };

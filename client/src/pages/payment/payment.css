@@ -1,0 +1,58 @@
+.payment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6); /* Để làm nền tối */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .payment-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px; /* Bạn có thể điều chỉnh chiều rộng tùy ý */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .payment-container h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .payment-container p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .payment-container button {
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 10px;
+    width: 100%;
+    transition: background-color 0.3s ease;
+  }
+  
+  .payment-container button:hover {
+    background-color: #45a049;
+  }
+  
+  .payment-container .cancel-button {
+    background-color: #f44336;
+  }
+  
+  .payment-container .cancel-button:hover {
+    background-color: #e53935;
+  }
+  
