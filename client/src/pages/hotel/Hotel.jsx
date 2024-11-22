@@ -1,6 +1,8 @@
 import "./hotel.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
+import Comment from "../../components/comments/comment";
+import Rating from "../../components/rating-hotel/rating";
 import MailList from "../../components/mailList/MailList";
 import Footer from "../../components/footer/Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -195,6 +197,8 @@ const Hotel = () => {
               </div>
             </div>
           </div>
+          <Rating />
+          <Comment />
           <MailList />
           <Footer />
         </div>

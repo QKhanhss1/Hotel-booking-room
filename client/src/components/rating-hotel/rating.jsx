@@ -20,11 +20,6 @@ const Rating = () => {
         setIsRatingVisible(false); // Ẩn thanh sao sau khi đánh giá
     };
 
-    const handleEditRating = () => {
-        setIsRated(false); // Cho phép sửa đánh giá
-        setIsRatingVisible(true); // Hiện lại thanh sao
-    };
-
     return (
         <div className="rating-container">
             <div className="reviews-count">
@@ -36,34 +31,41 @@ const Rating = () => {
                         {isRatingVisible ? "Ẩn đánh giá" : "Đánh giá"}
                     </button>
                 ) : (
-                    <div className="rating-result">
+                    <div className="modal">
+                        <div className="modal-content" onClick={() => setIsRated(false)}>
+                            <div className="rating-result">
+                                <div className="stars">
+                                    <h2 style={{ display: "inline" }}>Bạn đã đánh giá: </h2>
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <span
+                                            key={star}
+                                            style={{ color: star <= rating ? "gold" : "gray", fontSize: "24px", marginLeft: "5px" }}
+                                        >
+                                            ★
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+            {isRatingVisible && (
+                <div className="modal">
+                    <div className="modal-content">
                         <div className="stars">
-                            <h2>Bạn đã đánh giá:</h2>
+                            <h2>Chọn đánh giá của bạn:</h2>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <span
                                     key={star}
-                                    style={{ color: star <= rating ? "gold" : "gray", fontSize: "24px" }}
+                                    onClick={() => handleRating(star)}
+                                    style={{ cursor: "pointer", color: star <= rating ? "gold" : "gray", fontSize: "24px" }}
                                 >
                                     ★
                                 </span>
                             ))}
                         </div>
-                        <button onClick={() => setIsRated(false)}>Ẩn đánh giá</button>
                     </div>
-                )}
-            </div>
-            {isRatingVisible && (
-                <div className="stars">
-                    <h2>Chọn đánh giá của bạn:</h2>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                            key={star}
-                            onClick={() => handleRating(star)}
-                            style={{ cursor: "pointer", color: star <= rating ? "gold" : "gray", fontSize: "24px" }}
-                        >
-                            ★
-                        </span>
-                    ))}
                 </div>
             )}
         </div>
