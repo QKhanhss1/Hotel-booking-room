@@ -5,8 +5,6 @@ import List from "./pages/list/List";
 import Login from "./pages/login/Login";
 import SingUp from "./pages/singup/singUp";
 import FavoritePage from "./pages/fa/FavoritePage";
-import Comment from "./components/comments/comment";
-import Rating from "./components/rating-hotel/rating";
 import { HashRouter } from "react-router-dom"; 
 
 import { FavoriteContextProvider } from "./context/FavoriteContext";
@@ -29,8 +27,6 @@ function App() {
             <Route path="/signUp" element={<SingUp />} />
             <Route path="/favorites" element={<FavoritePage />} />
             <Route path="/payment/:status" element={<PaymentStatus />} />
-            <Route path="/comment" element={<Comment />} />
-            <Route path="/rating" element={<Rating />} />
           </Routes>
         </BrowserRouter>
       </FavoriteContextProvider>
