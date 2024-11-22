@@ -28,7 +28,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signUp" element={<SingUp />} />
             <Route path="/favorites" element={<FavoritePage />} />
-            <Route path="/payment" element={<Payment />} />
             <Route path="/payment/:status" element={<PaymentStatus />} />
             <Route path="/comment" element={<Comment />} />
             <Route path="/rating" element={<Rating />} />
