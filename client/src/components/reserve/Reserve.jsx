@@ -121,10 +121,10 @@ const Reserve = ({ setOpen, hotelId }) => {
             setOpen(false); // Đóng modal
           }}
         />
-        <span>Select your rooms:</span>
+        <span>Chọn phòng bạn muốn:</span>
 
         {loading && <span>Loading...</span>}
-        {error && <span>Error loading data. Please try again later.</span>}
+        {error && <span>Lỗi tải lại trang , vui lòng thử lại.</span>}
 
         {!loading && !error && data?.length > 0 ? (
           data.map((item) => (
@@ -153,7 +153,7 @@ const Reserve = ({ setOpen, hotelId }) => {
             </div>
           ))
         ) : (
-          <span>No rooms available.</span>
+          <span>Không có phòng nào.</span>
         )}
 
         <button
@@ -161,7 +161,7 @@ const Reserve = ({ setOpen, hotelId }) => {
           className="rButton"
           disabled={selectedRooms.length === 0}
         >
-          Reserve Now!
+          Đặt ngay!
         </button>
       </div>
       {showPaymentModal && (
