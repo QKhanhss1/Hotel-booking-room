@@ -10,7 +10,7 @@ import Payment from "../../pages/payment/payment";
 
 const Reserve = ({ setOpen, hotelId }) => {
   const [selectedRooms, setSelectedRooms] = useState([]);
-  const { data, loading, error } = useFetch(`/hotels/room/${hotelId}`);
+  const { data, loading, error } = useFetch(`/hotels/rooms/${hotelId}`);
   const [roomPrices, setRoomPrices] = useState({});
   const { dates } = useContext(SearchContext);
   const [showPaymentModal, setShowPaymentModal] = useState(false);

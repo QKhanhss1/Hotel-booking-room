@@ -45,7 +45,7 @@ mongoose.connection.on("disconnected", () => {
 //middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3002"],
+    origin: ["http://localhost:3000", "http://localhost:3001"],
     credentials: true, // Cho phép gửi cookie
   })
 );
