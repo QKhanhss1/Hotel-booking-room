@@ -106,24 +106,24 @@ function Rooms() {
   }
   const fetchRooms = async () => {
     try {
-      const response = await axios.get("http://localhost:8800/api/rooms");
+      const response = await axios.get( `http://localhost:8800/api/hotels/rooms/${id}`);
       const roomsData = response.data;
+      setRooms(response.data);
+      // console.log("Rooms Data:", roomsData);
+      // // Tạo mapping room-hotel
 
-      console.log("Rooms Data:", roomsData);
-      // Tạo mapping room-hotel
+      // const hotelMapping = {};
+      // for (const room of roomsData) {
+      //   console.log("Fetching hotel for room:", room._id);
+      //   const hotelResponse = await axios.get(
+      //     `http://localhost:8800/api/hotels/room/${room._id}`
+      //   );
+      //   console.log("Hotel Response:", hotelResponse.data);
+      //   hotelMapping[room._id] = hotelResponse.data._id;
+      // }
+      // console.log("Hotel Mapping:", hotelMapping);
 
-      const hotelMapping = {};
-      for (const room of roomsData) {
-        console.log("Fetching hotel for room:", room._id);
-        const hotelResponse = await axios.get(
-          `http://localhost:8800/api/hotels/room/${room._id}`
-        );
-        console.log("Hotel Response:", hotelResponse.data);
-        hotelMapping[room._id] = hotelResponse.data._id;
-      }
-      console.log("Hotel Mapping:", hotelMapping);
-
-      setRoomHotels(hotelMapping);
+      // setRoomHotels(hotelMapping);
       setRooms(roomsData);
     } catch (error) {
       console.error("Error fetching rooms:", error);
@@ -172,27 +172,32 @@ function Rooms() {
         maxPeople: Number(newRoom.maxPeople),
         desc: newRoom.desc,
         roomNumbers: roomNumbersArray,
+        hotelId: id  
       };
       console.log("Room Data sending:", roomData);
       console.log("Hotel ID:", selectedHotelid);
+      console.log("Token:", token);
       // Sử dụng id từ useParams
       const response = await axios.post(
         `http://localhost:8800/api/hotels/rooms/${id}`,
         // `http://localhost:8800/api/hotels/${id}/rooms`,
+        // `http://localhost:8800/api/rooms/${id}`,
         roomData,
         {
           headers: {
             Authorization: `Bearer ${token}`, // Include the token
-          },
+            'Content-Type': 'application/json'
+          }
         }
       );
+      console.log("Room creation response:", response.data);
       // Refresh danh sách phòng
-      if (id) {
-        const roomsResponse = await axios.get(
-          `http://localhost:8800/api/hotels/rooms/${id}`
-        );
-        setRooms(roomsResponse.data);
-      }
+      // if (id) {
+      //   const roomsResponse = await axios.get(
+      //     `http://localhost:8800/api/hotels/rooms/${id}`
+      //   );
+      //   setRooms(roomsResponse.data);
+      // }
       // setRooms([...rooms, response.data]);
       setNewRoom({
         title: "",
@@ -201,6 +206,12 @@ function Rooms() {
         desc: "",
         roomNumbers: [],
       });
+
+      const updatedRoomsResponse = await axios.get(
+        `http://localhost:8800/api/hotels/rooms/${id}`
+    );
+    setRooms(updatedRoomsResponse.data);
+
       // setSelectedHotelid("");
       setIsModalOpen(false);
       alert("Thêm phòng thành công!");
@@ -215,7 +226,8 @@ function Rooms() {
     if (name === "roomNumbers") {
       setNewRoom((prev) => ({
         ...prev,
-        [name]: value,
+        // [name]: value,
+        [name]: value.split(",").map(num => num.trim())
       }));
     } else {
       setNewRoom((prev) => ({
@@ -228,6 +240,24 @@ function Rooms() {
   //  Cập nhật phòng
   const updateRoom = async () => {
     try {
+      const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Bạn cần đăng nhập lại!");
+            return;
+        }
+
+        // Format room numbers
+        const roomNumbersArray = newRoom.roomNumbers
+        .map(num => (typeof num === 'string' ? num.trim() : num))
+        .filter(num => num !== '')
+        .map(num => ({
+            number: parseInt(num),
+            unavailableDates: editingRoom.roomNumbers.find(
+                r => r.number === parseInt(num)
+            )?.unavailableDates || []
+        }))
+        .filter(room => !isNaN(room.number));
+
       const roomData = {
         title: newRoom.title,
         price: Number(newRoom.price),
@@ -239,10 +269,16 @@ function Rooms() {
           },
         ],
       };
-
+  console.log("Updating room with data:", roomData);
       const response = await axios.put(
-        `http://localhost:8800/api/rooms/${editingRoom._id}`,
-        roomData
+        `http://localhost:8800/api/hotels/rooms/${editingRoom._id}`,
+        roomData,
+        {
+          headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+          }
+      }
       );
 
       setRooms(
@@ -288,7 +324,7 @@ function Rooms() {
       }
       // Gọi API xóa phòng
       await axios.delete(
-        `http://localhost:8800/api/rooms/${roomId}/${hotelResponse.data._id}`
+        `http://localhost:8800/api/hotels/rooms/${roomId}/${hotelResponse.data._id}`
       );
       // Cập nhật UI bằng cách lọc bỏ phòng đã xóa
       setRooms(rooms.filter((room) => room._id !== roomId));

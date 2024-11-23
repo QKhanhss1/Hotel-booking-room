@@ -24,26 +24,57 @@ const Login = () => {
         dispatch({ type: "LOGIN_START" });
         try {
             const res = await axios.post("/auth/login", credentials);
-            if (res.data.isAdmin) {
-                if (res.data.token) {
-                    localStorage.setItem("token", res.data.token);
-                    dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
-                    console.log("có token")
-                } else {
-                    console.log("không có token")
-                }
+    //         if (res.data.isAdmin) {
+    //             if (res.data.token) {
+    //                 localStorage.setItem("token", res.data.token);
+    //                 dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
+    //                 console.log("có token")
+    //             } else {
+    //                 console.log("không có token")
+    //             }
 
-                navigate("/");
-            } else {
-                dispatch({
-                    type: "LOGIN_FAILURE",
-                    payload: { message: "You are not allowed!" },
-                });
+    //             navigate("/");
+    //         } else {
+    //             dispatch({
+    //                 type: "LOGIN_FAILURE",
+    //                 payload: { message: "You are not allowed!" },
+    //             });
+    //         }
+    //     } catch (err) {
+    //         dispatch({ type: "LOGIN_FAILURE", payload: err.response.data });
+    //     }
+    // };
+    if (res && res.data) {
+        if (res.data.isAdmin) {
+            // Lưu token nếu có
+            if (res.data.token) {
+                localStorage.setItem("token", res.data.token);
             }
-        } catch (err) {
-            dispatch({ type: "LOGIN_FAILURE", payload: err.response.data });
+            
+            // Kiểm tra details tồn tại trước khi dispatch
+            if (res.data.details) {
+                dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
+            } else {
+                dispatch({ type: "LOGIN_SUCCESS", payload: res.data });
+            }
+            
+            navigate("/");
+        } else {
+            dispatch({
+                type: "LOGIN_FAILURE",
+                payload: { message: "Bạn không có quyền truy cập!" },
+            });
         }
-    };
+    } else {
+        throw new Error("Invalid response format");
+    }
+} catch (err) {
+    dispatch({ 
+        type: "LOGIN_FAILURE", 
+        payload: err.response?.data || { message: "Đăng nhập thất bại!" }
+    });
+}
+};
 
     return (
         <div className="flex items-center justify-center h-screen bg-gray-100">

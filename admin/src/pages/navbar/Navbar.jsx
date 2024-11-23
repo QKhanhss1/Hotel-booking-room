@@ -27,9 +27,9 @@ function Navbar() {
         <Link to="/">
           <button className="nav-btn">Quản lý khách sạn</button>
         </Link>
-        <Link to="/room">
+        {/* <Link to="/room">
           <button className="nav-btn">Quản lý phòng khách sạn</button>
-        </Link>
+        </Link> */}
       </div>
 
       {/* Nội dung chính */}
