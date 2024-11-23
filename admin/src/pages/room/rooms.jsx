@@ -17,6 +17,7 @@ function Rooms() {
   const [roomHotels, setRoomHotels] = useState({});
   const [hotel, setHotel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [roomsByHotel, setRoomsByHotel] = useState({});
   const [newRoom, setNewRoom] = useState({
     title: "",
     price: "",
@@ -80,7 +81,9 @@ function Rooms() {
         // Debug log
         else {
           // Nếu không có id, lấy tất cả các phòng
-          const response = await axios.get("http://localhost:8800/api/rooms");
+          const response = await axios.get(
+            "http://localhost:8800/api/hotels/rooms"
+          );
           setRooms(response.data);
         }
       } catch (error) {
@@ -134,7 +137,7 @@ function Rooms() {
       alert("Không tìm thấy thông tin khách sạn!");
       return;
     }
-
+    const token = localStorage.getItem("token");
     if (!newRoom.title || !newRoom.price || !newRoom.maxPeople) {
       alert("Vui lòng điền đầy đủ thông tin!");
       return;
@@ -152,14 +155,14 @@ function Rooms() {
       const roomNumbersArray = newRoom.roomNumbers
         .toString()
         .split(",")
-        .map((num) => num.trim())
-        .filter((num) => num !== "");
-      console.log("Processed room numbers array:", roomNumbersArray);
-      // Kiểm tra xem có số phòng nào không hợp lệ không
-      if (roomNumbersArray.some((num) => isNaN(parseInt(num, 10)))) {
-        alert(
-          "Số phòng không hợp lệ! Vui lòng nhập các số, cách nhau bằng dấu phẩy"
-        );
+        .map((num) => ({
+          number: parseInt(num.trim()),
+          unavailableDates: [], // Add this if your schema requires it
+        }))
+        .filter((room) => !isNaN(room.number)); // Filter out invalid numbers
+
+      if (roomNumbersArray.length === 0) {
+        alert("Vui lòng nhập số phòng hợp lệ!");
         return;
       }
 
@@ -174,8 +177,14 @@ function Rooms() {
       console.log("Hotel ID:", selectedHotelid);
       // Sử dụng id từ useParams
       const response = await axios.post(
-        `http://localhost:8800/api/rooms/${id}`,
-        roomData
+        `http://localhost:8800/api/hotels/rooms/${id}`,
+        // `http://localhost:8800/api/hotels/${id}/rooms`,
+        roomData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include the token
+          },
+        }
       );
       // Refresh danh sách phòng
       if (id) {
@@ -215,6 +224,7 @@ function Rooms() {
       }));
     }
   };
+
   //  Cập nhật phòng
   const updateRoom = async () => {
     try {
@@ -293,7 +303,10 @@ function Rooms() {
   return (
     <div className="w-full overflow-x-hidden">
       <Navbar />
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{ marginLeft: '220px' }}>
+      <div
+        className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12"
+        style={{ marginLeft: "220px" }}
+      >
         {/* Header section */}
         {hotel && (
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
@@ -417,7 +430,7 @@ function Rooms() {
         )}
         {/* </div> */}
 
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
               Danh sách phòng
@@ -471,11 +484,19 @@ function Rooms() {
               ))}
             </div>
           )}
-        </div>
+        </div> */}
 
-        <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black mb-4 ml-4">
-          Cập nhật Phòng
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
+            Danh sách phòng
+          </h2>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+          >
+            + Thêm Phòng
+          </button>
+        </div>
         <div className="Room w-full max-w-full mx-auto px-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-8 auto-rows-fr">
             {rooms.map((room) => (
