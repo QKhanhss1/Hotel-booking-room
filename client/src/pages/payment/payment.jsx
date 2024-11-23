@@ -18,7 +18,7 @@ const Payment = ({ onClose }) => {
   }, []);
 
   if (!reservationData) {
-    return <p>Invalid data. Please go back and select rooms again.</p>;
+    return <p>Dữ liệu không hợp lệ. Vui lòng quay lại và chọn lại phòng.</p>;
   }
 
   const { totalPrice, selectedRooms, hotelId } = reservationData;
@@ -48,9 +48,9 @@ const Payment = ({ onClose }) => {
   return (
     <div className="payment-modal">
       <div className="payment-container">
-        <h1>Payment Page</h1>
-        <p>Total Price: {totalPrice.toLocaleString("vi-VN")} VND</p>
-        <p>Selected Rooms:</p>
+        <h1>Trang thanh toán</h1>
+        <p>Tổng giá: {totalPrice.toLocaleString("vi-VN")} VND</p>
+        <p>Chọn phòng:</p>
         <ul>
         {selectedRooms.map((room, index) => (
             <li key={index}>
@@ -58,8 +58,8 @@ const Payment = ({ onClose }) => {
             </li>
           ))}
         </ul>
-        <button onClick={handlePayment}>Proceed to Payment</button>
-        <button className="cancel-button" onClick={onClose}>Cancel</button>
+        <button onClick={handlePayment}>Tiến hành thanh toán</button>
+        <button className="cancel-button" onClick={onClose}>Hủy</button>
       </div>
     </div>
   );

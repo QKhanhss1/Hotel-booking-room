@@ -5,21 +5,21 @@ const SearchItem = ({ item }) => {
   return (
     <div className="searchItem">
       <img
-        src={`http://localhost:8800/api/images/${item.photos}`} // Thay thế với URL API của bạn
+        src={`http://localhost:8800/api/images/${item.photos}`}
         alt=""
         className="siImg"
       />
       <div className="siDesc">
         <h1 className="siTitle">{item.name}</h1>
-        <span className="siDistance">{item.distance}m from center</span>
-        <span className="siTaxiOp">Free airport taxi</span>
+        <span className="siDistance">{item.distance}m từ trung tâm</span>
+        <span className="siTaxiOp">Xe đưa đón sân bay miễn phí</span>
         <span className="siSubtitle">
-          Studio Apartment with Air conditioning
+          Căn hộ studio có máy lạnh
         </span>
         <span className="siFeatures">{item.desc}</span>
-        <span className="siCancelOp">Free cancellation </span>
+        <span className="siCancelOp">Hủy miễn phí</span>
         <span className="siCancelOpSubtitle">
-          You can cancel later, so lock in this great price today!
+          Bạn có thể hủy sau, hãy giữ mức giá tuyệt vời này hôm nay!
         </span>
       </div>
       <div className="siDetails">
@@ -29,9 +29,9 @@ const SearchItem = ({ item }) => {
         </div>}
         <div className="siDetailTexts">
           <span className="siPrice">${item.cheapestPrice}</span>
-          <span className="siTaxOp">Includes taxes and fees</span>
+          <span className="siTaxOp">Đã bao gồm thuế và phí</span>
           <Link to={`/hotels/${item._id}`}>
-            <button className="siCheckButton">See availability</button>
+            <button className="siCheckButton">Xem tình trạng phòng</button>
           </Link>
         </div>
       </div>

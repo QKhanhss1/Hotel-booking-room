@@ -4,13 +4,12 @@ import "./rating.css";
 const Rating = () => {
     const [isRatingVisible, setIsRatingVisible] = useState(false);
     const [rating, setRating] = useState(0);
-    const [isRated, setIsRated] = useState(false); // Thêm state để kiểm tra đã đánh giá hay chưa
-    const totalReviews = 125; // Số lượng đánh giá
-
+    const [isRated, setIsRated] = useState(false); 
+    const totalReviews = 125; 
     const handleRatingClick = () => {
         setIsRatingVisible(!isRatingVisible);
         if (!isRatingVisible && isRated) {
-            setRating(rating); // Giữ lại đánh giá trước đó khi hiển thị lại
+            setRating(rating); 
         }
     };
 
