@@ -95,31 +95,55 @@ export const countByType = async (req, res, next) => {
   }
 };
 
+// export const getHotelRooms = async (req, res, next) => {
+//   try {
+//     // Get hotel by ID
+//     const hotel = await Hotel.findById(req.params.id).populate('rooms');
+//     console.log("Hotel found:", hotel); // Log hotel
+//     if (!hotel) {
+//       return res.status(404).json({ message: "Hotel not found" });
+//     }
+ 
+//     console.log("Rooms in hotel:", hotel.rooms); // Log rooms
+//     // If the hotel has no rooms, return an empty array
+//     // if (!hotel.rooms || hotel.rooms.length === 0) {
+//     //   return res.status(200).json([]);  
+//     // }
+//     if (!hotel.rooms || hotel.rooms.length === 0) {
+//       return res.status(404).json({ message: "Room not found" });
+//     }
+
+
+//     const rooms = await Promise.all(
+//       hotel.rooms.map((roomId) => Room.findById(roomId))
+//     );
+
+//     res.status(200).json(rooms); 
+//   } catch (err) {
+//     next(err); 
+//   }
+// };
+
 export const getHotelRooms = async (req, res, next) => {
   try {
-    // Get hotel by ID
-    const hotel = await Hotel.findById(req.params.id).populate('rooms');
-    console.log("Hotel found:", hotel); // Log hotel
+    const hotel = await Hotel.findById(req.params.id);
     if (!hotel) {
       return res.status(404).json({ message: "Hotel not found" });
     }
- 
-    console.log("Rooms in hotel:", hotel.rooms); // Log rooms
-    // If the hotel has no rooms, return an empty array
-    // if (!hotel.rooms || hotel.rooms.length === 0) {
-    //   return res.status(200).json([]);  
-    // }
-    if (!hotel.rooms || hotel.rooms.length === 0) {
-      return res.status(404).json({ message: "Room not found" });
-    }
 
+    // Sử dụng populate để lấy thông tin chi tiết của rooms
+    const hotelWithRooms = await Hotel.findById(req.params.id)
+      .populate('rooms')
+      .exec();
 
-    const rooms = await Promise.all(
-      hotel.rooms.map((roomId) => Room.findById(roomId))
-    );
+    // Lọc ra những phòng còn tồn tại trong collection Room
+    const validRooms = hotelWithRooms.rooms.filter(room => room !== null);
 
-    res.status(200).json(rooms); 
+    console.log("Valid rooms:", validRooms);
+    
+    res.status(200).json(validRooms);
   } catch (err) {
-    next(err); 
+    console.error("Error in getHotelRooms:", err);
+    next(err);
   }
 };
