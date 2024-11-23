@@ -43,10 +43,12 @@ mongoose.connection.on("disconnected", () => {
 });
 
 //middlewares
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3002'],
-  credentials: true, // Cho phép gửi cookie
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:3002"],
+    credentials: true, // Cho phép gửi cookie
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 
@@ -54,9 +56,12 @@ app.use("/api", imageRoutes);
 app.use("/api/auth", authRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
-app.use("/api/rooms", roomsRoute);
+// app.use("/api/rooms", roomsRoute);
+// app.use("/api/hotels", roomsRoute);
+app.use("/api/hotels/rooms", roomsRoute); // Thay vì /api/rooms
+
 app.use("/api/favorites", favoriteRoute);
-app.use("/api/v1/vnpay", paymentRoute)
+app.use("/api/v1/vnpay", paymentRoute);
 
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;

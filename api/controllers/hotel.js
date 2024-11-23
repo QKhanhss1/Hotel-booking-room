@@ -99,14 +99,20 @@ export const getHotelRooms = async (req, res, next) => {
   try {
     // Get hotel by ID
     const hotel = await Hotel.findById(req.params.id).populate('rooms');
+    console.log("Hotel found:", hotel); // Log hotel
     if (!hotel) {
       return res.status(404).json({ message: "Hotel not found" });
     }
-
+ 
+    console.log("Rooms in hotel:", hotel.rooms); // Log rooms
     // If the hotel has no rooms, return an empty array
+    // if (!hotel.rooms || hotel.rooms.length === 0) {
+    //   return res.status(200).json([]);  
+    // }
     if (!hotel.rooms || hotel.rooms.length === 0) {
-      return res.status(200).json([]);  
+      return res.status(404).json({ message: "Room not found" });
     }
+
 
     const rooms = await Promise.all(
       hotel.rooms.map((roomId) => Room.findById(roomId))
