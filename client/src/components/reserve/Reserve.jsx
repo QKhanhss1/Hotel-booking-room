@@ -72,8 +72,8 @@ const Reserve = ({ setOpen, hotelId }) => {
   }, [data]);
 
   const handleClick = async () => {
-    if (selectedRooms.length === 0 || days <= 0) {
-      console.error("No valid rooms selected or invalid date range.");
+    if (selectedRooms.length === 0 || !days || days <= 0) {
+      alert("Vui lòng chọn phòng và kiểm tra lại ngày đặt!");
       return;
     }
 
@@ -81,18 +81,35 @@ const Reserve = ({ setOpen, hotelId }) => {
       const room = roomPrices[roomId] || {};
       return total + (room.price || 0) * days;
     }, 0);
+
     const selectedRoomDetails = selectedRooms.map((roomId) => ({
       title: roomPrices[roomId]?.title || "Unknown Room",
       price: roomPrices[roomId]?.price || 0,
     }));
-    console.log("Selected Room Details:", selectedRoomDetails);
+
     try {
+      // Gửi yêu cầu PUT cho từng phòng
       await Promise.all(
-        selectedRooms.map((roomId) =>
-          axios.put(`/rooms/availability/${roomId}`, {
+        selectedRooms.map((roomId) => {
+          // Truy xuất roomNumber từ roomNumbers
+          const roomNumberData = data
+            .flatMap((room) => room.roomNumbers) // Truy cập roomNumbers
+            .find((roomNumber) => roomNumber._id === roomId); // Tìm roomNumber theo _id
+
+          if (!roomNumberData || !roomNumberData.number?.length) {
+            console.error("Không tìm thấy roomNumber cho ID:", roomId);
+            return Promise.resolve();
+          }
+
+          // Chọn số phòng đầu tiên từ mảng number
+          const roomNumberToSend = roomNumberData.number[0];
+
+          // Gửi dữ liệu đúng định dạng
+          return axios.put(`/api/rooms/availability/${roomId}`, {
             dates: alldates,
-          })
-        )
+            roomNumber: roomNumberToSend, // Lấy số phòng từ mảng number
+          });
+        })
       );
 
       localStorage.setItem(
@@ -100,13 +117,14 @@ const Reserve = ({ setOpen, hotelId }) => {
         JSON.stringify({
           totalPrice,
           selectedRooms: selectedRoomDetails,
-          hotelId
+          hotelId,
         })
       );
       setShowPaymentModal(true);
-      console.log("Modal Payment Sẽ Mở.");
+      console.log("Modal Payment sẽ mở.");
     } catch (err) {
-      console.error("Error updating room availability:", err);
+      console.error("Lỗi khi cập nhật trạng thái phòng:", err);
+      alert("Đã xảy ra lỗi khi đặt phòng, vui lòng thử lại sau.");
     }
   };
 
