@@ -8,10 +8,12 @@ import {
   getHotelRooms,
   getHotels,
   updateHotel,
-  getFeaturedHotels
+  getFeaturedHotels,
+  createReview,
+  getReviewsByHotelId
 } from "../controllers/hotel.js";
 import Hotel from "../models/Hotel.js";
-import { verifyAdmin } from "../utils/verifyToken.js";
+import { verifyAdmin, verifyUser } from "../utils/verifyToken.js";
 
 const router = express.Router();
 
@@ -33,5 +35,6 @@ router.get("/countByCity", countByCity);
 router.get("/countByType", countByType);
 router.get("/rooms/:id", getHotelRooms);
 // router.get("/room/:id", getRoomById);
-
+router.post("/reviews/:id", createReview);
+router.get("/review/all/:id", getReviewsByHotelId);
 export default router;

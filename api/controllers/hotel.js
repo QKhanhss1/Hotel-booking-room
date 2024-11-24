@@ -1,5 +1,6 @@
 import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
+import User from "../models/User.js"; 
 
 export const createHotel = async (req, res, next) => {
   const newHotel = new Hotel(req.body);
@@ -53,10 +54,10 @@ export const getHotels = async (req, res, next) => {
 };
 export const getFeaturedHotels = async (req, res, next) => {
   try {
-    
+
     const featuredHotels = await Hotel.find({ featured: true }).limit(4);
-    
-  
+
+
     res.status(200).json(featuredHotels);
   } catch (err) {
     next(err); // Xử lý lỗi nếu có
@@ -103,7 +104,7 @@ export const countByType = async (req, res, next) => {
 //     if (!hotel) {
 //       return res.status(404).json({ message: "Hotel not found" });
 //     }
- 
+
 //     console.log("Rooms in hotel:", hotel.rooms); // Log rooms
 //     // If the hotel has no rooms, return an empty array
 //     // if (!hotel.rooms || hotel.rooms.length === 0) {
@@ -140,10 +141,83 @@ export const getHotelRooms = async (req, res, next) => {
     const validRooms = hotelWithRooms.rooms.filter(room => room !== null);
 
     console.log("Valid rooms:", validRooms);
-    
+
     res.status(200).json(validRooms);
   } catch (err) {
     console.error("Error in getHotelRooms:", err);
+    next(err);
+  }
+};
+//review
+export const createReview = async (req, res) => {
+  const { userId, rating, comment } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!userId) {
+      return res.status(400).json({ message: "Thiếu userId trong yêu cầu!" });
+    }
+
+    // Tìm khách sạn theo ID
+    const hotel = await Hotel.findById(req.params.id);
+    if (!hotel) {
+      return res.status(404).json({ message: "Khách sạn không tồn tại!" });
+    }
+
+    // Kiểm tra xem người dùng đã đánh giá chưa
+    const alreadyReviewed = hotel.reviews.find(
+      (review) => review.user.toString() === userId
+    );
+
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: "Bạn đã đánh giá trước đó rồi!" });
+    }
+
+    // Tạo đánh giá mới
+    const review = {
+      username: user.username || "Ẩn danh", // Tên người dùng từ body
+      rating: Number(rating),
+      comment,
+      user: userId,
+    };
+
+    hotel.reviews.push(review);
+
+    // Cập nhật số lượng đánh giá và điểm trung bình
+    hotel.numReviews = hotel.reviews.length;
+    hotel.rating =
+      hotel.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      hotel.reviews.length;
+
+    await hotel.save();
+
+    res.status(201).json({ message: "Thêm bình luận thành công!" });
+  } catch (error) {
+    console.error("Error creating review:", error.message);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+//get all
+export const getReviewsByHotelId = async (req, res, next) => {
+  try {
+    const hotelId = req.params.id;
+
+    // Tìm khách sạn theo ID và chỉ lấy trường `reviews` và `name`
+    const hotel = await Hotel.findById(hotelId);
+
+    if (!hotel) {
+      return res.status(404).json({ message: "Khách sạn không tồn tại" });
+    }
+
+    // Trả về các đánh giá kèm tên khách sạn
+    const reviews = hotel.reviews.map((review) => ({
+      ...review._doc,
+      hotelName: hotel.name,
+    }));
+
+    res.status(200).json(reviews);
+  } catch (err) {
+    console.error("Lỗi:", err);
     next(err);
   }
 };

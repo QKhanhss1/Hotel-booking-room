@@ -63,6 +63,7 @@ app.use("/api/hotels/rooms", roomsRoute); // Thay vì /api/rooms
 app.use("/api/favorites", favoriteRoute);
 app.use("/api/v1/vnpay", paymentRoute);
 
+
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   console.error("Error Stack:", err.stack);

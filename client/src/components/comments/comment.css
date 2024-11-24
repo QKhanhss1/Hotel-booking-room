@@ -1,67 +1,190 @@
 .Form {
-    width: 60%;
-    height: auto;
-    position: relative;
-    margin: 0 auto;
-  }
-  
-  .Form .flex-column {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: 100%;
-    margin-top: 10px;
-  }
-  
-  .Form textarea {
-    width: 100%;
-    height: 120px;
-    padding: 16px;
-    background-color: white;
-    border-radius: 15px;
-    border: 1px solid #757575;
-    color: #333;
-    font-size: 16px;
-    font-family: 'Times New Roman', serif;
-    font-weight: normal;
-  }
-  
-  .Form .flex-row {
-    display: flex;
-    gap: 16px;
-    width: 100%;
-  }
-  
-  .Form input[type="text"],
-  .Form input[type="email"] {
-    width: 50%;
-    height: 47px;
-    padding-left: 19px;
-    background-color: white;
-    border-radius: 30px;
-    border: 1px solid #757575;
-    color: #333;
-    font-size: 16px;
-    font-family: 'Times New Roman', serif;
-    font-weight: normal;
-  }
-  
-  
-  
-  .Form .submit-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-  }
-  
-  .Form button {
-    width: 167.77px;
-    height: 40px;
-    background-color: #1E90FF;
-    border-radius: 15px;
-    color: white;
-    font-size: 18px;
-    font-family: 'Times New Roman', serif;
-    font-weight: normal;
-  }
-  
+  width: 60%;
+  height: auto;
+  position: relative;
+  margin: 0 auto;
+}
+
+.Form .flex-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.Form textarea {
+  width: 100%;
+  height: 120px;
+  padding: 16px;
+  background-color: white;
+  border-radius: 15px;
+  border: 1px solid #757575;
+  color: #333;
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.Form .flex-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.Form input[type="text"] {
+  width: 50%;
+  height: 47px;
+  padding-left: 19px;
+  background-color: white;
+  border-radius: 30px;
+  border: 1px solid #757575;
+  color: #333;
+  font-size: 16px;
+  font-family: "Times New Roman", serif;
+  font-weight: normal;
+}
+
+.Form .submit-container {
+  display: flex;
+  margin-top: 16px;
+}
+
+.Form button {
+  width: 167.77px;
+  height: 40px;
+  background-color: #1e90ff;
+  border-radius: 5px;
+  color: white;
+  font-size: 18px;
+  font-weight: normal;
+  border: none;
+}
+
+.rating-container {
+  display: flex;
+  gap: 5px;
+}
+
+.star-icon {
+  font-size: 2rem;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.star-icon.filled {
+  color: #f5c518;
+}
+
+.star-icon:hover,
+.star-icon.filled:hover {
+  color: #ff9e00;
+}
+
+/* Ensure the modal overlay takes full screen */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content styles */
+.modalContent {
+  width: 90%;
+  max-width: 500px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+/* Close icon styles */
+.closeModalButton {
+  font-size: 30px;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.closeModalButton:hover {
+  color: #f44336; /* Red color on hover */
+}
+
+/* Comment list styles */
+.commentItem {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between; /* Space between comment text and rating */
+  align-items: center; /* Center vertically */
+}
+
+.commentItem p {
+  margin: 5px 0;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between; /* Space between title and icon */
+  align-items: center; /* Center items vertically */
+  width: 100%; /* Make sure it takes the full width */
+  padding: 10px; /* Add some padding for spacing */
+}
+
+.closeModalButton {
+  font-size: 1.5rem; /* Adjust the font size of the icon */
+  cursor: pointer;
+}
+
+.modalTitle {
+  font-size: 1.5rem; /* Adjust the font size of the title */
+  margin: 0; /* Remove margin for better alignment */
+}
+.commentItem {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between; /* Space between comment text and rating */
+  align-items: flex-start; /* Align items to the top (vertical alignment) */
+}
+
+.username {
+  margin-bottom: 5px; /* Space between username and comment */
+}
+
+.commentContent {
+  margin-bottom: 5px; /* Space between comment content and rating */
+  max-width: 80%; /* Limit width of comment text */
+}
+
+.rating {
+  display: flex; /* Align stars horizontally */
+  justify-content: flex-end; /* Align stars to the right */
+  gap: 5px; /* Space between stars */
+  align-items: center; /* Vertically center the stars */
+}
+
+.staricon {
+  font-size: 1.5rem;
+  color: #f5c518; /* Gold color for stars */
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between; /* Space between title and icon */
+  align-items: center; /* Center items vertically */
+  width: 100%; /* Make sure it takes the full width */
+  padding: 10px; /* Add some padding for spacing */
+}
+
+.closeModalButton {
+  font-size: 1.5rem; /* Adjust the font size of the icon */
+  cursor: pointer;
+}

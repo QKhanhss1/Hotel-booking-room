@@ -1,4 +1,20 @@
 import mongoose from "mongoose";
+
+const reviewSchema = mongoose.Schema(
+  {
+    username: { type: String, required: true },
+    rating: { type: Number, required: true },
+    comment: { type: String, required: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
+  },
+  {
+    timestamps: true,
+  }
+)
 const HotelSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -31,6 +47,12 @@ const HotelSchema = new mongoose.Schema({
   desc: {
     type: String,
     required: true,
+  },
+  reviews: [reviewSchema],
+  numReviews: {
+    type: Number,
+    required: true,
+    default: 0,
   },
   rating: {
     type: Number,

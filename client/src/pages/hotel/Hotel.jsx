@@ -2,7 +2,6 @@ import "./hotel.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
 import Comment from "../../components/comments/comment";
-import Rating from "../../components/rating-hotel/rating";
 import MailList from "../../components/mailList/MailList";
 import Footer from "../../components/footer/Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -28,7 +27,7 @@ const Hotel = () => {
   const { user } = useContext(AuthContext);
   const { favorites, dispatch } = useContext(FavoriteContext);
   const { dates = [], options = {} } = useContext(SearchContext);
-
+  
   const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
   function dayDifference(date1, date2) {
     const d1 = new Date(date1);
@@ -156,6 +155,7 @@ const Hotel = () => {
               <button onClick={handleFavoriteClick} className="favoriteicon">
                 <FontAwesomeIcon icon={faHeart} color={isFavorite ? "red" : "grey"} />
               </button>
+              
             </div>
             <h1 className="hotelTitle">{data.name}</h1>
             <div className="hotelAddress">
@@ -195,7 +195,6 @@ const Hotel = () => {
               </div>
             </div>
           </div>
-          <Rating />
           <Comment />
           <MailList />
           <Footer />
