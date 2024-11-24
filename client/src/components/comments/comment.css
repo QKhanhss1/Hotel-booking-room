@@ -1,8 +1,16 @@
 .Form {
-  width: 60%;
+  width: 70%;
   height: auto;
   position: relative;
   margin: 0 auto;
+}
+
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  width: 100%;
 }
 
 .Form .flex-column {
@@ -23,6 +31,7 @@
   color: #333;
   font-size: 16px;
   font-weight: normal;
+  box-sizing: border-box;
 }
 
 .Form .flex-row {
@@ -46,16 +55,18 @@
 
 .Form .submit-container {
   display: flex;
+  justify-content: center;
   margin-top: 16px;
+  width: 100%;
 }
 
 .Form button {
-  width: 167.77px;
-  height: 40px;
+  width: 120px;
+  height: 35px;
   background-color: #1e90ff;
   border-radius: 5px;
   color: white;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: normal;
   border: none;
 }
@@ -122,8 +133,8 @@
   padding: 10px;
   border-bottom: 1px solid #ddd;
   display: flex;
-  justify-content: space-between; /* Space between comment text and rating */
-  align-items: center; /* Center vertically */
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .commentItem p {
@@ -147,21 +158,20 @@
   font-size: 1.5rem; /* Adjust the font size of the title */
   margin: 0; /* Remove margin for better alignment */
 }
-.commentItem {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+
+.commentHeader {
   display: flex;
-  justify-content: space-between; /* Space between comment text and rating */
-  align-items: flex-start; /* Align items to the top (vertical alignment) */
+  justify-content: space-between; /* Căn giữa username và rating */
+  width: 100%; /* Đảm bảo chiếm toàn bộ chiều rộng */
+}
+
+.commentContent {
+  margin-top: 5px; /* Thêm khoảng cách giữa commentContent và commentHeader */
+  max-width: 100%; /* Đảm bảo commentContent chiếm toàn bộ chiều rộng */
 }
 
 .username {
   margin-bottom: 5px; /* Space between username and comment */
-}
-
-.commentContent {
-  margin-bottom: 5px; /* Space between comment content and rating */
-  max-width: 80%; /* Limit width of comment text */
 }
 
 .rating {
@@ -174,17 +184,4 @@
 .staricon {
   font-size: 1.5rem;
   color: #f5c518; /* Gold color for stars */
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between; /* Space between title and icon */
-  align-items: center; /* Center items vertically */
-  width: 100%; /* Make sure it takes the full width */
-  padding: 10px; /* Add some padding for spacing */
-}
-
-.closeModalButton {
-  font-size: 1.5rem; /* Adjust the font size of the icon */
-  cursor: pointer;
 }

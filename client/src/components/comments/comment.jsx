@@ -100,10 +100,12 @@ const Comment = () => {
 
   return (
     <div className="Form">
-      <h2>Bình luận và đánh giá</h2>
-      <button className="viewCommentButton" onClick={toggleModal}>
-        {showComments ? "Đóng danh sách" : "Xem bình luận"}
-      </button>
+      <div className="headerContainer">
+        <h2>Bình luận và đánh giá</h2>
+        <button className="viewCommentButton" onClick={toggleModal}>
+          {showComments ? "Đóng danh sách" : "Xem bình luận"}
+        </button>
+      </div>
       {/* Modal */}
       {isModalOpen && (
         <div className="modalOverlay">
@@ -121,18 +123,20 @@ const Comment = () => {
               {comments.length > 0 ? (
                 comments.map((comment, index) => (
                   <div key={index} className="commentItem">
-                    <p className="username">
-                      <strong>{comment.username}</strong>
-                    </p>
+                    <div className="commentHeader">
+                      <p className="username">
+                        <strong>{comment.username}</strong>
+                      </p>
+                      <p className="rating">
+                        {[...Array(comment.rating)].map((_, i) => (
+                          <span key={i} className="staricon">
+                            ★
+                          </span>
+                        ))}
+                      </p>
+                    </div>
                     <p className="commentContent">
                       {comment.comment}
-                    </p>
-                    <p className="rating">
-                      {[...Array(comment.rating)].map((_, i) => (
-                        <span key={i} className="staricon">
-                          ★
-                        </span>
-                      ))}
                     </p>
                   </div>
                 ))
