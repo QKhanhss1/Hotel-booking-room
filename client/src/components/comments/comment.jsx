@@ -100,7 +100,7 @@ const Comment = () => {
 
   return (
     <div className="Form">
-      <div className="headerContainer">
+      <div className="headerct">
         <h2>Bình luận và đánh giá</h2>
         <button className="viewCommentButton" onClick={toggleModal}>
           {showComments ? "Đóng danh sách" : "Xem bình luận"}

@@ -5,7 +5,7 @@
   margin: 0 auto;
 }
 
-.headerContainer {
+.headerct {
   display: flex;
   justify-content: space-between;
   align-items: center;
