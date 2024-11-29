@@ -2,7 +2,7 @@ import "./list.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
 import { SearchContext } from "../../context/SearchContext";
-import { useState, useContext } from "react";
+import { useState, useContext ,useEffect} from "react";
 import { format } from "date-fns";
 import { DateRange } from "react-date-range";
 import SearchItem from "../../components/searchItem/SearchItem";
@@ -13,6 +13,7 @@ const List = () => {
   const [openDate, setOpenDate] = useState(false);
   const [min, setMin] = useState(0);
   const [max, setMax] = useState(999);
+
 
   const { data, loading, error, reFetch } = useFetch(
     `/hotels?city=${destination}&min=${min}&max=${max}`
