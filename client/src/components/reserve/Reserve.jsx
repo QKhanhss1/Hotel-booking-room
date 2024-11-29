@@ -71,7 +71,7 @@ const Reserve = ({ setOpen, hotelId }) => {
     }
   }, [data]);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (selectedRooms.length === 0 || !days || days <= 0) {
       alert("Vui lòng chọn phòng và kiểm tra lại ngày đặt!");
       return;
@@ -82,51 +82,37 @@ const Reserve = ({ setOpen, hotelId }) => {
       return total + (room.price || 0) * days;
     }, 0);
 
-    const selectedRoomDetails = selectedRooms.map((roomId) => ({
-      title: roomPrices[roomId]?.title || "Unknown Room",
-      price: roomPrices[roomId]?.price || 0,
-    }));
+    const selectedRoomDetails = selectedRooms.map((roomId) => {
+      // Lấy dữ liệu từ `roomPrices` và `data`
+      const roomNumberData = data
+        .flatMap((room) => room.roomNumbers)
+        .find((roomNumber) => roomNumber._id === roomId);
 
-    try {
-      // Gửi yêu cầu PUT cho từng phòng
-      await Promise.all(
-        selectedRooms.map((roomId) => {
-          // Truy xuất roomNumber từ roomNumbers
-          const roomNumberData = data
-            .flatMap((room) => room.roomNumbers) // Truy cập roomNumbers
-            .find((roomNumber) => roomNumber._id === roomId); // Tìm roomNumber theo _id
+      if (!roomNumberData) {
+        console.error("Không tìm thấy roomNumber cho ID:", roomId);
+        return null; // Bỏ qua nếu không tìm thấy roomNumber
+      }
 
-          if (!roomNumberData || !roomNumberData.number?.length) {
-            console.error("Không tìm thấy roomNumber cho ID:", roomId);
-            return Promise.resolve();
-          }
+      return {
+        id: roomId,
+        number: roomNumberData.number || "Unknown Number", // Lấy `number`
+        title: roomPrices[roomId]?.title || "Unknown Room", // Lấy `title`
+        price: roomPrices[roomId]?.price || 0, // Lấy `price`
+      };
+    }).filter(Boolean); // Loại bỏ các giá trị null khỏi mảng
 
-          // Chọn số phòng đầu tiên từ mảng number
-          const roomNumberToSend = roomNumberData.number[0];
-
-          // Gửi dữ liệu đúng định dạng
-          return axios.put(`/api/rooms/availability/${roomId}`, {
-            dates: alldates,
-            roomNumber: roomNumberToSend, // Lấy số phòng từ mảng number
-          });
-        })
-      );
-
-      localStorage.setItem(
-        "reservationData",
-        JSON.stringify({
-          totalPrice,
-          selectedRooms: selectedRoomDetails,
-          hotelId,
-        })
-      );
-      setShowPaymentModal(true);
-      console.log("Modal Payment sẽ mở.");
-    } catch (err) {
-      console.error("Lỗi khi cập nhật trạng thái phòng:", err);
-      alert("Đã xảy ra lỗi khi đặt phòng, vui lòng thử lại sau.");
-    }
+    // Lưu vào localStorage
+    localStorage.setItem(
+      "reservationData",
+      JSON.stringify({
+        totalPrice,
+        selectedRooms: selectedRoomDetails,
+        hotelId,
+      })
+    );
+    setShowPaymentModal(true);
   };
+
 
   return (
     <div className="reserve">

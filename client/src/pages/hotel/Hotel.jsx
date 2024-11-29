@@ -46,8 +46,6 @@ const Hotel = () => {
 
   const days = dates?.[0] ? dayDifference(dates[0].endDate, dates[0].startDate) : 0;
 
-
-  console.log('days:', days)
   // Kiểm tra xem khách sạn có trong danh sách yêu thích không
   useEffect(() => {
     setIsFavorite(favorites.some((hotel) => hotel._id === id));
@@ -58,7 +56,7 @@ const Hotel = () => {
     if (data && options.room && days) {
       const calculatedPrice = days * data.cheapestPrice * options.room;
       setTotalPrice(calculatedPrice);
-      localStorage.setItem("totalprice", calculatedPrice);  // Store the price in localStorage
+      localStorage.setItem("totalprice", calculatedPrice);  
     }
   }, [days, data, options]);
 
