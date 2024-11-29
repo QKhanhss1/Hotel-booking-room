@@ -1,7 +1,6 @@
 import express from "express";
 import {
   createRoom,
-  deleteRoom,
   getRoom,
   getRooms,
   updateRoom,
