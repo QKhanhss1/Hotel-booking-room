@@ -88,84 +88,33 @@ export const updateRoomAvailability = async (req, res, next) => {
 };
 export const deleteRoom = async (req, res, next) => {
   const { roomId, hotelId } = req.params;
-//   try {
-//     console.log("Deleting room:", roomId, "from hotel:", hotelId);
-
-//     // 1. Xóa room từ collection Room
-//     const deletedRoom = await Room.findByIdAndDelete(roomId);
-//     if (!deletedRoom) {
-//         return res.status(404).json({ message: "Không tìm thấy phòng" });
-//     }
-
-//     // 2. Xóa room ID từ array rooms trong Hotel
-//     const updatedHotel = await Hotel.findByIdAndUpdate(
-//         hotelId,
-//         {
-//             $pull: { rooms: roomId }
-//         },
-//         { new: true }
-//     ).exec();
-
-//     if (!updatedHotel) {
-//         console.error("Hotel not found:", hotelId);
-//         return res.status(404).json({ message: "Không tìm thấy khách sạn" });
-//     }
-   
-//     console.log("Hotel rooms after deletion:", verifyHotel.rooms);
-//       // 3. Đợi một chút để đảm bảo các thay đổi đã được lưu
-//       await new Promise(resolve => setTimeout(resolve, 300));
-
-//       // 4. Verify lại
-//       const verifyRoom = await Room.findById(roomId);
-//       const verifyHotel = await Hotel.findById(hotelId);
-
-//       if (verifyRoom) {
-//           console.warn("Room still exists after deletion!");
-//       }
-
-//       res.status(200).json({ 
-//           message: "Xóa phòng thành công",
-//           deletedRoom,
-//           updatedHotel
-//       });
-
-//   } catch (err) {
-//       console.error("Error deleting room:", err);
-//       next(err);
-//   }
-// };
 try {
-  const roomId = req.params.id;
-  console.log("Deleting room:", roomId);
-
-  const deletedRoom = await Room.findByIdAndDelete(roomId);
-  
-  if (!deletedRoom) {
-      return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy phòng"
-      });
+  // Kiểm tra xem phòng có tồn tại không
+  const room = await Room.findById(roomId);
+  if (!room) {
+    return res.status(404).json({ message: "Không tìm thấy phòng!" });
   }
 
-  res.status(200).json({
-      success: true,
-      message: "Xóa phòng thành công",
-      data: deletedRoom
+  // Kiểm tra xem khách sạn có tồn tại không
+  const hotel = await Hotel.findById(hotelId);
+  if (!hotel) {
+    return res.status(404).json({ message: "Không tìm thấy khách sạn!" });
+  }
+
+  // Xóa phòng
+  await Room.findByIdAndDelete(roomId);
+  
+  // Cập nhật danh sách phòng trong khách sạn
+  await Hotel.findByIdAndUpdate(hotelId, {
+    $pull: { rooms: roomId },
   });
 
+  res.status(200).json({ message: "Xóa phòng thành công!" });
 } catch (err) {
-  console.error("Delete room error:", err);
   next(err);
 }
 };
-// export const getRoom = async (req, res, next) => {
-//   try {
-//     const room = await Room.findById(req.params.id);
-//     res.status(200).json(room);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+
 export const getRoom = async (req, res, next) => {
   try {
     const room = await Room.findById(req.params.id);
