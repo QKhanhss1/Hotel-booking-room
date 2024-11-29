@@ -1,16 +1,18 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import './payment.css';
+import { AuthContext } from "../../context/AuthContext";
 
 const Payment = ({ onClose }) => {
   const [reservationData, setReservationData] = useState(null);
-
+  const { user } = useContext(AuthContext);
+  const token = user?.token;
   useEffect(() => {
     // Lấy dữ liệu từ localStorage
     const data = localStorage.getItem("reservationData");
     if (data) {
       const parsedData = JSON.parse(data);
-      console.log("Parsed reservation data in Payment:", parsedData); 
+      console.log("Parsed reservation data in Payment:", parsedData);
       setReservationData(JSON.parse(data));
     } else {
       console.error("No reservation data found.");
@@ -22,11 +24,45 @@ const Payment = ({ onClose }) => {
   }
 
   const { totalPrice, selectedRooms, hotelId } = reservationData;
-  
+  //new booking
+  async function createBooking() {
+    const roomId = selectedRooms.map((room) => room.id);
+    try {
+      const newBooking = {
+        hotelId:hotelId,
+        selectedRooms: roomId,
+        totalPrice:totalPrice,
+        customer: user.details._id,
+      };
+
+      const response = await axios.post(
+        "http://localhost:8800/api/booking/create",
+        newBooking,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Thêm token vào đây
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("Booking created successfully:", response.data);
+        localStorage.setItem("bookingId", response.data._id);
+        return response.data;
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      alert("Không thể tạo booking. Vui lòng thử lại.");
+      return null;
+    }
+  }
 
   //payment 
   async function handlePayment() {
     try {
+      const booking = await createBooking();
+      if (!booking) return;
+      
       const newPayment = {
         bankCode: null,
         amount: totalPrice,
@@ -52,7 +88,7 @@ const Payment = ({ onClose }) => {
         <p>Tổng giá: {totalPrice.toLocaleString("vi-VN")} VND</p>
         <p>Chọn phòng:</p>
         <ul>
-        {selectedRooms.map((room, index) => (
+          {selectedRooms.map((room, index) => (
             <li key={index}>
               {room.title}
             </li>

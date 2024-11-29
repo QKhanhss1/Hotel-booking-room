@@ -47,6 +47,9 @@ const Navbar = () => {
                 <button className="logoutButton" onClick={handleLogout}>
                   Đăng xuất
                 </button>
+                <button className="logoutButton" onClick={handleLogout}>
+                  Đơn hàng
+                </button>
               </div>
             )}
           </div>

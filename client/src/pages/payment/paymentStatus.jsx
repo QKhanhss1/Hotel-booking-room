@@ -23,7 +23,7 @@ const PaymentStatus = () => {
     let current = new Date(start);
 
     while (current <= end) {
-      dates.push(current.toISOString().split('T')[0]); 
+      dates.push(current.toISOString().split('T')[0]);
       current.setDate(current.getDate() + 1);
     }
     return dates;
@@ -32,46 +32,64 @@ const PaymentStatus = () => {
   useEffect(() => {
     const reservationData = JSON.parse(localStorage.getItem('reservationData'));
     const rawDates = JSON.parse(localStorage.getItem('dates'));
+    const bookingId = localStorage.getItem('bookingId'); // Lấy bookingId từ localStorage
 
-    // Kiểm tra và chuyển đổi `dates` sang định dạng hợp lệ
-    let formattedDates = [];
-    if (rawDates?.[0]) {
-      const { startDate, endDate } = rawDates[0];
-      formattedDates = getDatesInRange(startDate, endDate); // Chuyển đổi sang danh sách ngày
+    if (!bookingId) {
+      console.error("Lỗi: bookingId không tồn tại.");
+      setUpdateStatus({ success: false, message: 'Không tìm thấy bookingId để cập nhật trạng thái thanh toán.' });
+      return; // Dừng thực thi nếu bookingId không tồn tại
     }
 
-    // Lưu danh sách phòng vào state
-    if (reservationData?.selectedRooms) {
-      setSelectedRoomDetails(reservationData.selectedRooms);
-    }
+    // Hàm cập nhật trạng thái thanh toán
+    const updatePaymentStatus = async (bookingId, paymentStatus) => {
+      try {
+        const response = await axios.put("http://localhost:8800/api/booking/update/status", {
+          bookingId,
+          paymentStatus,
+        });
 
-    // Chỉ thực hiện cập nhật trạng thái phòng khi thanh toán thành công
+        console.log(`Cập nhật trạng thái thanh toán (${paymentStatus}) thành công:`, response.data);
+        setUpdateStatus({
+          success: true,
+          message: `Cập nhật trạng thái thanh toán (${paymentStatus}) thành công!`,
+        });
+      } catch (error) {
+        console.error(`Lỗi khi cập nhật trạng thái thanh toán (${paymentStatus}):`, error);
+        setUpdateStatus({
+          success: false,
+          message: `Lỗi khi cập nhật trạng thái thanh toán (${paymentStatus}).`,
+        });
+      }
+    };
+
     if (status === 'success' && reservationData?.selectedRooms) {
-      setLoading(true);
+      // Xử lý cập nhật trạng thái phòng nếu thanh toán thành công
+      const formattedDates = rawDates?.[0]
+        ? getDatesInRange(rawDates[0].startDate, rawDates[0].endDate)
+        : [];
       const updatePromises = reservationData.selectedRooms.map((room) =>
-        axios
-          .put(`http://localhost:8800/api/hotels/rooms/availability/${room.id}`, { dates: formattedDates })
-          .then((response) => {
-            console.log(`Cập nhật trạng thái phòng ${room.id} thành công:`, response.data);
-          })
-          .catch((error) => {
-            console.error(`Lỗi khi cập nhật trạng thái phòng ${room.id}:`, error);
-            throw error; // Quăng lỗi để xử lý toàn bộ
-          })
+        axios.put(`http://localhost:8800/api/hotels/rooms/availability/${room.id}`, { dates: formattedDates })
       );
 
+      setLoading(true);
       Promise.all(updatePromises)
         .then(() => {
-          setUpdateStatus({ success: true, message: 'Cập nhật trạng thái phòng thành công!' });
-          localStorage.removeItem('reservationData'); // Xóa dữ liệu đặt phòng
-          localStorage.removeItem('dates'); // Xóa danh sách ngày
+          updatePaymentStatus(bookingId, 'success');
+          localStorage.removeItem('reservationData');
+          localStorage.removeItem('dates');
+          localStorage.removeItem('bookingId');
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Lỗi khi cập nhật trạng thái phòng:", error);
           setUpdateStatus({ success: false, message: 'Có lỗi khi cập nhật trạng thái phòng.' });
         })
-        .finally(() => {
-          setLoading(false); // Kết thúc tải
-        });
+        .finally(() => setLoading(false));
+    } else if (status !== 'success') {
+      // Xử lý khi thanh toán thất bại
+      updatePaymentStatus(bookingId, 'failed');
+      localStorage.removeItem('reservationData');
+      localStorage.removeItem('dates');
+      localStorage.removeItem('bookingId');
     }
   }, [status]);
 
@@ -84,13 +102,6 @@ const PaymentStatus = () => {
             <FontAwesomeIcon icon={faCheckCircle} className="success-icon" />
             <h1 className="title">Thanh toán thành công số tiền {amount}₫</h1>
             <p className="description">Cảm ơn vì đã sử dụng dịch vụ của chúng tôi.</p>
-            {loading ? (
-              <p className="loading-message">Đang cập nhật trạng thái phòng...</p>
-            ) : (
-              <p className={`update-message ${updateStatus.success ? 'success' : 'error'}`}>
-                {updateStatus.message}
-              </p>
-            )}
             <a href="/" className="button-success">
               Quay lại trang chủ
             </a>

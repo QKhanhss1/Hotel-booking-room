@@ -7,6 +7,7 @@ import usersRoute from "./routes/users.js";
 import hotelsRoute from "./routes/hotels.js";
 import imageRoutes from "./routes/image.js";
 import roomsRoute from "./routes/rooms.js";
+import bookingRoute from "./routes/booking.js";
 import paymentRoute from "./routes/vnpay.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -59,6 +60,7 @@ app.use("/api/hotels", hotelsRoute);
 // app.use("/api/rooms", roomsRoute);
 // app.use("/api/hotels", roomsRoute);
 app.use("/api/hotels/rooms", roomsRoute); // Thay vì /api/rooms
+app.use("/api/booking", bookingRoute);
 
 app.use("/api/favorites", favoriteRoute);
 app.use("/api/v1/vnpay", paymentRoute);
