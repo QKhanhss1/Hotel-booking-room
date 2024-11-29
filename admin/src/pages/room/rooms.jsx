@@ -1,10 +1,12 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
+import { AuthContext } from "../../context/AuthContext"; 
 
 function Rooms() {
+  const { user } = useContext(AuthContext); 
   const [searchParams] = useSearchParams();
   const hotelId = searchParams.get("hotelId");
   const { id } = useParams();
@@ -315,17 +317,34 @@ function Rooms() {
       return;
     }
     try {
-      const hotelResponse = await axios.get(
-        `http://localhost:8800/api/hotels/room/${roomId}`
-      );
-
-      if (!hotelResponse.data) {
-        throw new Error("Không tìm thấy khách sạn chứa phòng này");
+      if (!id) {
+        throw new Error("Không tìm thấy thông tin khách sạn");
       }
+  
+      // const hotelResponse = await axios.get(
+      //   `http://localhost:8800/api/hotels/room/${roomId}`
+      // );
+
+      // if (!hotelResponse.data) {
+      //   throw new Error("Không tìm thấy khách sạn chứa phòng này");
+      // }
       // Gọi API xóa phòng
-      await axios.delete(
-        `http://localhost:8800/api/hotels/rooms/${roomId}/${hotelResponse.data._id}`
-      );
+      const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Bạn cần đăng nhập lại!");
+    }
+
+    // Gọi API xóa phòng với token xác thực
+    await axios.delete(
+      `http://localhost:8800/api/hotels/rooms/${roomId}/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${user.token}`, 
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
       // Cập nhật UI bằng cách lọc bỏ phòng đã xóa
       setRooms(rooms.filter((room) => room._id !== roomId));
 

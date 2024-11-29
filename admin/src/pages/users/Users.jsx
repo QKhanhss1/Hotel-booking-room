@@ -92,7 +92,7 @@ const Users = () => {
   return (
     <div className="users-container">
       <Navbar />
-      <h1>Danh sách người dùng</h1>
+      <h1 className="textheader">Danh sách người dùng</h1>
       <table className="usersTable">
         <thead>
           <tr>

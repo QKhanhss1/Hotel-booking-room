@@ -16,10 +16,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.textheader{
+  font-size: 30px;
+  font-weight: bold;
 
+
+}
 /* Cải tiến bảng người dùng */
 .usersTable {
-  max-width: 90%; 
+  width:80%; 
   margin: 0 auto; 
   margin-top: 20px; 
   background-color: #fff;
