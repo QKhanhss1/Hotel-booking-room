@@ -1,0 +1,31 @@
+.bookingPage {
+  padding: 20px;
+}
+
+.historyBooking {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.bookingCard {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+  width: 300px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bookingCard h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.bookingCard p {
+  margin: 5px 0;
+}
+
+.bookingCard ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}

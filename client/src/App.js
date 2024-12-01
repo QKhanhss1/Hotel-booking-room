@@ -12,6 +12,7 @@ import { useContext } from "react";
 import { AuthContext, AuthContextProvider } from "./context/AuthContext"; 
 import Payment from "./pages/payment/payment";
 import PaymentStatus from "./pages/payment/paymentStatus";
+import BookingPage from "./pages/booking/booking";
 function App() {
   const { user } = useContext(AuthContext);
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/signUp" element={<SingUp />} />
             <Route path="/favorites" element={<FavoritePage />} />
             <Route path="/payment/:status" element={<PaymentStatus />} />
+            <Route path="/booking" element={<BookingPage />} />
           </Routes>
         </BrowserRouter>
       </FavoriteContextProvider>

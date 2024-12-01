@@ -146,3 +146,22 @@ export const getRoomsByHotel = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getRoomNumber = async (req, res, next) => {
+  try {
+    // Tìm phòng theo id phòng (roomId) và id của roomNumber
+    const room = await Room.findOne(
+      { _id: req.params.roomId, 'roomNumbers._id': req.params.roomNumberId },
+      { 'roomNumbers.$': 1 }  // Chỉ trả về roomNumber
+    );
+
+    if (!room) {
+      return res.status(404).json({ message: "RoomNumber not found" });
+    }
+
+    // Trả về roomNumber tìm thấy
+    res.status(200).json(room.roomNumbers[0]);
+  } catch (err) {
+    next(err); // Chuyển lỗi cho middleware xử lý lỗi
+  }
+};

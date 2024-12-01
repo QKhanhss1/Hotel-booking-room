@@ -23,6 +23,10 @@ const Navbar = () => {
   const handleFavorites = () => {
     navigate("/favorites");
   };
+  //lịch sử đặt phòng
+  const handleBooking = () => {
+    navigate("/booking");
+  }
 
   return (
     <div className="navbar">
@@ -47,7 +51,7 @@ const Navbar = () => {
                 <button className="logoutButton" onClick={handleLogout}>
                   Đăng xuất
                 </button>
-                <button className="logoutButton" onClick={handleLogout}>
+                <button className="bookingButton" onClick={handleBooking}>
                   Đơn hàng
                 </button>
               </div>

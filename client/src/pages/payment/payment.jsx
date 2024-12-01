@@ -5,17 +5,28 @@ import { AuthContext } from "../../context/AuthContext";
 
 const Payment = ({ onClose }) => {
   const [reservationData, setReservationData] = useState(null);
+  const [reservationDates, setReservationDates] = useState(null);
   const { user } = useContext(AuthContext);
   const token = user?.token;
   useEffect(() => {
     // Lấy dữ liệu từ localStorage
     const data = localStorage.getItem("reservationData");
+    const datesData = localStorage.getItem("dates");
     if (data) {
       const parsedData = JSON.parse(data);
       console.log("Parsed reservation data in Payment:", parsedData);
       setReservationData(JSON.parse(data));
     } else {
       console.error("No reservation data found.");
+    }
+    if (datesData) {
+      const parsedDates = JSON.parse(datesData);
+      if (Array.isArray(parsedDates) && parsedDates[0]) {
+        setReservationDates({
+          checkinDate: new Date(parsedDates[0].startDate),
+          checkoutDate: new Date(parsedDates[0].endDate),
+        });
+      }
     }
   }, []);
 
@@ -26,13 +37,27 @@ const Payment = ({ onClose }) => {
   const { totalPrice, selectedRooms, hotelId } = reservationData;
   //new booking
   async function createBooking() {
-    const roomId = selectedRooms.map((room) => room.id);
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${day}-${month}`;
+    };
+    // const selectedRoom = selectedRooms.map((room) => room.number);
+    // const roomID = selectedRooms.map((room) => room.title);
+    // Chuẩn bị dữ liệu từ localStorage
+    const selectedRoomsData = selectedRooms.map((room) => ({
+      roomId: room.roomId, 
+      roomNumber: room.number,
+    }));
     try {
       const newBooking = {
-        hotelId:hotelId,
-        selectedRooms: roomId,
-        totalPrice:totalPrice,
+        hotelId: hotelId,
+        selectedRooms: selectedRoomsData, 
+        totalPrice: totalPrice,
         customer: user.details._id,
+        checkinDate: formatDate(reservationDates.checkinDate), // Chuyển đổi ngày
+        checkoutDate: formatDate(reservationDates.checkoutDate), // Chuyển đổi ngày
       };
 
       const response = await axios.post(
@@ -62,7 +87,7 @@ const Payment = ({ onClose }) => {
     try {
       const booking = await createBooking();
       if (!booking) return;
-      
+
       const newPayment = {
         bankCode: null,
         amount: totalPrice,

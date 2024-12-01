@@ -87,14 +87,16 @@ const Reserve = ({ setOpen, hotelId }) => {
       const roomNumberData = data
         .flatMap((room) => room.roomNumbers)
         .find((roomNumber) => roomNumber._id === roomId);
-
+      //lấy id số phòng
       if (!roomNumberData) {
         console.error("Không tìm thấy roomNumber cho ID:", roomId);
         return null; // Bỏ qua nếu không tìm thấy roomNumber
       }
-
+      //lấy id phòng
+      const roomData = data.find((room) => room.roomNumbers.some(roomNumber => roomNumber._id === roomId));
       return {
         id: roomId,
+        roomId: roomData._id,
         number: roomNumberData.number || "Unknown Number", // Lấy `number`
         title: roomPrices[roomId]?.title || "Unknown Room", // Lấy `title`
         price: roomPrices[roomId]?.price || 0, // Lấy `price`

@@ -1,5 +1,5 @@
 import express from "express";
-import { createBooking, updateBookingStatus } from "../controllers/booking.js";
+import { createBooking, updateBookingStatus,getBookings } from "../controllers/booking.js";
 import { verifyUser } from "../utils/verifyToken.js";
 
 const router = express.Router();
@@ -10,5 +10,5 @@ router.put("/update/status", updateBookingStatus);
 //DELETE
 
 //GET
-
+router.get("/:id",verifyUser,getBookings);
 export default router;
