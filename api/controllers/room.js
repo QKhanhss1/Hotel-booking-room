@@ -86,6 +86,31 @@ export const updateRoomAvailability = async (req, res, next) => {
     next(err);
   }
 };
+//hủy phòng
+export const deleteUnavailableDates = async (req, res, next) => {
+  try {
+    const { roomNumberId } = req.params; // ID của roomNumber
+    const { dates } = req.body; // Danh sách ngày cần xóa
+
+    // Xóa các ngày khỏi trường unavailableDates
+    const result = await Room.updateOne(
+      { "roomNumbers._id": roomNumberId },
+      {
+        $pull: {
+          "roomNumbers.$.unavailableDates": { $in: dates },
+        },
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Không tìm thấy hoặc không có ngày để xóa" });
+    }
+
+    res.status(200).json({ message: "Xóa ngày thành công!", result });
+  } catch (err) {
+    next(err); // Chuyển lỗi cho middleware xử lý lỗi
+  }
+};
 export const deleteRoom = async (req, res, next) => {
   const { roomId, hotelId } = req.params;
 try {

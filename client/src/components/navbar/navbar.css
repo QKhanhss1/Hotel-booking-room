@@ -69,7 +69,8 @@
 }
 
 .favoriteButton,
-.logoutButton {
+.logoutButton,
+.bookingButton {
   width: 100%;
   padding: 10px 15px;
   border: none;

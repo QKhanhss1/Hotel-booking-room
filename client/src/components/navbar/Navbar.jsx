@@ -52,7 +52,7 @@ const Navbar = () => {
                   Đăng xuất
                 </button>
                 <button className="bookingButton" onClick={handleBooking}>
-                  Đơn hàng
+                  Lịch sử đặt phòng
                 </button>
               </div>
             )}
