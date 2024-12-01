@@ -1,28 +1,23 @@
 import React, { useState, useContext, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import "./comment.css";
 import { AuthContext } from "../../context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
 const Comment = () => {
-  const [hotelId, setHotelId] = useState(null);
   const { user } = useContext(AuthContext);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { id } = useParams();
 
   const [formData, setFormData] = useState({
     userId: user.details._id,
     rating: 0,
     comment: "",
   });
-  // Lấy hotelId từ localStorage khi component được render
-  useEffect(() => {
-    const reservationData = JSON.parse(localStorage.getItem("reservationData"));
-    if (reservationData && reservationData.hotelId) {
-      setHotelId(reservationData.hotelId);
-    }
-  }, []);
+ 
 
   const handleRatingChange = (ratingValue) => {
     setFormData((prevState) => ({ ...prevState, rating: ratingValue }));
@@ -36,13 +31,13 @@ const Comment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!hotelId) {
-      console.error("Hotel ID is missing!");
+    if (!id) {
+      console.error("Không có khách sạn!");
       return;
     }
 
     if (!user || !user.details._id) {
-      console.error("User is not logged in!");
+      console.error("Chưa đăng nhập!");
       return;
     }
 
@@ -54,7 +49,7 @@ const Comment = () => {
     console.log("Submitted data:", payload);
 
     try {
-      const response = await fetch(`http://localhost:8800/api/hotels/reviews/${hotelId}`, {
+      const response = await fetch(`http://localhost:8800/api/hotels/reviews/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +84,7 @@ const Comment = () => {
   //lấy comment
   const fetchComments = async () => {
     try {
-      const response = await fetch(`http://localhost:8800/api/hotels/review/all/${hotelId}`);
+      const response = await fetch(`http://localhost:8800/api/hotels/review/all/${id}`);
       const data = await response.json();
       setComments(data);
     } catch (error) {
