@@ -6,7 +6,7 @@ import Login from "./pages/login/Login";
 import SingUp from "./pages/singup/singUp";
 import FavoritePage from "./pages/fa/FavoritePage";
 import { HashRouter } from "react-router-dom"; 
-
+import HotelTypes from "./pages/hotelTypes/hotelTypes";
 import { FavoriteContextProvider } from "./context/FavoriteContext";
 import { useContext } from "react";
 import { AuthContext, AuthContextProvider } from "./context/AuthContext"; 
@@ -22,6 +22,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/hotels" element={<List />} />
+            <Route path="/hotel-types" element={<HotelTypes />} />
             <Route path="/hotels/:id" element={<Hotel />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signUp" element={<SingUp />} />

@@ -221,3 +221,32 @@ export const getReviewsByHotelId = async (req, res, next) => {
     next(err);
   }
 };
+
+
+export const getHotelsByType = async (req, res, next) => {
+  const { type } = req.params;
+
+  // Kiểm tra và chuẩn hóa type trước khi tìm kiếm
+  const normalizedType = type.trim().toLowerCase(); // Loại bỏ khoảng trắng và chuyển thành chữ thường
+
+  console.log("Searching for hotels of type:", normalizedType);  
+
+  try {
+    const hotels = await Hotel.find({ type: { $regex: new RegExp("^" + normalizedType + "$", "i") } });  // Dùng regex để tìm chính xác
+
+    console.log("Hotels found:", hotels);  
+
+    if (!hotels || hotels.length === 0) {
+      return res.status(404).json({ message: `No hotels found for type: ${normalizedType}` });
+    }
+
+    res.status(200).json(hotels);
+  } catch (err) {
+    next(err);  
+  }
+};
+
+
+
+
+
