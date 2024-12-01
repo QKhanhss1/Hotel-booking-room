@@ -10,7 +10,8 @@ import {
   updateHotel,
   getFeaturedHotels,
   createReview,
-  getReviewsByHotelId
+  getReviewsByHotelId,
+  getHotelsByType
 } from "../controllers/hotel.js";
 import Hotel from "../models/Hotel.js";
 import { verifyAdmin, verifyUser } from "../utils/verifyToken.js";
@@ -37,4 +38,5 @@ router.get("/rooms/:id", getHotelRooms);
 // router.get("/room/:id", getRoomById);
 router.post("/reviews/:id", createReview);
 router.get("/review/all/:id", getReviewsByHotelId);
+router.get("/type/:type", getHotelsByType);
 export default router;
