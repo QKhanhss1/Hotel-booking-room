@@ -1,14 +1,16 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBed, faPerson, faCalendarDays } from "@fortawesome/free-solid-svg-icons";
-import { useState, useEffect } from "react";
+import { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import { format } from "date-fns"; 
 import { DateRange } from "react-date-range"; 
+import { SearchContext } from "../../context/SearchContext";
 
 import "./hotelTypes.css";
 
 const HotelTypes = () => {
+  const { dispatch } = useContext(SearchContext);
   const [destination, setDestination] = useState(""); 
   const [openDate, setOpenDate] = useState(false); 
   const [dates, setDates] = useState([ 
@@ -43,11 +45,15 @@ const HotelTypes = () => {
   };
 
   const handleSearch = () => {
+    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } }); // Phú phải có 1 cái dispatch lấy NEW SEARCH không thì nó sẽ lấy thằng search gần nhất
     navigate("/hotels", {
       state: { destination, dates, options }, 
     });
   };
-
+  const handleCityClick = (destination) => {
+    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } });
+    navigate("/hotels", { state: { destination, dates, options } });
+  };
   return (
     <div className="hotelTypes">
       <div className="headerSearch">
@@ -169,7 +175,7 @@ const HotelTypes = () => {
           ? "Có lỗi xảy ra"
           : data &&
             data.map((hotel) => (
-              <div key={hotel._id} className="hotelItem">
+              <div key={hotel._id} className="hotelItem" onClick={() => handleCityClick(hotel.city)}>
                 <div className="hotelImages">
                   <div className="hotelImgWrapper">
                     <img
