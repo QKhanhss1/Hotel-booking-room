@@ -27,7 +27,7 @@ const Hotel = () => {
   const { user } = useContext(AuthContext);
   const { favorites, dispatch } = useContext(FavoriteContext);
   const { dates = [], options = {} } = useContext(SearchContext);
-  
+
   const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
   function dayDifference(date1, date2) {
     const d1 = new Date(date1);
@@ -56,7 +56,7 @@ const Hotel = () => {
     if (data && options.room && days) {
       const calculatedPrice = days * data.cheapestPrice * options.room;
       setTotalPrice(calculatedPrice);
-      localStorage.setItem("totalprice", calculatedPrice);  
+      localStorage.setItem("totalprice", calculatedPrice);
     }
   }, [days, data, options]);
 
@@ -89,22 +89,16 @@ const Hotel = () => {
     }
   };
 
-  const handleOpen = (i) => {
-    setSlideNumber(i);
-    setOpen(true);
-  };
+  //   let newSlideNumber;
 
-  const handleMove = (direction) => {
-    let newSlideNumber;
+  //   if (direction === "l") {
+  //     newSlideNumber = slideNumber === 0 ? 5 : slideNumber - 1;
+  //   } else {
+  //     newSlideNumber = slideNumber === 5 ? 0 : slideNumber + 1;
+  //   }
 
-    if (direction === "l") {
-      newSlideNumber = slideNumber === 0 ? 5 : slideNumber - 1;
-    } else {
-      newSlideNumber = slideNumber === 5 ? 0 : slideNumber + 1;
-    }
-
-    setSlideNumber(newSlideNumber);
-  };
+  //   setSlideNumber(newSlideNumber);
+  // };
 
   const handleClick = () => {
     if (user) {
@@ -122,38 +116,12 @@ const Hotel = () => {
         "loading"
       ) : (
         <div className="hotelContainer">
-          {open && (
-            <div className="slider">
-              <FontAwesomeIcon
-                icon={faCircleXmark}
-                className="close"
-                onClick={() => setOpen(false)}
-              />
-              <FontAwesomeIcon
-                icon={faCircleArrowLeft}
-                className="arrow"
-                onClick={() => handleMove("l")}
-              />
-              <div className="sliderWrapper">
-                <img
-                  src={data.photos[slideNumber]}
-                  alt=""
-                  className="sliderImg"
-                />
-              </div>
-              <FontAwesomeIcon
-                icon={faCircleArrowRight}
-                className="arrow"
-                onClick={() => handleMove("r")}
-              />
-            </div>
-          )}
           <div className="hotelWrapper">
             <div className="actions">
               <button onClick={handleFavoriteClick} className="favoriteicon">
                 <FontAwesomeIcon icon={faHeart} color={isFavorite ? "red" : "grey"} />
               </button>
-              
+
             </div>
             <h1 className="hotelTitle">{data.name}</h1>
             <div className="hotelAddress">
@@ -161,30 +129,31 @@ const Hotel = () => {
               <span>{data.address}</span>
             </div>
             <span className="hotelDistance">
-            Vị trí tuyệt vời – {data.distance}m từ trung tâm
+              Vị trí tuyệt vời – {data.distance}m từ trung tâm
             </span>
             <span className="hotelPriceHighlight">
-            Đặt phòng trên {data.cheapestPrice} VND tại khách sạn này và nhận một Taxi sân bay miễn phí
+              Đặt phòng trên {data.cheapestPrice} VND tại khách sạn này và nhận một Taxi sân bay miễn phí
             </span>
-            <div className="hotelImages">
-              <div className="hotelImgWrapper">
-                <img
-                  onClick={() => handleOpen()}
-                  src={`http://localhost:8800/api/images/${data.photos}`}
-                  alt=""
-                  className="hotelImg"
-                />
-              </div>
-            </div>
             <div className="hotelDetails">
               <div className="hotelDetailsTexts">
                 <h1 className="hotelTitle">{data.title}</h1>
                 <p className="hotelDesc">{data.desc}</p>
               </div>
+            </div>
+            <div className="Containerbooking">
+              <div className="hotelImages">
+                <div className="hotelImgWrapper">
+                  <img
+                    src={`http://localhost:8800/api/images/${data.photos}`}
+                    alt=""
+                    className="hotelImg"
+                  />
+                </div>
+              </div>
               <div className="hotelDetailsPrice">
                 <h1>Hoàn hảo cho {days}-kỳ nghỉ đêm!</h1>
                 <span>
-                Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc 9,8!
+                  Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc 9,8!
                 </span>
                 <h2>
                   <b>${totalprice}</b> ({days} nights)
@@ -192,6 +161,7 @@ const Hotel = () => {
                 <button onClick={handleClick}>Đặt chỗ hoặc Đặt ngay!</button>
               </div>
             </div>
+           
           </div>
           <Comment />
           <MailList />

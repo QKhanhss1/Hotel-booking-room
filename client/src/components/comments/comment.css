@@ -1,187 +1,130 @@
 .Form {
-  width: 70%;
-  height: auto;
-  position: relative;
-  margin: 0 auto;
+  width: 60%;
+  margin: 20px auto; /* Center the form */
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .headerct {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  width: 100%;
+  margin-bottom: 30px;
 }
 
-.Form .flex-column {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.Form textarea {
-  width: 100%;
-  height: 120px;
-  padding: 16px;
-  background-color: white;
-  border-radius: 15px;
-  border: 1px solid #757575;
-  color: #333;
-  font-size: 16px;
-  font-weight: normal;
-  box-sizing: border-box;
-}
-
-.Form .flex-row {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-}
-
-.Form input[type="text"] {
-  width: 50%;
-  height: 47px;
-  padding-left: 19px;
-  background-color: white;
-  border-radius: 30px;
-  border: 1px solid #757575;
-  color: #333;
-  font-size: 16px;
-  font-family: "Times New Roman", serif;
-  font-weight: normal;
-}
-
-.Form .submit-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-  width: 100%;
-}
-
-.Form button {
-  width: 120px;
-  height: 35px;
-  background-color: #1e90ff;
-  border-radius: 5px;
+.viewCommentButton {
+  padding: 8px 12px;
+  background-color: #0071c2;
   color: white;
-  font-size: 15px;
-  font-weight: normal;
   border: none;
-}
-
-.rating-container {
-  display: flex;
-  gap: 5px;
-}
-
-.star-icon {
-  font-size: 2rem;
+  border-radius: 5px;
   cursor: pointer;
-  color: #ccc;
 }
 
-.star-icon.filled {
-  color: #f5c518;
-}
-
-.star-icon:hover,
-.star-icon.filled:hover {
-  color: #ff9e00;
-}
-
-/* Ensure the modal overlay takes full screen */
+/* Modal Styles */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
 }
 
-/* Modal content styles */
 .modalContent {
-  width: 90%;
-  max-width: 500px;
-  background: #fff;
+  background-color: white;
   padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
-  position: relative;
-}
-
-/* Close icon styles */
-.closeModalButton {
-  font-size: 30px;
-  color: #333;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.closeModalButton:hover {
-  color: #f44336; /* Red color on hover */
-}
-
-/* Comment list styles */
-.commentItem {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.commentItem p {
-  margin: 5px 0;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 600px; /* Giới hạn chiều rộng */
 }
 
 .modalHeader {
   display: flex;
-  justify-content: space-between; /* Space between title and icon */
-  align-items: center; /* Center items vertically */
-  width: 100%; /* Make sure it takes the full width */
-  padding: 10px; /* Add some padding for spacing */
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .closeModalButton {
-  font-size: 1.5rem; /* Adjust the font size of the icon */
+  font-size: 20px;
   cursor: pointer;
 }
 
-.modalTitle {
-  font-size: 1.5rem; /* Adjust the font size of the title */
-  margin: 0; /* Remove margin for better alignment */
+.commentList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.commentItem {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
 }
 
 .commentHeader {
   display: flex;
-  justify-content: space-between; /* Căn giữa username và rating */
-  width: 100%; /* Đảm bảo chiếm toàn bộ chiều rộng */
+  align-items: center;
+  margin-bottom: 5px;
 }
 
-.commentContent {
-  margin-top: 5px; /* Thêm khoảng cách giữa commentContent và commentHeader */
-  max-width: 100%; /* Đảm bảo commentContent chiếm toàn bộ chiều rộng */
-}
-
-.username {
-  margin-bottom: 5px; /* Space between username and comment */
-}
-
-.rating {
-  display: flex; /* Align stars horizontally */
-  justify-content: flex-end; /* Align stars to the right */
-  gap: 5px; /* Space between stars */
-  align-items: center; /* Vertically center the stars */
+.username strong {
+  font-weight: bold;
 }
 
 .staricon {
-  font-size: 1.5rem;
-  color: #f5c518; /* Gold color for stars */
+  font-size: 16px;
+  color: gold; /* Màu vàng cho sao */
+  margin-left: 5px;
+}
+
+/* Rating Styles */
+.rating-container {
+  margin: 0 0 20px 10px;
+  display: flex;
+
+}
+
+.star-icon {
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 2px;
+}
+
+.star-icon.filled {
+  color: gold;
+}
+
+/* Form Styles */
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-row {
+    display: flex;
+}
+
+textarea {
+    width: 1080px;
+    height:100px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    resize: vertical;
+}
+
+.submit-container button {
+    padding: 10px 20px;
+    background-color: #0071c2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
 }
