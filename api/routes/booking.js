@@ -1,5 +1,5 @@
 import express from "express";
-import { createBooking, updateBookingStatus,getBookings } from "../controllers/booking.js";
+import { createBooking, updateBookingStatus, getBookings, getBookingById, getBookingsByHotelId, deleteBooking } from "../controllers/booking.js";
 import { verifyUser } from "../utils/verifyToken.js";
 
 const router = express.Router();
@@ -9,6 +9,13 @@ router.post("/create", verifyUser, createBooking);
 router.put("/update/status", updateBookingStatus);
 //DELETE
 
-//GET
-router.get("/:id",verifyUser,getBookings);
+// Lấy tất cả bookings
+router.get("/", getBookings);
+// Thêm route để lấy booking theo ID
+router.get("/:id", getBookingById);
+// Thêm route để lấy booking theo hotelId
+router.get("/hotel/:hotelId", getBookingsByHotelId);
+// Thêm route để xóa booking
+router.delete("/:id", verifyUser, deleteBooking);
+
 export default router;
