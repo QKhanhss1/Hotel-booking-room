@@ -26,7 +26,7 @@ const BookingPage = () => {
       const fetchBookings = async () => {
         try {
           const res = await axios.get(
-            `http://localhost:8800/api/booking/${user.details._id}`,
+            `http://localhost:8800/api/booking/user/${user.details._id}`,
             {
               headers: {
                 Authorization: `Bearer ${user.token}`,

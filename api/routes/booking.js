@@ -17,5 +17,7 @@ router.get("/:id", getBookingById);
 router.get("/hotel/:hotelId", getBookingsByHotelId);
 // Thêm route để xóa booking
 router.delete("/:id", verifyUser, deleteBooking);
+// Thêm route để lấy booking theo userId
+router.get("/user/:id", verifyUser, getBookings);
 
 export default router;

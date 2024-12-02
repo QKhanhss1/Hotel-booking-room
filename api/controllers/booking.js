@@ -161,7 +161,7 @@ export const getBookings = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách booking!" });
   }
 };
-// Thêm hàm lấy booking theo ID
+// Thêm hàm lấy booking theo ID  
 export const getBookingById = async (req, res) => {
   try {
     const { id } = req.params; // Lấy bookingId từ params
