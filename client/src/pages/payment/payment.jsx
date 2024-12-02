@@ -43,12 +43,11 @@ const Payment = ({ onClose }) => {
       const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${day}-${month}`;
     };
-    // const selectedRoom = selectedRooms.map((room) => room.number);
-    // const roomID = selectedRooms.map((room) => room.title);
     // Chuẩn bị dữ liệu từ localStorage
     const selectedRoomsData = selectedRooms.map((room) => ({
       roomId: room.roomId, 
       roomNumber: room.number,
+      idRoomNumber: room.id,
     }));
     try {
       const newBooking = {

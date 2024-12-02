@@ -33,7 +33,10 @@ const BookingPage = () => {
               },
             }
           );
-          setBookings(res.data);
+          const successfulBookings = res.data.filter(
+            (booking) => booking.paymentStatus === "success"
+          );
+          setBookings(successfulBookings);
         } catch (error) {
           console.error("Error fetching bookings:", error);
         }
@@ -75,8 +78,10 @@ const BookingCard = ({ booking, formatDate }) => {
       <h2>{booking.hotelId?.name || "Thông tin khách sạn không có"}</h2>
       <p>Địa chỉ: {booking.hotelId?.address || "Không có địa chỉ"}</p>
 
-      <p>
-        <strong>Phòng đã đặt:</strong>
+      <div>
+        <p>
+          <strong>Phòng đã đặt:</strong>
+        </p>
         {booking.selectedRooms.length > 0 ? (
           <ul>
             {booking.selectedRooms.map((room) => (
@@ -87,9 +92,10 @@ const BookingCard = ({ booking, formatDate }) => {
             ))}
           </ul>
         ) : (
-          <span>Không có thông tin phòng</span>
+          <p>Không có thông tin phòng</p>
         )}
-      </p>
+      </div>
+
 
       <p>Ngày check-in: {formatDate(booking.paymentInfo.checkinDate)}</p>
       <p>Ngày check-out: {formatDate(booking.paymentInfo.checkoutDate)}</p>
@@ -99,8 +105,8 @@ const BookingCard = ({ booking, formatDate }) => {
         {booking.paymentStatus === "success"
           ? "Thành công"
           : booking.paymentStatus === "failed"
-          ? "Thất bại"
-          : "Đang xử lý"}
+            ? "Thất bại"
+            : "Đang xử lý"}
       </p>
     </div>
   );
