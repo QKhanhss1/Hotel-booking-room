@@ -161,34 +161,7 @@ export const getBookings = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách booking!" });
   }
 };
-// Thêm hàm lấy booking theo ID  
-export const getBookingById = async (req, res) => {
-  try {
-    const { id } = req.params; // Lấy bookingId từ params
-
-    // Kiểm tra dữ liệu đầu vào
-    if (!id) {
-      return res.status(400).json({ error: "Vui lòng cung cấp ID booking!" });
-    }
-
-    // Tìm booking theo ID
-    const booking = await Booking.findById(id)
-      .populate("hotelId", "name location address")
-      .populate("selectedRooms.roomId", "title");
-
-    // Nếu không tìm thấy booking
-    if (!booking) {
-      return res.status(404).json({ error: "Không tìm thấy booking với ID này!" });
-    }
-
-    // Trả về thông tin booking
-    res.status(200).json(booking);
-  } catch (error) {
-    console.error("Lỗi khi lấy booking:", error.message);
-    res.status(500).json({ error: "Lỗi khi lấy booking!" });
-  }
-};
-
+//get theo khách sạn
 export const getBookingsByHotelId = async (req, res) => {
   try {
     const { hotelId } = req.params;
@@ -200,7 +173,7 @@ export const getBookingsByHotelId = async (req, res) => {
 
     // Tìm tất cả các booking thuộc về khách sạn
     const hotelBookings = await Booking.find({ hotelId })
-      .populate("customer", "username") // Giả sử bạn muốn lấy tên khách hàng
+      .populate("customer", "username") 
       .populate("selectedRooms.roomId", "title");
 
     // Nếu không tìm thấy bất kỳ booking nào
@@ -217,7 +190,6 @@ export const getBookingsByHotelId = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách booking theo khách sạn!" });
   }
 };
-
 // Thêm hàm xóa booking
 export const deleteBooking = async (req, res) => {
   try {
