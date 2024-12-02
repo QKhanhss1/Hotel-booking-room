@@ -45,11 +45,11 @@ const Navbar = () => {
             </span>
             {dropdownOpen && (
               <div className="dropdownMenu">
-                <button className="favoriteButton" onClick={handleFavorites}>
-                  Yêu thích
-                </button>
                 <button className="logoutButton" onClick={handleLogout}>
                   Đăng xuất
+                </button>
+                <button className="favoriteButton" onClick={handleFavorites}>
+                  Yêu thích
                 </button>
                 <button className="bookingButton" onClick={handleBooking}>
                   Lịch sử đặt phòng

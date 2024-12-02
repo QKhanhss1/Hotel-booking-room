@@ -4,6 +4,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import "./booking.css";
+import Header from "../../components/header/Header";
+import Navbar from "../../components/navbar/Navbar";
 
 const BookingPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -43,6 +45,10 @@ const BookingPage = () => {
   }, [user, navigate]);
 
   return (
+    <>
+    <Navbar/>
+    <Header/>
+
     <div className="bookingPage">
       <h1>Lịch sử đặt phòng</h1>
       <div className="historyBooking">
@@ -59,6 +65,7 @@ const BookingPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

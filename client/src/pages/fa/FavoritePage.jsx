@@ -3,6 +3,8 @@ import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import "./favoritePage.css";
+import Header from "../../components/header/Header";
+import Navbar from "../../components/navbar/Navbar";
 
 const FavoritePage = () => {
   const { user } = useContext(AuthContext);
@@ -30,23 +32,27 @@ const FavoritePage = () => {
   }, [user, navigate]);
 
   return (
-    <div className="favoritePage">
-      <h1>Your Favorites</h1>
-      <div className="favoriteHotels">
-        {favorites.map((hotel) => (
-          <div key={hotel._id} className="favoriteHotel">
-            <h2>{hotel.name}</h2>
-            <img
-              src={`http://localhost:8800/api/images/${hotel.photos}`}
-              alt={hotel.name}
-              className="hotelImage"
-            />
+    <>
+      <Navbar />
+      <Header />
+      <div className="favoritePage">
+        <h1>Your Favorites</h1>
+        <div className="favoriteHotels">
+          {favorites.map((hotel) => (
+            <div key={hotel._id} className="favoriteHotel">
+              <h2>{hotel.name}</h2>
+              <img
+                src={`http://localhost:8800/api/images/${hotel.photos}`}
+                alt={hotel.name}
+                className="hotelImage"
+              />
 
-            <p>{hotel.address}</p>
-          </div>
-        ))}
+              <p>{hotel.address}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
