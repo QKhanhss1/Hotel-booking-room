@@ -5,9 +5,23 @@ import { SearchContext } from "../../context/SearchContext";
 import Header from "../../components/header/Header"; // Import Header component
 
 import "./hotelTypes.css";
+import Navbar from "../../components/navbar/Navbar";
 
 const HotelTypes = () => {
   const { dispatch } = useContext(SearchContext);
+  const [dates, setDates] = useState([
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: "selection",
+    },
+  ]);
+  const [options, setOptions] = useState({
+    adult: 1,
+    children: 0,
+    room: 1,
+  });
+
   const { search } = useLocation();
   const params = new URLSearchParams(search);
   const type = params.get("type");
@@ -16,20 +30,21 @@ const HotelTypes = () => {
   const navigate = useNavigate();
 
   const handleCityClick = (destination) => {
-    dispatch({ type: "NEW_SEARCH", payload: { destination } });
-    navigate("/hotels", { state: { destination } });
+    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options  } });
+    navigate("/hotels", { state: {  destination, dates, options   } });
   };
 
   return (
     <div>
+      <Navbar />
       <Header />
       <div className="hotelTypes">
         <div className="hotelList">
           {loading
             ? "Loading..."
             : error
-            ? "Có lỗi xảy ra"
-            : data &&
+              ? "Có lỗi xảy ra"
+              : data &&
               data.map((hotel) => (
                 <div
                   key={hotel._id}

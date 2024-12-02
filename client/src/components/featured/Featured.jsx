@@ -7,8 +7,7 @@ import "./featured.css";
 
 const Featured = () => {
   const navigate = useNavigate();
-  const [destination, setDestination] = useState("");
-  const [openDate, setOpenDate] = useState(false);
+
   
   const { dispatch } = useContext(SearchContext);
   const [dates, setDates] = useState([
@@ -18,7 +17,6 @@ const Featured = () => {
       key: "selection",
     },
   ]);
-  const [openOptions, setOpenOptions] = useState(false);
   const [options, setOptions] = useState({
     adult: 1,
     children: 0,
