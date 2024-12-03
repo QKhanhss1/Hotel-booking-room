@@ -1,4 +1,3 @@
-/* General styling for the page */
 .favoritePage {
   padding: 20px;
   max-width: 800px;
@@ -14,31 +13,32 @@
   text-align: center;
 }
 
-/* Container for all favorite hotels */
 .favoriteHotels {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-/* Individual favorite hotel styling */
 .favoriteHotel {
-  background-color: #f0f8ff; /* Light blue background for cards */
+  background-color: #f0f8ff; 
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s;
+  position: relative; 
 }
 
 .favoriteHotel:hover {
-  transform: scale(1.02); /* Slight scaling effect on hover */
+  transform: scale(1.02); 
 }
+
 .hotelImage {
   width: 100%;
   max-height: 300px;
   border-radius: 8px;
   margin-top: 10px;
 }
+
 .favoriteHotel h2 {
   font-size: 20px;
   color: #004080;
@@ -49,4 +49,26 @@
   font-size: 16px;
   color: #333;
   margin: 0;
+}
+
+.removeFavoriteBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #ff4d4d; 
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s;
+}
+
+.removeFavoriteBtn:hover {
+  background: #ff1a1a; 
 }

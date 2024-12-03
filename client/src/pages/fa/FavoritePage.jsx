@@ -31,6 +31,20 @@ const FavoritePage = () => {
     }
   }, [user, navigate]);
 
+  const handleRemoveFavorite = async (hotelId) => {
+    try {
+      await axios.delete(`/favorites/${hotelId}`, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+      // Cập nhật lại danh sách khách sạn yêu thích
+      setFavorites(favorites.filter((hotel) => hotel._id !== hotelId));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -40,13 +54,18 @@ const FavoritePage = () => {
         <div className="favoriteHotels">
           {favorites.map((hotel) => (
             <div key={hotel._id} className="favoriteHotel">
+              <button
+                className="removeFavoriteBtn"
+                onClick={() => handleRemoveFavorite(hotel._id)}
+              >
+                X
+              </button>
               <h2>{hotel.name}</h2>
               <img
                 src={`http://localhost:8800/api/images/${hotel.photos}`}
                 alt={hotel.name}
                 className="hotelImage"
               />
-
               <p>{hotel.address}</p>
             </div>
           ))}
