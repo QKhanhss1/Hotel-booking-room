@@ -104,20 +104,41 @@
 .flex-column {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 15px;
 }
 
 .flex-row {
     display: flex;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 15px;
+    justify-content: flex-start;
+}
+
+.flex-row label {
+    min-width: 80px;
+    margin-right: 10px;
 }
 
 textarea {
-    width: 1080px;
-    height:100px;
+    width: 100%;
+    height: 100px;
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
     resize: vertical;
+    box-sizing: border-box;
+}
+
+.submit-container {
+    display: flex;
+    justify-content: center; /* Căn giữa button */
+    width: 100%;
+    margin-top: 10px; /* Thêm khoảng cách phía trên */
 }
 
 .submit-container button {
@@ -127,4 +148,9 @@ textarea {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    min-width: 120px; /* Đặt chiều rộng tối thiểu cho button */
+}
+
+.submit-container button:hover {
+    background-color: #005c9e; /* Thêm hiệu ứng hover */
 }
