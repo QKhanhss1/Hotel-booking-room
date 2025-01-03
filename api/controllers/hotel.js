@@ -54,13 +54,13 @@ export const getHotels = async (req, res, next) => {
 };
 export const getFeaturedHotels = async (req, res, next) => {
   try {
-    // Tìm các khách sạn có rating và sắp xếp theo rating giảm dần
-    const getFeaturedHotels = await Hotel.find({ rating: { $exists: true, $ne: null } }) // Lọc khách sạn có rating
-      .sort({ rating: -1 }); // Sắp xếp theo rating giảm dần
     
-    res.status(200).json(getFeaturedHotels); // Trả về danh sách khách sạn
+    const getFeaturedHotels = await Hotel.find({ rating: { $exists: true, $ne: null } }) // Lọc khách sạn có rating
+      .sort({ rating: -1 });
+    
+    res.status(200).json(getFeaturedHotels); 
   } catch (err) {
-    next(err); // Xử lý lỗi nếu có
+    next(err); 
   }
 };
 export const countByCity = async (req, res, next) => {

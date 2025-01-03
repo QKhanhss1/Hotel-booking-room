@@ -33,14 +33,14 @@ const FeaturedProperties = () => {
 
   const scrollLeft = () => {
     scrollRef.current.scrollBy({
-      left: -300, // Điều chỉnh khoảng cách cuộn
+      left: -300,
       behavior: "smooth",
     });
   };
 
   const scrollRight = () => {
     scrollRef.current.scrollBy({
-      left: 300, // Điều chỉnh khoảng cách cuộn
+      left: 300, 
       behavior: "smooth",
     });
   };
@@ -73,7 +73,7 @@ const FeaturedProperties = () => {
         {loading ? (
           "Loading"
         ) : error ? (
-          <div>Error: {error.message}</div>  // Hiển thị lỗi nếu có
+          <div>Error: {error.message}</div>  
         ) : (
           <>
             {data.map((item) => (
