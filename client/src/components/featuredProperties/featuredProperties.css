@@ -1,13 +1,32 @@
+
+.fpContainer {
+  width: 100%;
+  max-width: 1090px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  padding: 20px;
+}
+
 .fp {
   width: 100%;
-  max-width: 1024px;
+  /* max-width: 1024px; */
   display: flex;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   gap: 20px;
+  overflow-x: scroll;
+  scroll-behavior: smooth;
+  padding: 10px;
+  justify-content: flex-start;
+}
+
+.fp::-webkit-scrollbar {
+  display: none; 
 }
 
 .fpItem{
-  flex: 1;
+  flex: 0 0 250px; 
   gap: 10px;
   display: flex;
   flex-direction: column;
@@ -44,4 +63,38 @@
 
 .fpRating>span{
   font-size: 14px;
+}
+
+.fpArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ffffff;
+  color: #003580;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 50%; 
+  width: 40px; 
+  height: 40px; 
+  font-size: 20px;
+  display: flex;
+  align-items: center; 
+  justify-content: center; 
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.fpArrow.left {
+  left: 0;
+}
+
+.fpArrow.right {
+  right: 0;
+}
+
+.fpArrow:hover {
+  background-color: rgb(206, 206, 206);
+  color: #003580; 
 }

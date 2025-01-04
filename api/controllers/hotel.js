@@ -73,13 +73,13 @@ export const getHotels = async (req, res, next) => {
 };
 export const getFeaturedHotels = async (req, res, next) => {
   try {
-
-    const featuredHotels = await Hotel.find({ featured: true }).limit(4);
-
-
-    res.status(200).json(featuredHotels);
+    
+    const getFeaturedHotels = await Hotel.find({ rating: { $exists: true, $ne: null } }) // Lọc khách sạn có rating
+      .sort({ rating: -1 });
+    
+    res.status(200).json(getFeaturedHotels); 
   } catch (err) {
-    next(err); // Xử lý lỗi nếu có
+    next(err); 
   }
 };
 export const countByCity = async (req, res, next) => {
