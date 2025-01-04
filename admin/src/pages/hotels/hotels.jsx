@@ -27,9 +27,7 @@ function Hotels() {
 
   //fetch images
   const fetchHotelImages = async (hotel) => {
-    console.log('hotel in fetchHotelImages:', hotel);
     if (hotel.imageIds && hotel.imageIds.length > 0) {
-      console.log('hotel.imageIds:', hotel.imageIds);
       const images = await Promise.all(
         hotel.imageIds.map(async (id) => {
           console.log('id:', id);
@@ -124,7 +122,6 @@ function Hotels() {
   };
 
   const handleHotelClick = (hotelId) => {
-    console.log("Navigating to hotel:", hotelId);
     navigate(`/rooms/${hotelId}`);
   };
 
@@ -144,7 +141,6 @@ function Hotels() {
       // Sau khi update thành công, fetch lại data
       const hotelsWithImage = await fetchHotelImages(response.data);
       setHotels(hotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel)));
-
       console.log('hotels after set:', hotels);
       closeEditModal();
       alert("Cập nhật khách sạn thành công!");
@@ -169,7 +165,6 @@ function Hotels() {
       console.error("Error deleting hotel:", error);
     }
   };
-
   useEffect(() => {
     const fetchHotels = async () => {
       try {

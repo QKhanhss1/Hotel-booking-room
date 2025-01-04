@@ -40,8 +40,12 @@ router.post('/upload', upload.array('images'), async (req, res) => {
                 name: file.filename,
                 url: cloudinaryResult.secure_url,
             });
-            const savedImage = await newImage.save();
-            // Xóa file tạm thời sau khi upload thành công
+            const savedImage = await newImage.save().catch(error => {
+                console.error("MongoDB Error:", error);
+               throw error;
+             });
+             console.log('savedImage', savedImage);
+             // Xóa file tạm thời sau khi upload thành công
             fs.unlink(file.path, (err) => {
                 if (err) {
                     console.error("Error deleting temporary file:", err);

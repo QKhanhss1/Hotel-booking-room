@@ -19,7 +19,6 @@ export const updateHotel = async (req, res, next) => {
   try {
     const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds } = req.body;
     const updatedHotel = await Hotel.findByIdAndUpdate(
-      
       req.params.id,
       {
         name,
@@ -34,11 +33,16 @@ export const updateHotel = async (req, res, next) => {
       },
       { new: true }
     );
-    console.log('updatedHotel', updatedHotel)
+    console.log('updatedHotel', updatedHotel);
+
     const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
+    const modifiedHotel = {
+      ...populatedHotel.toObject(),
+      imageIds: populatedHotel.imageIds.map((image) => image._id.toString()), // Map image object to string id
+    };
     console.log('populatedHotel', populatedHotel);
-    res.status(200).json(populatedHotel);
-  } catch (err) {
+    res.status(200).json(modifiedHotel);
+    } catch (err) {
     console.error('Error updating hotel:', err);
     next(err);
   }
@@ -73,13 +77,13 @@ export const getHotels = async (req, res, next) => {
 };
 export const getFeaturedHotels = async (req, res, next) => {
   try {
-    
+
     const getFeaturedHotels = await Hotel.find({ rating: { $exists: true, $ne: null } }) // Lọc khách sạn có rating
       .sort({ rating: -1 });
-    
-    res.status(200).json(getFeaturedHotels); 
+
+    res.status(200).json(getFeaturedHotels);
   } catch (err) {
-    next(err); 
+    next(err);
   }
 };
 export const countByCity = async (req, res, next) => {
