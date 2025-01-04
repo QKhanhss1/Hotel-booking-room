@@ -35,7 +35,6 @@ router.get("/", getHotels);
 router.get("/countByCity", countByCity);
 router.get("/countByType", countByType);
 router.get("/rooms/:id", getHotelRooms);
-// router.get("/room/:id", getRoomById);
 router.post("/reviews/:id", createReview);
 router.get("/review/all/:id", getReviewsByHotelId);
 router.get("/type/:type", getHotelsByType);

@@ -1,26 +1,45 @@
 import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
-import User from "../models/User.js"; 
+import User from "../models/User.js";
 
 export const createHotel = async (req, res, next) => {
   const newHotel = new Hotel(req.body);
-
   try {
     const savedHotel = await newHotel.save();
-    res.status(200).json(savedHotel);
+    const populatedHotel = await Hotel.findById(savedHotel._id).populate('imageIds');
+    res.status(200).json(populatedHotel);
   } catch (err) {
+    console.error('Error creating hotel', err); // Log lỗi
     next(err);
   }
 };
+
 export const updateHotel = async (req, res, next) => {
+  console.log('req.body updateHotel', req.body);
   try {
+    const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds } = req.body;
     const updatedHotel = await Hotel.findByIdAndUpdate(
+      
       req.params.id,
-      { $set: req.body },
+      {
+        name,
+        type,
+        city,
+        address,
+        desc,
+        cheapestPrice,
+        distance,
+        title,
+        imageIds: imageIds,
+      },
       { new: true }
     );
-    res.status(200).json(updatedHotel);
+    console.log('updatedHotel', updatedHotel)
+    const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
+    console.log('populatedHotel', populatedHotel);
+    res.status(200).json(populatedHotel);
   } catch (err) {
+    console.error('Error updating hotel:', err);
     next(err);
   }
 };
@@ -96,35 +115,6 @@ export const countByType = async (req, res, next) => {
   }
 };
 
-// export const getHotelRooms = async (req, res, next) => {
-//   try {
-//     // Get hotel by ID
-//     const hotel = await Hotel.findById(req.params.id).populate('rooms');
-//     console.log("Hotel found:", hotel); // Log hotel
-//     if (!hotel) {
-//       return res.status(404).json({ message: "Hotel not found" });
-//     }
-
-//     console.log("Rooms in hotel:", hotel.rooms); // Log rooms
-//     // If the hotel has no rooms, return an empty array
-//     // if (!hotel.rooms || hotel.rooms.length === 0) {
-//     //   return res.status(200).json([]);  
-//     // }
-//     if (!hotel.rooms || hotel.rooms.length === 0) {
-//       return res.status(404).json({ message: "Room not found" });
-//     }
-
-
-//     const rooms = await Promise.all(
-//       hotel.rooms.map((roomId) => Room.findById(roomId))
-//     );
-
-//     res.status(200).json(rooms); 
-//   } catch (err) {
-//     next(err); 
-//   }
-// };
-
 export const getHotelRooms = async (req, res, next) => {
   try {
     const hotel = await Hotel.findById(req.params.id);
@@ -148,6 +138,7 @@ export const getHotelRooms = async (req, res, next) => {
     next(err);
   }
 };
+
 //review
 export const createReview = async (req, res) => {
   const { userId, rating, comment } = req.body;
@@ -229,12 +220,12 @@ export const getHotelsByType = async (req, res, next) => {
   // Kiểm tra và chuẩn hóa type trước khi tìm kiếm
   const normalizedType = type.trim().toLowerCase(); // Loại bỏ khoảng trắng và chuyển thành chữ thường
 
-  console.log("Searching for hotels of type:", normalizedType);  
+  console.log("Searching for hotels of type:", normalizedType);
 
   try {
     const hotels = await Hotel.find({ type: { $regex: new RegExp("^" + normalizedType + "$", "i") } });  // Dùng regex để tìm chính xác
 
-    console.log("Hotels found:", hotels);  
+    console.log("Hotels found:", hotels);
 
     if (!hotels || hotels.length === 0) {
       return res.status(404).json({ message: `No hotels found for type: ${normalizedType}` });
@@ -242,7 +233,7 @@ export const getHotelsByType = async (req, res, next) => {
 
     res.status(200).json(hotels);
   } catch (err) {
-    next(err);  
+    next(err);
   }
 };
 

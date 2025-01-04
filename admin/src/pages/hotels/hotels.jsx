@@ -17,59 +17,41 @@ function Hotels() {
     type: "",
     distance: "",
     title: "",
+    photos: null,
   });
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingHotel, setEditingHotel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [hotelTypes, setHotelTypes] = useState({});
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchHotels();
-  }, []);
-
-  const fetchHotels = async () => {
-    try {
-      const response = await axios.get("http://localhost:8800/api/hotels");
-      const hotelsData = response.data;
-      console.log("Dữ liệu khách sạn:", hotelsData);
-
-      const hotelsWithImages = await Promise.all(
-        hotelsData.map(async (hotel) => {
-          console.log("Hotel photos ID:", hotel.photos);
-
-          if (hotel.photos) {
-            try {
-              const imageResponse = await axios.get(
-                `http://localhost:8800/api/images/${hotel.photos}`
-              );
-              hotel.photo_url = `data:image/png;base64,${imageResponse.data}`;
-            } catch (error) {
-              console.error("Lỗi khi lấy ảnh cho khách sạn:", hotel._id, error);
-              hotel.photo_url = null;
-            }
-          } else {
-            hotel.photo_url = null;
-          }
-          return hotel;
+  //fetch images
+  const fetchHotelImages = async (hotel) => {
+    console.log('hotel in fetchHotelImages:', hotel);
+    if (hotel.imageIds && hotel.imageIds.length > 0) {
+      console.log('hotel.imageIds:', hotel.imageIds);
+      const images = await Promise.all(
+        hotel.imageIds.map(async (id) => {
+          console.log('id:', id);
+          const imageResponse = await axios.get(`http://localhost:8800/api/images/${id}`);
+          console.log('imageResponse:', imageResponse);
+          return imageResponse.data.imageUrl;
         })
       );
-
-      setHotels(hotelsWithImages);
-    } catch (error) {
-      console.error("Error fetching hotels:", error);
+      return {
+        ...hotel,
+        images: images,
+      }
     }
-  };
-
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-      console.log("Selected image:", file);
-    } else {
-      console.log("Không có ảnh nào được chọn");
+    return {
+      ...hotel,
+      images: []
     }
+  }
+
+  const handleImageChange = (e) => {
+    console.log("e.target.files:", e.target.files);
+    setSelectedImages(Array.from(e.target.files)); // Chắc chắn e.target.files là một mảng
   };
 
   const handleCreate = async () => {
@@ -85,29 +67,35 @@ function Hotels() {
         alert("Vui lòng điền đầy đủ thông tin!");
         return;
       }
+      // console.log("selectedImages:", selectedImages);
 
-      // Bước 1: Tải ảnh lên server
       const formData = new FormData();
-      formData.append("image", selectedImage);
+      selectedImages.forEach((image) => {
+        formData.append('images', image);
+      });
+
       const imageResponse = await axios.post("http://localhost:8800/api/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
+      // console.log(imageResponse);
 
-      console.log(imageResponse.data);
-      // Tạo khách sạn với ID ảnh
+      const imageIds = imageResponse.data.map((image) => image._id);
+      // Tạo khách sạn với mảng ID ảnh
       const newHotelData = {
         ...newHotel,
-        photos: imageResponse.data._id, // Giả sử server trả về ID của ảnh đã lưu
+        imageIds: imageIds, // Lưu mảng các ID ảnh
       };
+
+      // console.log('newHotelData:', newHotelData);
 
       const response = await axios.post(
         "http://localhost:8800/api/hotels",
         newHotelData,
         {
           headers: {
-            Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+            Authorization: `Bearer ${user?.token}`,
           },
         }
       );
@@ -126,8 +114,8 @@ function Hotels() {
         title: "",
         photos: null,
       });
+      setSelectedImages([]);
       setShowAddForm(false);
-
       alert("Thêm khách sạn thành công!");
     } catch (error) {
       console.error("Error creating hotel:", error);
@@ -142,6 +130,7 @@ function Hotels() {
 
   const handleUpdate = async (id) => {
     try {
+      console.log('editingHotel:', editingHotel);
       const response = await axios.put(
         `http://localhost:8800/api/hotels/${id}`,
         editingHotel,
@@ -151,9 +140,12 @@ function Hotels() {
           },
         }
       );
-      setHotels(
-        hotels.map((hotel) => (hotel._id === id ? response.data : hotel))
-      );
+      console.log('update response:', response);
+      // Sau khi update thành công, fetch lại data
+      const hotelsWithImage = await fetchHotelImages(response.data);
+      setHotels(hotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel)));
+
+      console.log('hotels after set:', hotels);
       closeEditModal();
       alert("Cập nhật khách sạn thành công!");
     } catch (error) {
@@ -177,6 +169,24 @@ function Hotels() {
       console.error("Error deleting hotel:", error);
     }
   };
+
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        const response = await axios.get("http://localhost:8800/api/hotels");
+        const hotelsWithImage = await Promise.all(
+          response.data.map(async (hotel) => {
+            return await fetchHotelImages(hotel)
+          })
+        );
+        setHotels(hotelsWithImage);
+      }
+      catch (error) {
+        console.error("Error fetch hotel:", error);
+      }
+    };
+    fetchHotels();
+  }, []);
 
   const startEditing = (hotel) => {
     setEditingHotel(hotel);
@@ -300,7 +310,7 @@ function Hotels() {
                 />
                 <input
                   type="file"
-                  accept="image/*"
+                  multiple
                   onChange={handleImageChange}
                   className="p-2 border rounded-md"
                 />
@@ -441,11 +451,16 @@ function Hotels() {
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (file) {
+                      const files = Array.from(e.target.files);
+                      console.log('files', files);
+                      if (files && files.length > 0) {
                         const formData = new FormData();
-                        formData.append("image", file);
+                        files.forEach((file) => {
+                          formData.append("images", file);
+                        });
+                        console.log('formData', formData)
                         try {
                           const response = await axios.post(
                             "http://localhost:8800/api/upload",
@@ -456,9 +471,10 @@ function Hotels() {
                               },
                             }
                           );
+                          const newImageIds = response.data.map(image => image._id);
                           setEditingHotel({
                             ...editingHotel,
-                            photos: response.data._id,
+                            imageIds: editingHotel.imageIds ? [...editingHotel.imageIds, ...newImageIds] : [...newImageIds],
                           });
                         } catch (error) {
                           console.error("Error uploading image:", error);
@@ -508,7 +524,7 @@ function Hotels() {
                 <div className="flex flex-col items-center h-full w-full">
                   <img
                     className="Image h-60 relative w-full object-cover rounded-lg"
-                    src={`http://localhost:8800/api/images/${hotel.photos}`}
+                    src={hotel.imageUrl}
                     alt={hotel.name}
                     onClick={() => handleHotelClick(hotel._id)}
                   />

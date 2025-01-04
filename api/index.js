@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import mongoose from "mongoose";
 import authRoute from "./routes/auth.js";
 import favoriteRoute from "./routes/favorite.js";
@@ -11,17 +12,11 @@ import bookingRoute from "./routes/booking.js";
 import paymentRoute from "./routes/vnpay.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-
 const app = express();
-dotenv.config();
+
 
 const connect = async () => {
   try {
-    //   await mongoose.connect(process.env.MONGO);
-    //   console.log("Connected to mongoDB.");
-    // } catch (error) {
-    //   throw error;
-    // }
     const conn = await mongoose.connect(process.env.MONGO, {
       useNewUrlParser: true,
       useUnifiedTopology: true,

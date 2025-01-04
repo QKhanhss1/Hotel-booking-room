@@ -2,11 +2,9 @@ import mongoose from 'mongoose';
 
 // Định nghĩa schema cho ảnh
 const imageSchema = new mongoose.Schema({
-    name: String,
-    img: {
-        data: Buffer,
-        contentType: String,
-    },
+    name: String, 
+    url: String,  
+    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' }, 
 });
 
 // Tạo và xuất model

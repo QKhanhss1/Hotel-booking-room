@@ -23,7 +23,7 @@ const HotelSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['hotel', 'apartment', 'resort', 'villa', 'cabin'],  
+    enum: ['hotel', 'apartment', 'resort', 'villa', 'cabin'],
   },
   city: {
     type: String,
@@ -37,10 +37,11 @@ const HotelSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  photos: {
+  imageIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
-  },
+    required: false
+  }],
   title: {
     type: String,
     required: true,
