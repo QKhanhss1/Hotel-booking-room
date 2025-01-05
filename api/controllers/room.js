@@ -1,76 +1,101 @@
 import Room from "../models/Room.js";
 import Hotel from "../models/Hotel.js";
 import { createError } from "../utils/error.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 export const createRoom = async (req, res, next) => {
   const hotelId = req.params.hotelid;
-  const newRoom = new Room(req.body);
-
   try {
-    console.log("Creating room with data:", req.body);
-    console.log("For hotel:", hotelId);
+    // Lưu đường dẫn tương đối
+    const imageUrls = req.files ? req.files.map(file => 
+      `/uploads/${file.filename}`
+    ) : [];
 
-    const newRoom = new Room({
+    console.log("Creating room for hotelId:", hotelId); // Debug log
+
+    const roomData = {
       ...req.body,
-      hotelId: hotelId
+      hotelId: hotelId,
+      images: imageUrls,
+      roomNumbers: JSON.parse(req.body.roomNumbers)
+    };
+
+    const newRoom = new Room(roomData);
+    const savedRoom = await newRoom.save();
+
+    // Thêm phòng vào danh sách phòng của khách sạn
+    await Hotel.findByIdAndUpdate(hotelId, {
+      $push: { rooms: savedRoom._id }
     });
 
-   console.log("New room object:", newRoom);
-
-    const savedRoom = await newRoom.save(); 
-    console.log("Saved room:", savedRoom);
-
- 
-try {
-  const updatedHotel = await Hotel.findByIdAndUpdate(
-      hotelId,
-      {
-          $push: { rooms: savedRoom._id }
-      },
-      { new: true } // Trả về document sau khi update
-  );
-
-  if (!updatedHotel) {
-      throw new Error(`Hotel with id ${hotelId} not found`);
+    console.log("Room created successfully:", savedRoom); // Debug log
+    
+    res.status(200).json(savedRoom);
+  } catch (err) {
+    console.error("Error creating room:", err); // Debug log
+    next(err);
   }
-
-  console.log("Updated hotel rooms:", updatedHotel.rooms);
-  
-  // 4. Verify cả room và hotel đã được cập nhật
-  const verifyRoom = await Room.findById(savedRoom._id);
-  const verifyHotel = await Hotel.findById(hotelId);
-  
-  console.log("Verified saved room:", verifyRoom);
-  console.log("Verified updated hotel rooms:", verifyHotel.rooms);
-
-  res.status(200).json({
-      room: savedRoom,
-      hotelRooms: updatedHotel.rooms
-  });
-} catch (updateError) {
-  // Nếu cập nhật hotel thất bại, xóa room đã tạo
-  await Room.findByIdAndDelete(savedRoom._id);
-  throw new Error(`Failed to update hotel: ${updateError.message}`);
-}
-
-} catch (err) {
-console.error("Error in createRoom:", err);
-next(err);
-}
 };
 
 export const updateRoom = async (req, res, next) => {
   try {
+    // Parse existing images from form data
+    let existingImages = [];
+    try {
+      existingImages = JSON.parse(req.body.existingImages || '[]');
+    } catch (error) {
+      console.error("Error parsing existingImages:", error);
+    }
+    
+    // Handle new uploaded images
+    const newImageUrls = req.files ? req.files.map(file => 
+      `/uploads/${file.filename}`
+    ) : [];
+
+    // Combine existing and new images
+    const allImages = [...existingImages, ...newImageUrls];
+
+    // Parse roomNumbers safely
+    let roomNumbers = [];
+    try {
+      roomNumbers = JSON.parse(req.body.roomNumbers || '[]');
+      // Validate roomNumbers structure
+      if (!Array.isArray(roomNumbers)) {
+        throw new Error('roomNumbers must be an array');
+      }
+      // Ensure each room number has the correct structure
+      roomNumbers = roomNumbers.map(room => ({
+        number: parseInt(room.number),
+        unavailableDates: room.unavailableDates || []
+      }));
+    } catch (error) {
+      console.error("Error parsing roomNumbers:", error);
+      return res.status(400).json({ message: "Invalid roomNumbers format" });
+    }
+
+    const updateData = {
+      ...req.body,
+      images: allImages,
+      roomNumbers: roomNumbers
+    };
+
     const updatedRoom = await Room.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { $set: updateData },
       { new: true }
     );
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
     res.status(200).json(updatedRoom);
   } catch (err) {
+    console.error("Update error:", err);
     next(err);
   }
 };
+
 export const updateRoomAvailability = async (req, res, next) => {
   try {
     await Room.updateOne(
@@ -112,32 +137,38 @@ export const deleteUnavailableDates = async (req, res, next) => {
   }
 };
 export const deleteRoom = async (req, res, next) => {
-  const { roomId, hotelId } = req.params;
-try {
-  // Kiểm tra xem phòng có tồn tại không
-  const room = await Room.findById(roomId);
-  if (!room) {
-    return res.status(404).json({ message: "Không tìm thấy phòng!" });
+  try {
+    const roomId = req.params.id;
+    const hotelId = req.params.hotelId;
+
+    console.log("Deleting room:", roomId, "from hotel:", hotelId);
+
+    // Kiểm tra xem phòng có tồn tại không
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Không tìm thấy phòng!" });
+    }
+
+    // Kiểm tra xem khách sạn có tồn tại không
+    const hotel = await Hotel.findById(hotelId);
+    if (!hotel) {
+      return res.status(404).json({ message: "Không tìm thấy khách sạn!" });
+    }
+
+    // Xóa phòng
+    await Room.findByIdAndDelete(roomId);
+    
+    // Cập nhật danh sách phòng trong khách sạn
+    await Hotel.findByIdAndUpdate(hotelId, {
+      $pull: { rooms: roomId }
+    });
+
+    console.log("Room deleted successfully");
+    res.status(200).json({ message: "Xóa phòng thành công!" });
+  } catch (err) {
+    console.error("Error deleting room:", err);
+    next(err);
   }
-
-  // Kiểm tra xem khách sạn có tồn tại không
-  const hotel = await Hotel.findById(hotelId);
-  if (!hotel) {
-    return res.status(404).json({ message: "Không tìm thấy khách sạn!" });
-  }
-
-  // Xóa phòng
-  await Room.findByIdAndDelete(roomId);
-  
-  // Cập nhật danh sách phòng trong khách sạn
-  await Hotel.findByIdAndUpdate(hotelId, {
-    $pull: { rooms: roomId },
-  });
-
-  res.status(200).json({ message: "Xóa phòng thành công!" });
-} catch (err) {
-  next(err);
-}
 };
 
 export const getRoom = async (req, res, next) => {
@@ -147,15 +178,32 @@ export const getRoom = async (req, res, next) => {
       return res.status(404).json({ message: "Room not found" });
     }
     res.status(200).json(room);
-  } catch (error) {
-    next(error); // Chuyển lỗi cho middleware xử lý lỗi
+  } catch (err) {
+    next(err);
   }
 };
 export const getRooms = async (req, res, next) => {
   try {
-    const rooms = await Room.find();
+    const hotelId = req.params.hotelid;
+    console.log("Getting rooms for hotelId:", hotelId);
+
+    // Tìm khách sạn và populate rooms
+    const hotel = await Hotel.findById(hotelId).populate('rooms');
+    
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    // Lấy danh sách phòng từ khách sạn
+    const rooms = await Room.find({ 
+      _id: { $in: hotel.rooms } 
+    });
+
+    console.log("Found rooms:", rooms.length);
+
     res.status(200).json(rooms);
   } catch (err) {
+    console.error("Error in getRooms:", err);
     next(err);
   }
 };

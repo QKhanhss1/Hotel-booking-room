@@ -8,7 +8,6 @@ import { AuthContext } from "../../context/AuthContext";
 function Rooms() {
   const { user } = useContext(AuthContext); 
   const [searchParams] = useSearchParams();
-  const hotelId = searchParams.get("hotelId");
   const { id } = useParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rooms, setRooms] = useState([]);
@@ -26,18 +25,28 @@ function Rooms() {
     maxPeople: "",
     desc: "",
     roomNumbers: [],
+    images: [],
+  });
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imagePreview, setImagePreview] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [hotelId, setHotelId] = useState(id || searchParams.get("hotelId"));
+  const [editRoom, setEditRoom] = useState({
+    title: "",
+    price: "",
+    maxPeople: "",
+    desc: "",
+    roomNumbers: [],
+    existingImages: [],
+    newImages: []
   });
 
   const openEditModal = (room) => {
     setIsEditing(true);
-    setEditingRoom(room);
-    setSelectedHotelid(room.hotelId); // Nếu có hotelId
-    setNewRoom({
-      title: room.title,
-      price: room.price,
-      maxPeople: room.maxPeople,
-      desc: room.desc || "",
-      roomNumbers: room.roomNumbers.map((r) => r.number),
+    setEditRoom({
+      ...room,
+      roomNumbers: room.roomNumbers.map(r => r.number),
+      existingImages: room.images
     });
     setIsModalOpen(true);
   };
@@ -65,39 +74,56 @@ function Rooms() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        if (id) {
-          // Fetch hotel details
-          const hotelResponse = await axios.get(
-            `http://localhost:8800/api/hotels/find/${id}`
-          );
-          setHotel(hotelResponse.data);
-          console.log("Hotel data:", hotelResponse.data); // Debug log
+        console.log("Fetching rooms for hotelId:", hotelId);
 
-          // Fetch hotel rooms - sửa endpoint
+        if (hotelId) {
           const roomsResponse = await axios.get(
-            `http://localhost:8800/api/hotels/rooms/${id}`
+            `http://localhost:8800/api/hotels/${hotelId}/rooms`,
+            {
+              headers: {
+                Authorization: `Bearer ${user?.token}`
+              }
+            }
           );
+          
           console.log("Rooms data:", roomsResponse.data);
-          setRooms(roomsResponse.data);
-        }
-        // Debug log
-        else {
-          // Nếu không có id, lấy tất cả các phòng
-          const response = await axios.get(
-            "http://localhost:8800/api/hotels/rooms"
-          );
-          setRooms(response.data);
+          
+          if (Array.isArray(roomsResponse.data)) {
+            setRooms(roomsResponse.data);
+          } else {
+            console.error("Invalid response format:", roomsResponse.data);
+            setRooms([]);
+          }
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching rooms:", error);
         setRooms([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData(); // Gọi fetchData ngay khi component mount hoặc id thay đổi
-  }, [id]);
+    if (hotelId) {
+      fetchData();
+    }
+  }, [hotelId, user]);
+
+  // Log mỗi khi rooms state thay đổi
+  useEffect(() => {
+    console.log("Rooms state updated:", rooms.length, "rooms");
+    console.log("Full rooms data:", JSON.stringify(rooms, null, 2));
+  }, [rooms]);
+
+  // Thêm useEffect để log khi hotelId thay đổi
+  useEffect(() => {
+    console.log("HotelId changed to:", hotelId);
+  }, [hotelId]);
+
+  useEffect(() => {
+    return () => {
+      imagePreview.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imagePreview]);
 
   if (loading) {
     return (
@@ -134,93 +160,74 @@ function Rooms() {
 
   // Hàm thêm phòng
   const createRoom = async () => {
-    if (!id) {
-      // Sử dụng id từ useParams thay vì selectedHotelid
-      alert("Không tìm thấy thông tin khách sạn!");
-      return;
-    }
-    const token = localStorage.getItem("token");
-    if (!newRoom.title || !newRoom.price || !newRoom.maxPeople) {
-      alert("Vui lòng điền đầy đủ thông tin!");
-      return;
-    }
-    // Kiểm tra và format dữ liệu
-    if (!newRoom.roomNumbers || !newRoom.roomNumbers.length) {
-      alert("Vui lòng nhập số phòng!");
-      return;
-    }
-
-    console.log("Selected Hotel ID:", selectedHotelid);
-    console.log("Room Data:", newRoom);
     try {
-      // Chuyển đổi roomNumbers từ string sang array số
-      const roomNumbersArray = newRoom.roomNumbers
-        .toString()
-        .split(",")
-        .map((num) => ({
-          number: parseInt(num.trim()),
-          unavailableDates: [], // Add this if your schema requires it
-        }))
-        .filter((room) => !isNaN(room.number)); // Filter out invalid numbers
-
-      if (roomNumbersArray.length === 0) {
-        alert("Vui lòng nhập số phòng hợp lệ!");
+      if (!hotelId || !newRoom.title || !newRoom.price || !newRoom.maxPeople) {
+        alert("Vui lòng điền đầy đủ thông tin!");
         return;
       }
 
-      const roomData = {
-        title: newRoom.title,
-        price: Number(newRoom.price),
-        maxPeople: Number(newRoom.maxPeople),
-        desc: newRoom.desc,
-        roomNumbers: roomNumbersArray,
-        hotelId: id  
-      };
-      console.log("Room Data sending:", roomData);
-      console.log("Hotel ID:", selectedHotelid);
-      console.log("Token:", token);
-      // Sử dụng id từ useParams
+      const formData = new FormData();
+      formData.append('title', newRoom.title);
+      formData.append('price', newRoom.price);
+      formData.append('maxPeople', newRoom.maxPeople);
+      formData.append('desc', newRoom.desc);
+      
+      // Thêm roomNumbers
+      const roomNumbersArray = newRoom.roomNumbers
+        .toString()
+        .split(",")
+        .map(num => ({
+          number: parseInt(num.trim()),
+          unavailableDates: []
+        }))
+        .filter(room => !isNaN(room.number));
+      
+      formData.append('roomNumbers', JSON.stringify(roomNumbersArray));
+      
+      // Thêm từng ảnh vào formData
+      selectedImages.forEach(file => {
+        formData.append('images', file);
+      });
+
+      console.log("Sending images:", selectedImages); // Debug log
+
       const response = await axios.post(
-        `http://localhost:8800/api/hotels/rooms/${id}`,
-        // `http://localhost:8800/api/hotels/${id}/rooms`,
-        // `http://localhost:8800/api/rooms/${id}`,
-        roomData,
+        `http://localhost:8800/api/hotels/${hotelId}/rooms`,
+        formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Include the token
-            'Content-Type': 'application/json'
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${user?.token}`
           }
         }
       );
-      console.log("Room creation response:", response.data);
-      // Refresh danh sách phòng
-      // if (id) {
-      //   const roomsResponse = await axios.get(
-      //     `http://localhost:8800/api/hotels/rooms/${id}`
-      //   );
-      //   setRooms(roomsResponse.data);
-      // }
-      // setRooms([...rooms, response.data]);
-      setNewRoom({
-        title: "",
-        price: "",
-        maxPeople: "",
-        desc: "",
-        roomNumbers: [],
-      });
 
-      const updatedRoomsResponse = await axios.get(
-        `http://localhost:8800/api/hotels/rooms/${id}`
-    );
-    setRooms(updatedRoomsResponse.data);
-
-      // setSelectedHotelid("");
+      setRooms(prev => [...prev, response.data]);
+      resetForm();
       setIsModalOpen(false);
       alert("Thêm phòng thành công!");
     } catch (error) {
-      console.error("Error response:", error.response?.data);
+      console.error("Error creating room:", error);
       alert(error.response?.data?.message || "Có lỗi xảy ra khi thêm phòng!");
     }
+  };
+
+  // Thêm hàm resetForm
+  const resetForm = () => {
+    setEditRoom({
+      title: "",
+      price: "",
+      maxPeople: "",
+      desc: "",
+      roomNumbers: [],
+      existingImages: []
+    });
+    
+    // Giải phóng URL objects
+    imagePreview.forEach(url => URL.revokeObjectURL(url));
+    
+    setSelectedImages([]);
+    setImagePreview([]);
   };
 
   const handleInputChange = (e) => {
@@ -240,119 +247,298 @@ function Rooms() {
   };
 
   //  Cập nhật phòng
-  const updateRoom = async () => {
+  const updateRoom = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Bạn cần đăng nhập lại!");
-            return;
-        }
+      if (!editRoom?.title || !editRoom?.price || !editRoom?.maxPeople) {
+        alert("Vui lòng điền đầy đủ thông tin!");
+        return;
+      }
 
-        // Format room numbers
-        const roomNumbersArray = newRoom.roomNumbers
-        .map(num => (typeof num === 'string' ? num.trim() : num))
-        .filter(num => num !== '')
-        .map(num => ({
-            number: parseInt(num),
-            unavailableDates: editingRoom.roomNumbers.find(
-                r => r.number === parseInt(num)
-            )?.unavailableDates || []
-        }))
-        .filter(room => !isNaN(room.number));
+      // Kiểm tra tổng số ảnh
+      const totalImages = (editRoom.existingImages?.length || 0) + selectedImages.length;
+      if (totalImages > 5) {
+        alert("Tổng số ảnh không được vượt quá 5!");
+        return;
+      }
 
-      const roomData = {
-        title: newRoom.title,
-        price: Number(newRoom.price),
-        maxPeople: Number(newRoom.maxPeople),
-        desc: newRoom.desc,
-        roomNumbers: [
-          {
-            number: Number(newRoom.roomNumbers[0]),
-          },
-        ],
-      };
-  console.log("Updating room with data:", roomData);
-      const response = await axios.put(
-        `http://localhost:8800/api/hotels/rooms/${editingRoom._id}`,
-        roomData,
+      const formData = new FormData();
+      formData.append('title', editRoom.title);
+      formData.append('price', editRoom.price);
+      formData.append('maxPeople', editRoom.maxPeople);
+      formData.append('desc', editRoom.desc);
+
+      // Format roomNumbers
+      const formattedRoomNumbers = editRoom.roomNumbers.map(number => ({
+        number: parseInt(number),
+        unavailableDates: []
+      }));
+      formData.append('roomNumbers', JSON.stringify(formattedRoomNumbers));
+
+      // Thêm ảnh hiện tại
+      if (editRoom.existingImages) {
+        formData.append('existingImages', JSON.stringify(editRoom.existingImages));
+      }
+
+      // Thêm ảnh mới
+      selectedImages.forEach(file => {
+        formData.append('images', file);
+      });
+
+      console.log("Updating room with data:", {
+        title: editRoom.title,
+        price: editRoom.price,
+        maxPeople: editRoom.maxPeople,
+        desc: editRoom.desc,
+        roomNumbers: formattedRoomNumbers,
+        existingImages: editRoom.existingImages,
+        newImages: selectedImages.length
+      });
+
+      const res = await axios.put(
+        `http://localhost:8800/api/hotels/${hotelId}/rooms/${id}`,
+        formData,
         {
           headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${user?.token}`
           }
-      }
+        }
       );
 
-      setRooms(
-        rooms.map((room) =>
-          room._id === editingRoom._id ? response.data : room
-        )
-      );
-
-      // Reset form
-      setNewRoom({
-        title: "",
-        price: "",
-        maxPeople: "",
-        desc: "",
-        roomNumbers: [],
-      });
-      setIsEditing(false);
-      setEditingRoom(null);
-      setSelectedHotelid("");
+      setRooms(rooms.map(room => 
+        room._id === id ? res.data : room
+      ));
+      
+      // Reset form và states
+      resetForm();
       setIsModalOpen(false);
+      setIsEditing(false);
       alert("Cập nhật phòng thành công!");
-    } catch (error) {
-      console.error("Error updating room:", error);
-      alert(
-        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật phòng!"
-      );
+    } catch (err) {
+      console.error("Error updating room:", err);
+      alert(err.response?.data?.message || "Có lỗi xảy ra khi cập nhật phòng!");
     }
+  };
+
+  // Hàm xóa ảnh đã chọn
+  const handleRemoveImage = (index) => {
+    // Xóa ảnh khỏi state
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    
+    // Xóa preview và giải phóng URL
+    URL.revokeObjectURL(imagePreview[index]);
+    setImagePreview(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Hàm xóa ảnh hiện có khi edit
+  const handleRemoveExistingImage = (index) => {
+    setEditRoom(prev => ({
+      ...prev,
+      existingImages: prev.existingImages.filter((_, i) => i !== index)
+    }));
   };
 
   //  Xoá phòng
   const handleDelete = async (roomId) => {
-    // Xác nhận trước khi xóa
-    if (!window.confirm("Bạn có chắc chắn muốn xóa phòng này?")) {
+    try {
+      if (!window.confirm("Bạn có chắc chắn muốn xóa phòng này?")) {
+        return;
+      }
+
+      console.log("Deleting room:", roomId, "from hotel:", hotelId);
+
+      const response = await axios.delete(
+        `http://localhost:8800/api/hotels/${hotelId}/rooms/${roomId}/${hotelId}`, 
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        setRooms(rooms.filter(room => room._id !== roomId));
+        alert("Xóa phòng thành công!");
+      }
+    } catch (error) {
+      console.error("Error deleting room:", error);
+      if (error.response?.status === 401) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+      } else {
+        alert(error.response?.data?.message || "Có lỗi xảy ra khi xóa phòng!");
+      }
+    }
+  };
+
+  // Hàm xử lý khi chọn ảnh
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    console.log("Selected files:", files);
+    
+    // Kiểm tra số lượng ảnh
+    const totalImages = (editRoom?.existingImages?.length || 0) + selectedImages.length + files.length;
+    if (totalImages > 5) {
+      alert("Tổng số ảnh không được vượt quá 5!");
       return;
     }
-    try {
-      if (!id) {
-        throw new Error("Không tìm thấy thông tin khách sạn");
-      }
-  
-      // const hotelResponse = await axios.get(
-      //   `http://localhost:8800/api/hotels/room/${roomId}`
-      // );
+    
+    // Thêm ảnh mới vào state
+    setSelectedImages(prevImages => [...prevImages, ...files]);
 
-      // if (!hotelResponse.data) {
-      //   throw new Error("Không tìm thấy khách sạn chứa phòng này");
-      // }
-      // Gọi API xóa phòng
-      const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("Bạn cần đăng nhập lại!");
-    }
+    // Tạo URL preview cho ảnh mới
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreview(prevPreviews => [...prevPreviews, ...newPreviews]);
+  };
 
-    // Gọi API xóa phòng với token xác thực
-    await axios.delete(
-      `http://localhost:8800/api/hotels/rooms/${roomId}/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${user.token}`, 
-          'Content-Type': 'application/json'
-        }
-      }
+  // Hàm mở modal sửa
+  const handleEditClick = (room) => {
+    console.log("Opening edit modal for room:", room);
+    
+    setEditRoom({
+      title: room.title || '',
+      price: room.price || '',
+      maxPeople: room.maxPeople || '',
+      desc: room.desc || '',
+      roomNumbers: room.roomNumbers ? room.roomNumbers.map(r => r.number) : [],
+      existingImages: room.images || []
+    });
+    
+    // Reset các state liên quan đến ảnh mới
+    setSelectedImages([]);
+    setImagePreview([]);
+    
+    setEditingRoom(room);
+    setIsEditing(true);
+    setIsModalOpen(true);
+  };
+
+  // Form edit trong modal
+  const EditRoomForm = () => {
+    return (
+      <div className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Sửa Phòng</h2>
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder="Tên phòng"
+            value={editRoom.title}
+            onChange={(e) => setEditRoom({...editRoom, title: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+          <input
+            type="number"
+            placeholder="Giá"
+            value={editRoom.price}
+            onChange={(e) => setEditRoom({...editRoom, price: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+          <input
+            type="number"
+            placeholder="Số người tối đa"
+            value={editRoom.maxPeople}
+            onChange={(e) => setEditRoom({...editRoom, maxPeople: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Số phòng"
+            value={editRoom.roomNumbers.join(",")}
+            onChange={(e) => setEditRoom({
+              ...editRoom, 
+              roomNumbers: e.target.value.split(",").map(num => num.trim())
+            })}
+            className="w-full p-2 border rounded"
+          />
+          <textarea
+            placeholder="Mô tả"
+            value={editRoom.desc}
+            onChange={(e) => setEditRoom({...editRoom, desc: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh phòng</label>
+            
+            {/* Grid container cho cả ảnh cũ và ảnh mới */}
+            <div className="grid grid-cols-3 gap-2 mt-2 mb-4">
+              {/* Hiển thị ảnh hiện có */}
+              {isEditing && editRoom.existingImages && editRoom.existingImages.map((img, index) => (
+                <div key={`existing-${index}`} className="relative">
+                  <img
+                    src={`http://localhost:8800${img}`}
+                    alt={`Room ${index + 1}`}
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExistingImage(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Hiển thị preview ảnh mới */}
+              {imagePreview.map((url, index) => (
+                <div key={`preview-${index}`} className="relative">
+                  <img
+                    src={url}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Input chọn ảnh */}
+            <div className="mt-2">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageChange}
+                className="mt-1 block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Tổng số ảnh không được vượt quá 5
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end space-x-3">
+          <button
+            onClick={() => {
+              setIsModalOpen(false);
+              setIsEditing(false);
+              resetForm();
+            }}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={() => updateRoom(editingRoom._id)}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          >
+            Cập nhật
+          </button>
+        </div>
+      </div>
     );
-
-      // Cập nhật UI bằng cách lọc bỏ phòng đã xóa
-      setRooms(rooms.filter((room) => room._id !== roomId));
-
-      alert("Xóa phòng thành công!");
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Có lỗi xảy ra khi xóa phòng!");
-    }
   };
 
   return (
@@ -372,113 +558,170 @@ function Rooms() {
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-lg w-full max-w-md">
-              <h2 className="text-2xl font-semibold mb-4">Thêm Phòng Mới</h2>
+              <h2 className="text-2xl font-semibold mb-4">
+                {isEditing ? "Sửa Phòng" : "Thêm Phòng Mới"}
+              </h2>
               <div className="space-y-4">
-                <div>
-                  {/* <select
-                    value={selectedHotelid}
-                    onChange={(e) => setSelectedHotelid(e.target.value)}
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
-                  >
-                    <option value="">Chọn khách sạn</option>
-                    {hotels.map((hotel) => (
-                      <option key={hotel._id} value={hotel._id}>
-                        {hotel.name}
-                      </option>
-                    ))}
-                  </select> */}
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700">
-                    Tên phòng
-                  </label> */}
-                  <input
-                    type="text"
-                    name="title"
-                    value={newRoom.title}
-                    onChange={handleInputChange}
-                    placeholder="Tên phòng"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
-                  />
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700">
-                    Giá (VNĐ)
-                  </label> */}
-                  <input
-                    type="number"
-                    name="price"
-                    value={newRoom.price}
-                    onChange={handleInputChange}
-                    placeholder=" Giá (VNĐ)"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
-                  />
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700">
-                    Số người tối đa
-                  </label> */}
-                  <input
-                    type="number"
-                    name="maxPeople"
-                    value={newRoom.maxPeople}
-                    onChange={handleInputChange}
-                    placeholder="Số người tối đa"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500  p-2 text-lg"
-                  />
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700">
-                    Số phòng (phân cách bằng dấu phẩy)
-                  </label> */}
-                  <input
-                    type="text"
-                    name="roomNumbers"
-                    // value={newRoom.roomNumbers.join(", ")}
-                    value={newRoom.roomNumbers}
-                    onChange={handleInputChange}
-                    placeholder="Số phòng"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500  p-2 text-lg"
-                  />
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700">
-                    Mô tả
-                  </label> */}
-                  <textarea
-                    name="desc"
-                    value={newRoom.desc}
-                    onChange={handleInputChange}
-                    rows="3"
-                    placeholder="Mô tả phòng"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500  p-3 text-lg"
-                  />
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setIsEditing(false);
-                    setEditingRoom(null);
-                    setNewRoom({
-                      title: "",
-                      price: "",
-                      maxPeople: "",
-                      desc: "",
-                      roomNumbers: [],
-                    });
+                {/* Form chung cho cả thêm và sửa */}
+                <input
+                  type="text"
+                  name="title"
+                  value={isEditing ? editRoom.title : newRoom.title}
+                  onChange={(e) => {
+                    if (isEditing) {
+                      setEditRoom({...editRoom, title: e.target.value});
+                    } else {
+                      handleInputChange(e);
+                    }
                   }}
-                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={isEditing ? updateRoom : createRoom}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                >
-                  {isEditing ? "Cập nhật" : "Thêm"}
-                </button>
+                  placeholder="Tên phòng"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                />
+                <input
+                  type="number"
+                  name="price"
+                  value={isEditing ? editRoom.price : newRoom.price}
+                  onChange={(e) => {
+                    if (isEditing) {
+                      setEditRoom({...editRoom, price: e.target.value});
+                    } else {
+                      handleInputChange(e);
+                    }
+                  }}
+                  placeholder="Giá (VNĐ)"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                />
+                <input
+                  type="number"
+                  name="maxPeople"
+                  value={isEditing ? editRoom.maxPeople : newRoom.maxPeople}
+                  onChange={(e) => {
+                    if (isEditing) {
+                      setEditRoom({...editRoom, maxPeople: e.target.value});
+                    } else {
+                      handleInputChange(e);
+                    }
+                  }}
+                  placeholder="Số người tối đa"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                />
+                <input
+                  type="text"
+                  name="roomNumbers"
+                  value={isEditing ? editRoom.roomNumbers.join(',') : newRoom.roomNumbers}
+                  onChange={(e) => {
+                    if (isEditing) {
+                      setEditRoom({
+                        ...editRoom,
+                        roomNumbers: e.target.value.split(',').map(num => num.trim())
+                      });
+                    } else {
+                      handleInputChange(e);
+                    }
+                  }}
+                  placeholder="Số phòng (phân cách bằng dấu phẩy)"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                />
+                <textarea
+                  name="desc"
+                  value={isEditing ? editRoom.desc : newRoom.desc}
+                  onChange={(e) => {
+                    if (isEditing) {
+                      setEditRoom({...editRoom, desc: e.target.value});
+                    } else {
+                      handleInputChange(e);
+                    }
+                  }}
+                  placeholder="Mô tả"
+                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                />
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh phòng</label>
+                  
+                  {/* Grid container cho cả ảnh cũ và ảnh mới */}
+                  <div className="grid grid-cols-3 gap-2 mt-2 mb-4">
+                    {/* Hiển thị ảnh hiện có */}
+                    {isEditing && editRoom.existingImages && editRoom.existingImages.map((img, index) => (
+                      <div key={`existing-${index}`} className="relative">
+                        <img
+                          src={`http://localhost:8800${img}`}
+                          alt={`Room ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Hiển thị preview ảnh mới */}
+                    {imagePreview.map((url, index) => (
+                      <div key={`preview-${index}`} className="relative">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Input chọn ảnh */}
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="mt-1 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Tổng số ảnh không được vượt quá 5
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setIsEditing(false);
+                      resetForm();
+                    }}
+                    className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (isEditing) {
+                        updateRoom(editingRoom._id);
+                      } else {
+                        createRoom();
+                      }
+                    }}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                  >
+                    {isEditing ? "Cập nhật" : "Thêm"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -560,6 +803,29 @@ function Rooms() {
                 className="Room-1 flex-col justify-start items-start gap-2 flex px-2"
               >
                 <div className="flex flex-col items-center h-full w-full p-6 border rounded-lg shadow-sm">
+                  {/* Hiển thị nhiều ảnh dạng slider hoặc grid */}
+                  {room.images && room.images.length > 0 ? (
+                    <div className="w-full mb-4 grid grid-cols-2 gap-2">
+                      {room.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={`http://localhost:8800${image}`}
+                          alt={`${room.title} - ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                          onError={(e) => {
+                            console.error("Image load error for URL:", e.target.src);
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
+                      <span className="text-gray-500">No images available</span>
+                    </div>
+                  )}
+                  
                   <div className="Name text-[#1a1a1a] text-xl font-semibold font-['Inter'] leading-loose text-center w-full">
                     {room.title}
                   </div>
@@ -596,7 +862,7 @@ function Rooms() {
 
                   <div className="flex gap-6 mt-auto pt-4">
                     <button
-                      onClick={() => openEditModal(room)}
+                      onClick={() => handleEditClick(room)}
                       className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
                     >
                       Sửa
@@ -614,7 +880,6 @@ function Rooms() {
           </div>
         </div>
       </div>
-      //{" "}
     </div>
   );
 }

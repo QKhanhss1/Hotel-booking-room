@@ -1,34 +1,34 @@
 import express from "express";
+import { verifyAdmin } from "../utils/verifyToken.js";
+import multer from "multer";
 import {
   createRoom,
-  getRoom,
-  getRooms,
   updateRoom,
-  updateRoomAvailability,
   deleteRoom,
-  getRoomNumber,
-  deleteUnavailableDates
+  getRoom,
+  getRooms
 } from "../controllers/room.js";
-import { verifyAdmin, verifyUser } from "../utils/verifyToken.js";
+import path from 'path';
 
-const router = express.Router();
-//CREATE
-router.post("/:hotelid", verifyAdmin, createRoom);
+const router = express.Router({ mergeParams: true });
 
-//UPDATE
-router.put("/availability/:id", updateRoomAvailability);
-router.put("/:id", verifyAdmin, updateRoom);
-router.put("/:roomNumberId/unavailable-dates", verifyAdmin,deleteUnavailableDates);
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads/')
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
-//DELETE
-// router.delete("/:id/:hotelid", verifyAdmin, deleteRoom);
-router.delete("/room/:roomId/:hotelId", verifyAdmin, deleteRoom);
-//GET
+const upload = multer({ storage: storage });
 
-router.get("/:id", getRoom);
-//GET ALL
+// Routes
 router.get("/", getRooms);
-//GET ROOM NUMBER
-router.get("/:roomId/roomnumbers/:roomNumberId", getRoomNumber);
+router.post("/", verifyAdmin, upload.array('images', 5), createRoom);
+router.put("/:id", verifyAdmin, upload.array('images', 5), updateRoom);
+router.delete("/:id/:hotelId", verifyAdmin, deleteRoom);
+router.get("/:id", getRoom);
 
 export default router;

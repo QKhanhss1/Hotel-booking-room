@@ -12,8 +12,29 @@ import bookingRoute from "./routes/booking.js";
 import paymentRoute from "./routes/vnpay.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
 const app = express();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Tạo thư mục uploads nếu chưa tồn tại
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Serve static files từ thư mục uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Log để debug
+app.use('/uploads', (req, res, next) => {
+  console.log('Accessing uploads:', req.url);
+  next();
+});
 
 const connect = async () => {
   try {
@@ -54,12 +75,18 @@ app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 // app.use("/api/rooms", roomsRoute);
 // app.use("/api/hotels", roomsRoute);
-app.use("/api/hotels/rooms", roomsRoute); // Thay vì /api/rooms
+app.use("/api/hotels/:hotelid/rooms", roomsRoute);
 app.use("/api/booking", bookingRoute);
 
 app.use("/api/favorites", favoriteRoute);
 app.use("/api/v1/vnpay", paymentRoute);
 
+app.use((req, res, next) => {
+  res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.header('Expires', '-1');
+  res.header('Pragma', 'no-cache');
+  next();
+});
 
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
