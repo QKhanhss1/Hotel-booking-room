@@ -16,36 +16,35 @@ export const createHotel = async (req, res, next) => {
 
 export const updateHotel = async (req, res, next) => {
   console.log('req.body updateHotel', req.body);
-  try {
-    const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds } = req.body;
-    const updatedHotel = await Hotel.findByIdAndUpdate(
-      req.params.id,
-      {
-        name,
-        type,
-        city,
-        address,
-        desc,
-        cheapestPrice,
-        distance,
-        title,
-        imageIds: imageIds,
-      },
-      { new: true }
-    );
-    console.log('updatedHotel', updatedHotel);
-
-    const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
-    const modifiedHotel = {
-      ...populatedHotel.toObject(),
-      imageIds: populatedHotel.imageIds.map((image) => image._id.toString()), // Map image object to string id
-    };
-    console.log('populatedHotel', populatedHotel);
-    res.status(200).json(modifiedHotel);
-    } catch (err) {
-    console.error('Error updating hotel:', err);
-    next(err);
+  const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds, rating } = req.body;
+  const updatedHotel = await Hotel.findByIdAndUpdate(
+    req.params.id,
+    {
+      name,
+      type,
+      city,
+      address,
+      desc,
+      cheapestPrice,
+      distance,
+      title,
+      imageIds: imageIds,
+      rating
+    },
+    { new: true }
+  );
+  console.log('updatedHotel', updatedHotel);
+  if (!updatedHotel) {
+    return res.status(404).json({ message: 'Hotel not found' });
   }
+  const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
+  console.log('populatedHotel', populatedHotel);
+  console.log('populatedHotel.imageIds', populatedHotel.imageIds);
+  const modifiedHotel = {
+    ...populatedHotel.toObject(),
+    imageIds: populatedHotel.imageIds ? populatedHotel.imageIds.map((image) => image._id.toString()) : [],
+  };
+  res.status(200).json(modifiedHotel);
 };
 export const deleteHotel = async (req, res, next) => {
   try {

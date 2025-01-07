@@ -30,9 +30,7 @@ function Hotels() {
     if (hotel.imageIds && hotel.imageIds.length > 0) {
       const images = await Promise.all(
         hotel.imageIds.map(async (id) => {
-          console.log('id:', id);
           const imageResponse = await axios.get(`http://localhost:8800/api/images/${id}`);
-          console.log('imageResponse:', imageResponse);
           return imageResponse.data.imageUrl;
         })
       );
@@ -130,17 +128,22 @@ function Hotels() {
       console.log('editingHotel:', editingHotel);
       const response = await axios.put(
         `http://localhost:8800/api/hotels/${id}`,
-        editingHotel,
+        {
+          ...editingHotel,
+          imageIds: editingHotel.imageIds, // Gửi editingHotel chứa imageIds
+        },
         {
           headers: {
             Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
           },
         }
       );
-      console.log('update response:', response);
+      console.log('response after update', response.data);
       // Sau khi update thành công, fetch lại data
       const hotelsWithImage = await fetchHotelImages(response.data);
-      setHotels(hotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel)));
+      setHotels((prevHotels) =>
+        prevHotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel))
+      );
       console.log('hotels after set:', hotels);
       closeEditModal();
       alert("Cập nhật khách sạn thành công!");
@@ -467,10 +470,13 @@ function Hotels() {
                             }
                           );
                           const newImageIds = response.data.map(image => image._id);
+                          console.log("newImageIds:", newImageIds);
+                          console.log("editingHotel.imageIds (before):", editingHotel.imageIds);
                           setEditingHotel({
                             ...editingHotel,
                             imageIds: editingHotel.imageIds ? [...editingHotel.imageIds, ...newImageIds] : [...newImageIds],
                           });
+                          console.log("editingHotel.imageIds (after):", editingHotel.imageIds);
                         } catch (error) {
                           console.error("Error uploading image:", error);
                         }
