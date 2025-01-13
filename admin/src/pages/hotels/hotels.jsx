@@ -3,6 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
+import {API_UPLOAD ,API_HOTELS ,API_IMAGES} from "../../utils/apiConfig"
 
 function Hotels() {
   const { user } = useContext(AuthContext);
@@ -28,9 +29,12 @@ function Hotels() {
   //fetch images
   const fetchHotelImages = async (hotel) => {
     if (hotel.imageIds && hotel.imageIds.length > 0) {
+      
       const images = await Promise.all(
-        hotel.imageIds.map(async (id) => {
-          const imageResponse = await axios.get(`http://localhost:8800/api/images/${id}`);
+        hotel.imageIds.map(async (image) => {
+          const imageId = typeof image === 'string' ? image : image._id
+          console.log('id', imageId);
+          const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
           return imageResponse.data.imageUrl;
         })
       );
@@ -70,7 +74,7 @@ function Hotels() {
         formData.append('images', image);
       });
 
-      const imageResponse = await axios.post("http://localhost:8800/api/upload", formData, {
+      const imageResponse = await axios.post(API_UPLOAD, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -87,7 +91,7 @@ function Hotels() {
       // console.log('newHotelData:', newHotelData);
 
       const response = await axios.post(
-        "http://localhost:8800/api/hotels",
+        API_HOTELS,
         newHotelData,
         {
           headers: {
@@ -127,7 +131,7 @@ function Hotels() {
     try {
       console.log('editingHotel:', editingHotel);
       const response = await axios.put(
-        `http://localhost:8800/api/hotels/${id}`,
+        `${API_HOTELS}/${id}`,
         {
           ...editingHotel,
           imageIds: editingHotel.imageIds, // Gửi editingHotel chứa imageIds
@@ -158,7 +162,7 @@ function Hotels() {
     const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa khách sạn này không?");
     if (!confirmDelete) return;
     try {
-      await axios.delete(`http://localhost:8800/api/hotels/${id}`, {
+      await axios.delete(`${API_HOTELS}/${id}`, {
         headers: {
           Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
         },
@@ -171,7 +175,7 @@ function Hotels() {
   useEffect(() => {
     const fetchHotels = async () => {
       try {
-        const response = await axios.get("http://localhost:8800/api/hotels");
+        const response = await axios.get(API_HOTELS);
         const hotelsWithImage = await Promise.all(
           response.data.map(async (hotel) => {
             return await fetchHotelImages(hotel)
@@ -525,7 +529,7 @@ function Hotels() {
                 <div className="flex flex-col items-center h-full w-full">
                   <img
                     className="Image h-60 relative w-full object-cover rounded-lg"
-                    src={hotel.imageUrl}
+                    src={hotel.images[0]}
                     alt={hotel.name}
                     onClick={() => handleHotelClick(hotel._id)}
                   />
