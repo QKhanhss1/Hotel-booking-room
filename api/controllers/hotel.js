@@ -38,8 +38,8 @@ export const updateHotel = async (req, res, next) => {
     return res.status(404).json({ message: 'Hotel not found' });
   }
   const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
-  console.log('populatedHotel', populatedHotel);
-  console.log('populatedHotel.imageIds', populatedHotel.imageIds);
+  // console.log('populatedHotel', populatedHotel);
+  // console.log('populatedHotel.imageIds', populatedHotel.imageIds);
   const modifiedHotel = {
     ...populatedHotel.toObject(),
     imageIds: populatedHotel.imageIds ? populatedHotel.imageIds.map((image) => image._id.toString()) : [],
@@ -68,7 +68,7 @@ export const getHotels = async (req, res, next) => {
     const hotels = await Hotel.find({
       ...others,
       cheapestPrice: { $gte: min || 0, $lte: max || 999 },
-    })
+    }).populate('imageIds')
     res.status(200).json(hotels);
   } catch (err) {
     next(err);
@@ -78,7 +78,7 @@ export const getFeaturedHotels = async (req, res, next) => {
   try {
 
     const getFeaturedHotels = await Hotel.find({ rating: { $exists: true, $ne: null } }) // Lọc khách sạn có rating
-      .sort({ rating: -1 });
+      .sort({ rating: -1 }).populate('imageIds');
 
     res.status(200).json(getFeaturedHotels);
   } catch (err) {
@@ -198,7 +198,7 @@ export const getReviewsByHotelId = async (req, res, next) => {
 
     // Tìm khách sạn theo ID và chỉ lấy trường `reviews` và `name`
     const hotel = await Hotel.findById(hotelId);
-
+    
     if (!hotel) {
       return res.status(404).json({ message: "Khách sạn không tồn tại" });
     }
@@ -216,7 +216,7 @@ export const getReviewsByHotelId = async (req, res, next) => {
   }
 };
 
-
+//
 export const getHotelsByType = async (req, res, next) => {
   const { type } = req.params;
 
@@ -226,7 +226,7 @@ export const getHotelsByType = async (req, res, next) => {
   console.log("Searching for hotels of type:", normalizedType);
 
   try {
-    const hotels = await Hotel.find({ type: { $regex: new RegExp("^" + normalizedType + "$", "i") } });  // Dùng regex để tìm chính xác
+    const hotels = await Hotel.find({ type: { $regex: new RegExp("^" + normalizedType + "$", "i") } }).populate('imageIds');;  // Dùng regex để tìm chính xác
 
     console.log("Hotels found:", hotels);
 

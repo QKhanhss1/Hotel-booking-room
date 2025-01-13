@@ -2,17 +2,16 @@ import { useRef } from "react";
 import { useEffect } from "react";
 import useFetch from "../../hooks/useFetch";
 import "./featuredProperties.css";
-import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { SearchContext } from "../../context/SearchContext";
 
 const FeaturedProperties = () => {
-  const { data, loading, error } = useFetch("http://localhost:8800/api/hotels/features");
+  const { data, loading, error } = useFetch("/hotels/features");
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
-  
+
   const { dispatch } = useContext(SearchContext);
   const [dates, setDates] = useState([
     {
@@ -40,7 +39,7 @@ const FeaturedProperties = () => {
 
   const scrollRight = () => {
     scrollRef.current.scrollBy({
-      left: 300, 
+      left: 300,
       behavior: "smooth",
     });
   };
@@ -63,28 +62,34 @@ const FeaturedProperties = () => {
 
     <div className="fpContainer">
       {!isAtStart && (
-    <button className="fpArrow left" onClick={scrollLeft}>
-      &#8249;
-    </button>
-     )}
+        <button className="fpArrow left" onClick={scrollLeft}>
+          &#8249;
+        </button>
+      )}
 
       <div className="fp" ref={scrollRef}>
-      {console.log(data)}
+        {console.log(data)}
         {loading ? (
           "Loading"
         ) : error ? (
-          <div>Error: {error.message}</div>  
+          <div>Error: {error.message}</div>
         ) : (
           <>
             {data.map((item) => (
-              <div className="fpItem" key={item._id} onClick={()=> handleCityClick(item.city)}>
-              
-                <img
-                  src={`http://localhost:8800/api/images/${item.photos}`}
-                  alt=""
-                  className="fpImg"
-                />
-
+              <div className="fpItem" key={item._id} onClick={() => handleCityClick(item.city)}>
+                  {item.imageIds && item.imageIds.length > 0 ? (
+                    <img
+                      src={item.imageIds[0].url}
+                      alt={item.name}
+                      className="fpImg"
+                    />
+                  ) : (
+                    <img
+                      src="/images/placeholder.png"
+                      alt={item.name}
+                      className="fpImg"
+                    />
+                  )}
                 <span className="fpName">{item.name}</span>
                 <span className="fpCity">{item.city}</span>
                 <span className="fpPrice">Giá khoảng {item.cheapestPrice} VND</span>
@@ -92,16 +97,16 @@ const FeaturedProperties = () => {
                   <button>{item.rating}</button>
                   <span>Excellent</span>
                 </div>} */}
-                
+
               </div>
             ))}
           </>
         )}
       </div>
       <button className="fpArrow right" onClick={scrollRight}>
-          &#8250;
-        </button>
-      </div>
+        &#8250;
+      </button>
+    </div>
   );
 };
 

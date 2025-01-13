@@ -4,11 +4,19 @@ import "./searchItem.css";
 const SearchItem = ({ item }) => {
   return (
     <div className="searchItem">
-      <img
-        src={`http://localhost:8800/api/images/${item.photos}`}
-        alt=""
-        className="siImg"
-      />
+      {item.imageIds && item.imageIds.length > 0 ? (
+        <img
+          src={item.imageIds[0].url}
+          alt={item.name}
+          className="siImg"
+        />
+      ) : (
+        <img
+          src="/images/placeholder.png"
+          alt={item.name}
+          className="siImg"
+        />
+      )}
       <div className="siDesc">
         <h1 className="siTitle">{item.name}</h1>
         <span className="siDistance">{item.distance}m từ trung tâm</span>
