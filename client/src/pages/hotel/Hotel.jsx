@@ -14,13 +14,16 @@ import { SearchContext } from "../../context/SearchContext";
 import { FavoriteContext } from "../../context/FavoriteContext";
 import axios from "axios";
 import Reserve from "../../components/reserve/Reserve";
+import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
 
 const Hotel = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const id = location.pathname.split("/")[2];
-  const [slideNumber, setSlideNumber] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showAllImages, setShowAllImages] = useState(false);
   const [open, setOpen] = useState(false);
+  const [hotel, setHotel] = useState(null)
   const [openModal, setOpenModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const { data, loading } = useFetch(`/hotels/find/${id}`);
@@ -46,11 +49,42 @@ const Hotel = () => {
 
   const days = dates?.[0] ? dayDifference(dates[0].endDate, dates[0].startDate) : 0;
 
+
+  // fetch ảnh của hotelhotel
+  const fetchHotelImages = async (hotel) => {
+    if (hotel.imageIds && hotel.imageIds.length > 0) {
+      const images = await Promise.all(
+        hotel.imageIds.map(async (image) => {
+          const imageId = typeof image === 'string' ? image : image._id
+          console.log('id', imageId);
+          const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
+          return imageResponse.data.imageUrl;
+        })
+      );
+      return {
+        ...hotel,
+        images: images,
+      }
+    }
+    return {
+      ...hotel,
+      images: []
+    }
+  }
   // Kiểm tra xem khách sạn có trong danh sách yêu thích không
   useEffect(() => {
     setIsFavorite(favorites.some((hotel) => hotel._id === id));
   }, [favorites, id]);
 
+  useEffect(() => {
+    const fetchHotel = async () => {
+      if (data) {
+        const hotelWithImage = await fetchHotelImages(data);
+        setHotel(hotelWithImage);
+      }
+    };
+    fetchHotel();
+  }, [data]);
 
   useEffect(() => {
     if (data && options.room && days) {
@@ -60,6 +94,10 @@ const Hotel = () => {
     }
   }, [days, data, options]);
 
+
+  useEffect(() => {
+    setIsFavorite(favorites.some((hotel) => hotel._id === id));
+  }, [favorites, id]);
 
   const handleFavoriteClick = async () => {
     if (!user) {
@@ -89,16 +127,6 @@ const Hotel = () => {
     }
   };
 
-  //   let newSlideNumber;
-
-  //   if (direction === "l") {
-  //     newSlideNumber = slideNumber === 0 ? 5 : slideNumber - 1;
-  //   } else {
-  //     newSlideNumber = slideNumber === 5 ? 0 : slideNumber + 1;
-  //   }
-
-  //   setSlideNumber(newSlideNumber);
-  // };
 
   const handleClick = () => {
     if (user) {
@@ -107,7 +135,21 @@ const Hotel = () => {
       navigate("/login");
     }
   };
+  const handleOpen = (index) => {
+    setSelectedImageIndex(index);
+    setOpen(true);
+  }
 
+
+  const handleMove = (direction) => {
+    let newSlideNumber;
+    if (direction === "l") {
+      newSlideNumber = selectedImageIndex === 0 ? hotel.images.length - 1 : selectedImageIndex - 1;
+    } else {
+      newSlideNumber = selectedImageIndex === hotel.images.length - 1 ? 0 : selectedImageIndex + 1;
+    }
+    setSelectedImageIndex(newSlideNumber)
+  };
   return (
     <div>
       <Navbar />
@@ -116,6 +158,32 @@ const Hotel = () => {
         "loading"
       ) : (
         <div className="hotelContainer">
+          {open && hotel && hotel.images && (
+            <div className="slider">
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                className="close"
+                onClick={() => setOpen(false)}
+              />
+              <FontAwesomeIcon
+                icon={faCircleArrowLeft}
+                className="arrow"
+                onClick={() => handleMove("l")}
+              />
+              <div className="sliderWrapper">
+                <img
+                  src={hotel.images[selectedImageIndex]}
+                  alt=""
+                  className="sliderImg"
+                />
+              </div>
+              <FontAwesomeIcon
+                icon={faCircleArrowRight}
+                className="arrow"
+                onClick={() => handleMove("r")}
+              />
+            </div>
+          )}
           <div className="hotelWrapper">
             <div className="actions">
               <button onClick={handleFavoriteClick} className="favoriteicon">
@@ -141,14 +209,32 @@ const Hotel = () => {
               </div>
             </div>
             <div className="Containerbooking">
+
               <div className="hotelImages">
-                <div className="hotelImgWrapper">
-                  <img
-                    src={`http://localhost:8800/api/images/${data.photos}`}
-                    alt=""
-                    className="hotelImg"
-                  />
-                </div>
+                {hotel && hotel.images && hotel.images.length > 0 && (
+                  <div className="hotelImgList">
+                    {showAllImages ? (
+                      hotel.images.map((imageUrl, index) => (
+                        <div className="hotelImgWrapper" key={index} onClick={() => handleOpen(index)}>
+                          <img src={imageUrl} alt={`hotel-${index}`} className="hotelImg" />
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        {hotel.images.slice(0, 4).map((imageUrl, index) => (
+                          <div className="hotelImgWrapper" key={index} onClick={() => handleOpen(index)}>
+                            <img src={imageUrl} alt={`hotel-${index}`} className="hotelImg" />
+                          </div>
+                        ))}
+                        {hotel.images.length > 4 && (
+                          <div className="hotelImgWrapper showMoreButton" onClick={() => setShowAllImages(true)}  >
+                            + {hotel.images.length - 4}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="hotelDetailsPrice">
                 <h1>Hoàn hảo cho {days}-kỳ nghỉ đêm!</h1>
@@ -161,7 +247,7 @@ const Hotel = () => {
                 <button onClick={handleClick}>Đặt chỗ hoặc Đặt ngay!</button>
               </div>
             </div>
-           
+
           </div>
           <Comment />
           <MailList />

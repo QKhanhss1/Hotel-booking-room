@@ -91,7 +91,6 @@ function Hotels() {
 
       const response = await axios.post(
         API_HOTELS,
-        API_HOTELS,
         newHotelData,
         {
           headers: {
@@ -129,13 +128,12 @@ function Hotels() {
 
   const handleUpdate = async (id) => {
     try {
-      console.log('editingHotel:', editingHotel);
+      console.log('editingHotel ahihi :', editingHotel);
       const response = await axios.put(
-        `${API_HOTELS}/${id}`,
         `${API_HOTELS}/${id}`,
         {
           ...editingHotel,
-          imageIds: editingHotel.imageIds, // Gửi editingHotel chứa imageIds
+          imageIds: editingHotel.imageIds, 
         },
         {
           headers: {
@@ -476,12 +474,13 @@ function Hotels() {
                             }
                           );
                           const newImageIds = response.data.map(image => image._id);
-                          // console.log("newImageIds:", newImageIds);
-                          // console.log("editingHotel.imageIds (before):", editingHotel.imageIds);
+                          console.log("newImageIds:", newImageIds);
+                          console.log("editingHotel.imageIds ", editingHotel);
                           setEditingHotel({
                             ...editingHotel,
                             imageIds: editingHotel.imageIds ? [...editingHotel.imageIds, ...newImageIds] : [...newImageIds],
                           });
+                          console.log("🚀 ~ onChange={ ~ editingHotel:", editingHotel)
                           // console.log("editingHotel.imageIds (after):", editingHotel.imageIds);
                         } catch (error) {
                           console.error("Error uploading image:", error);

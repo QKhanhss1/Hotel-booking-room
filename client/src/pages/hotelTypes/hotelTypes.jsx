@@ -52,7 +52,7 @@ const HotelTypes = () => {
                   onClick={() => handleCityClick(hotel.city)}
                 >
                   <div className="hotelImages">
-                    <div className="hotelImgWrapper">
+                    <div className="hotelImgWrappers">
                       {hotel.imageIds && hotel.imageIds.length > 0 ? (
                         <img
                           src={hotel.imageIds[0].url}
