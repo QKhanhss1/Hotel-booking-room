@@ -1,34 +1,30 @@
 import express from "express";
 import { verifyAdmin } from "../utils/verifyToken.js";
-import multer from "multer";
 import {
   createRoom,
-  updateRoom,
   deleteRoom,
   getRoom,
-  getRooms
+  getRooms,
+  getRoomsByHotel,
+  updateRoom,
+  updateRoomAvailability,
 } from "../controllers/room.js";
-import path from 'path';
 
-const router = express.Router({ mergeParams: true });
+const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './uploads/')
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+// Debug middleware
+router.use((req, res, next) => {
+  console.log('Room Route:', req.method, req.url);
+  next();
 });
 
-const upload = multer({ storage: storage });
+router.get("/hotel/:hotelId", getRoomsByHotel);  
+router.post("/hotel/:hotelId", verifyAdmin, createRoom);  
 
-// Routes
 router.get("/", getRooms);
-router.post("/", verifyAdmin, upload.array('images', 5), createRoom);
-router.put("/:id", verifyAdmin, upload.array('images', 5), updateRoom);
-router.delete("/:id/:hotelId", verifyAdmin, deleteRoom);
 router.get("/:id", getRoom);
+router.put("/:id", verifyAdmin, updateRoom);
+router.delete("/:id/:hotelId", verifyAdmin, deleteRoom);
+router.put("/availability/:id", updateRoomAvailability);
 
 export default router;

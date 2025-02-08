@@ -75,7 +75,7 @@ app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 // app.use("/api/rooms", roomsRoute);
 // app.use("/api/hotels", roomsRoute);
-app.use("/api/hotels/:hotelid/rooms", roomsRoute);
+app.use("/api/rooms", roomsRoute);
 app.use("/api/booking", bookingRoute);
 
 app.use("/api/favorites", favoriteRoute);

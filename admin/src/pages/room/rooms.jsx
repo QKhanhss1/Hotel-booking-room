@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext"; 
+import { API_UPLOAD, API_ROOMS, API_IMAGES } from '../../utils/apiConfig';
 
 function Rooms() {
   const { user } = useContext(AuthContext); 
@@ -40,6 +41,26 @@ function Rooms() {
     existingImages: [],
     newImages: []
   });
+  const [currentImages, setCurrentImages] = useState([]);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        console.log("Fetching rooms for hotelId:", hotelId);
+        const response = await axios.get(`${API_ROOMS}/hotel/${hotelId}`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`
+          }
+        });
+        console.log("Fetch rooms response:", response.data);
+        setRooms(response.data);
+      } catch (error) {
+        console.error("Fetch rooms error:", error);
+      }
+    };
+
+    fetchRooms();
+  }, [hotelId, user.token]);
 
   const openEditModal = (room) => {
     setIsEditing(true);
@@ -134,31 +155,13 @@ function Rooms() {
   }
   const fetchRooms = async () => {
     try {
-      const response = await axios.get( `http://localhost:8800/api/hotels/rooms/${id}`);
-      const roomsData = response.data;
+      const response = await axios.get(`${API_ROOMS}/hotel/${hotelId}`);
       setRooms(response.data);
-      // console.log("Rooms Data:", roomsData);
-      // // Tạo mapping room-hotel
-
-      // const hotelMapping = {};
-      // for (const room of roomsData) {
-      //   console.log("Fetching hotel for room:", room._id);
-      //   const hotelResponse = await axios.get(
-      //     `http://localhost:8800/api/hotels/room/${room._id}`
-      //   );
-      //   console.log("Hotel Response:", hotelResponse.data);
-      //   hotelMapping[room._id] = hotelResponse.data._id;
-      // }
-      // console.log("Hotel Mapping:", hotelMapping);
-
-      // setRoomHotels(hotelMapping);
-      setRooms(roomsData);
     } catch (error) {
       console.error("Error fetching rooms:", error);
     }
   };
 
-  // Hàm thêm phòng
   const createRoom = async () => {
     try {
       if (!hotelId || !newRoom.title || !newRoom.price || !newRoom.maxPeople) {
@@ -166,53 +169,52 @@ function Rooms() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('title', newRoom.title);
-      formData.append('price', newRoom.price);
-      formData.append('maxPeople', newRoom.maxPeople);
-      formData.append('desc', newRoom.desc);
-      
-      // Thêm roomNumbers
-      const roomNumbersArray = newRoom.roomNumbers
-        .toString()
-        .split(",")
-        .map(num => ({
-          number: parseInt(num.trim()),
-          unavailableDates: []
-        }))
-        .filter(room => !isNaN(room.number));
-      
-      formData.append('roomNumbers', JSON.stringify(roomNumbersArray));
-      
-      // Thêm từng ảnh vào formData
-      selectedImages.forEach(file => {
+      // Upload ảnh trước
+      const imageUploadPromises = selectedImages.map(file => {
+        const formData = new FormData();
         formData.append('images', file);
+        return axios.post(API_UPLOAD, formData);
       });
 
-      console.log("Sending images:", selectedImages); // Debug log
-
-      const response = await axios.post(
-        `http://localhost:8800/api/hotels/${hotelId}/rooms`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${user?.token}`
-          }
-        }
+      const imageResponses = await Promise.all(imageUploadPromises);
+      const imageIds = imageResponses.flatMap(response => 
+        response.data.map(img => img._id)
       );
 
-      setRooms(prev => [...prev, response.data]);
+      const endpoint = `${API_ROOMS}/hotel/${hotelId}`;
+      console.log('API Endpoint:', endpoint);
+
+      const roomData = {
+        title: newRoom.title,
+        price: newRoom.price,
+        maxPeople: newRoom.maxPeople,
+        desc: newRoom.desc,
+        roomNumbers: newRoom.roomNumbers.map(num => ({
+          number: parseInt(num),
+          unavailableDates: []
+        })),
+        imageIds: imageIds,
+        hotelId: hotelId
+      };
+
+      const res = await axios.post(endpoint, roomData, {
+        headers: {
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+      console.log("Room creation response:", res.data);
+      setRooms([...rooms, res.data]);
       resetForm();
       setIsModalOpen(false);
-      alert("Thêm phòng thành công!");
-    } catch (error) {
-      console.error("Error creating room:", error);
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi thêm phòng!");
+      alert("Tạo phòng thành công!");
+    } catch (err) {
+      console.error("Create room error:", err);
+      console.error("API Error:", err.response?.status, err.response?.statusText);
+      console.error("Error details:", err.response?.data);
+      alert(err.response?.data?.message || "Có lỗi xảy ra khi tạo phòng!");
     }
   };
 
-  // Thêm hàm resetForm
   const resetForm = () => {
     setEditRoom({
       title: "",
@@ -235,7 +237,6 @@ function Rooms() {
     if (name === "roomNumbers") {
       setNewRoom((prev) => ({
         ...prev,
-        // [name]: value,
         [name]: value.split(",").map(num => num.trim())
       }));
     } else {
@@ -246,70 +247,46 @@ function Rooms() {
     }
   };
 
-  //  Cập nhật phòng
   const updateRoom = async (id) => {
     try {
-      if (!editRoom?.title || !editRoom?.price || !editRoom?.maxPeople) {
-        alert("Vui lòng điền đầy đủ thông tin!");
-        return;
+      // Upload ảnh mới nếu có
+      let newImageIds = [];
+      if (selectedImages.length > 0) {
+        const imageUploadPromises = selectedImages.map(file => {
+          const formData = new FormData();
+          formData.append('images', file);
+          return axios.post(API_UPLOAD, formData);
+        });
+        const imageResponses = await Promise.all(imageUploadPromises);
+        newImageIds = imageResponses.flatMap(response => 
+          response.data.map(img => img._id).filter(id => id) // Lọc bỏ các giá trị null/undefined
+        );
       }
 
-      // Kiểm tra tổng số ảnh
-      const totalImages = (editRoom.existingImages?.length || 0) + selectedImages.length;
-      if (totalImages > 5) {
-        alert("Tổng số ảnh không được vượt quá 5!");
-        return;
-      }
+      // Kết hợp ảnh cũ (chưa bị xóa) và ảnh mới
+      const allImageIds = [...(currentImages || []), ...newImageIds].filter(id => id); // Đảm bảo không có id null
 
-      const formData = new FormData();
-      formData.append('title', editRoom.title);
-      formData.append('price', editRoom.price);
-      formData.append('maxPeople', editRoom.maxPeople);
-      formData.append('desc', editRoom.desc);
-
-      // Format roomNumbers
-      const formattedRoomNumbers = editRoom.roomNumbers.map(number => ({
-        number: parseInt(number),
-        unavailableDates: []
-      }));
-      formData.append('roomNumbers', JSON.stringify(formattedRoomNumbers));
-
-      // Thêm ảnh hiện tại
-      if (editRoom.existingImages) {
-        formData.append('existingImages', JSON.stringify(editRoom.existingImages));
-      }
-
-      // Thêm ảnh mới
-      selectedImages.forEach(file => {
-        formData.append('images', file);
-      });
-
-      console.log("Updating room with data:", {
+      const roomData = {
         title: editRoom.title,
         price: editRoom.price,
         maxPeople: editRoom.maxPeople,
         desc: editRoom.desc,
-        roomNumbers: formattedRoomNumbers,
-        existingImages: editRoom.existingImages,
-        newImages: selectedImages.length
+        roomNumbers: editRoom.roomNumbers.map(number => ({
+          number: parseInt(number),
+          unavailableDates: []
+        })),
+        imageIds: allImageIds
+      };
+
+      console.log('Update room data:', roomData); 
+
+      const res = await axios.put(`${API_ROOMS}/${id}`, roomData, {
+        headers: {
+          Authorization: `Bearer ${user.token}`
+        }
       });
 
-      const res = await axios.put(
-        `http://localhost:8800/api/hotels/${hotelId}/rooms/${id}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${user?.token}`
-          }
-        }
-      );
-
-      setRooms(rooms.map(room => 
-        room._id === id ? res.data : room
-      ));
-      
-      // Reset form và states
+      setRooms(rooms.map(room => room._id === id ? res.data : room));
       resetForm();
       setIsModalOpen(false);
       setIsEditing(false);
@@ -321,13 +298,10 @@ function Rooms() {
   };
 
   // Hàm xóa ảnh đã chọn
-  const handleRemoveImage = (index) => {
-    // Xóa ảnh khỏi state
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
-    
-    // Xóa preview và giải phóng URL
-    URL.revokeObjectURL(imagePreview[index]);
-    setImagePreview(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveImage = (imageIdToRemove) => {
+    setCurrentImages(currentImages.filter(image => 
+      (image._id || image) !== (imageIdToRemove._id || imageIdToRemove)
+    ));
   };
 
   // Hàm xóa ảnh hiện có khi edit
@@ -338,28 +312,22 @@ function Rooms() {
     }));
   };
 
-  //  Xoá phòng
-  const handleDelete = async (roomId) => {
+  const handleDelete = async (id) => {
     try {
       if (!window.confirm("Bạn có chắc chắn muốn xóa phòng này?")) {
         return;
       }
 
-      console.log("Deleting room:", roomId, "from hotel:", hotelId);
+      console.log("Deleting room:", id, "from hotel:", hotelId);
 
-      const response = await axios.delete(
-        `http://localhost:8800/api/hotels/${hotelId}/rooms/${roomId}/${hotelId}`, 
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`
-          }
+      await axios.delete(`${API_ROOMS}/${id}/${hotelId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`
         }
-      );
+      });
 
-      if (response.status === 200) {
-        setRooms(rooms.filter(room => room._id !== roomId));
-        alert("Xóa phòng thành công!");
-      }
+      setRooms(rooms.filter(room => room._id !== id));
+      alert("Xóa phòng thành công!");
     } catch (error) {
       console.error("Error deleting room:", error);
       if (error.response?.status === 401) {
@@ -391,28 +359,16 @@ function Rooms() {
   };
 
   // Hàm mở modal sửa
-  const handleEditClick = (room) => {
-    console.log("Opening edit modal for room:", room);
-    
-    setEditRoom({
-      title: room.title || '',
-      price: room.price || '',
-      maxPeople: room.maxPeople || '',
-      desc: room.desc || '',
-      roomNumbers: room.roomNumbers ? room.roomNumbers.map(r => r.number) : [],
-      existingImages: room.images || []
-    });
-    
-    // Reset các state liên quan đến ảnh mới
+  const handleEdit = (room) => {
+    console.log("Room data for edit:", room);
+    setEditRoom(room);
+    setEditingRoom(room); 
+    setCurrentImages(room.imageIds || []);
     setSelectedImages([]);
-    setImagePreview([]);
-    
-    setEditingRoom(room);
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
-  // Form edit trong modal
   const EditRoomForm = () => {
     return (
       <div className="p-6">
@@ -441,13 +397,19 @@ function Rooms() {
           />
           <input
             type="text"
-            placeholder="Số phòng"
-            value={editRoom.roomNumbers.join(",")}
-            onChange={(e) => setEditRoom({
-              ...editRoom, 
-              roomNumbers: e.target.value.split(",").map(num => num.trim())
-            })}
-            className="w-full p-2 border rounded"
+            name="roomNumbers"
+            value={editRoom.roomNumbers.map(room => room.number).join(',')}
+            onChange={(e) => {
+              setEditRoom({
+                ...editRoom,
+                roomNumbers: e.target.value.split(',').map(num => ({
+                  number: parseInt(num.trim()),
+                  unavailableDates: []
+                }))
+              });
+            }}
+            placeholder="Số phòng (phân cách bằng dấu phẩy)"
+            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
           />
           <textarea
             placeholder="Mô tả"
@@ -457,66 +419,72 @@ function Rooms() {
           />
 
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh phòng</label>
-            
-            {/* Grid container cho cả ảnh cũ và ảnh mới */}
-            <div className="grid grid-cols-3 gap-2 mt-2 mb-4">
-              {/* Hiển thị ảnh hiện có */}
-              {isEditing && editRoom.existingImages && editRoom.existingImages.map((img, index) => (
-                <div key={`existing-${index}`} className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ảnh hiện tại
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {currentImages.map((image, index) => (
+                <div key={index} className="relative">
                   <img
-                    src={`http://localhost:8800${img}`}
+                    src={image.url || `${API_IMAGES}/${image}`}
                     alt={`Room ${index + 1}`}
-                    className="w-full h-24 object-cover rounded"
+                    className="w-full h-32 object-cover rounded-lg"
+                    onError={(e) => {
+                      console.error('Image load error:', e);
+                      e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                      e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
+                    }}
                   />
                   <button
-                    type="button"
-                    onClick={() => handleRemoveExistingImage(index)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                    onClick={() => handleRemoveImage(image)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
                   >
                     ×
                   </button>
                 </div>
               ))}
-
-              {/* Hiển thị preview ảnh mới */}
-              {imagePreview.map((url, index) => (
-                <div key={`preview-${index}`} className="relative">
-                  <img
-                    src={url}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-24 object-cover rounded"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Input chọn ảnh */}
-            <div className="mt-2">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageChange}
-                className="mt-1 block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Tổng số ảnh không được vượt quá 5
-              </p>
             </div>
           </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thêm ảnh mới
+            </label>
+            <input
+              type="file"
+              multiple
+              onChange={handleImageChange}
+              className="w-full"
+              accept="image/*"
+            />
+          </div>
+
+          {selectedImages.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ảnh mới đã chọn
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedImages.map((file, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => {
+                        setSelectedImages(selectedImages.filter((_, i) => i !== index));
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end space-x-3">
@@ -531,7 +499,13 @@ function Rooms() {
             Hủy
           </button>
           <button
-            onClick={() => updateRoom(editingRoom._id)}
+            onClick={() => {
+              if (!editingRoom?._id) {
+                console.error("No room id found");
+                return;
+              }
+              updateRoom(editingRoom._id);
+            }}
             className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
           >
             Cập nhật
@@ -548,11 +522,9 @@ function Rooms() {
         className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12"
         style={{ marginLeft: "220px" }}
       >
-        {/* Header section */}
         {hotel && (
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
             <h1 className="text-3xl font-bold mb-4">{hotel.name}</h1>
-            {/* Thêm thông tin khách sạn nếu cần */}
           </div>
         )}
         {isModalOpen && (
@@ -562,11 +534,11 @@ function Rooms() {
                 {isEditing ? "Sửa Phòng" : "Thêm Phòng Mới"}
               </h2>
               <div className="space-y-4">
-                {/* Form chung cho cả thêm và sửa */}
                 <input
                   type="text"
                   name="title"
                   value={isEditing ? editRoom.title : newRoom.title}
+
                   onChange={(e) => {
                     if (isEditing) {
                       setEditRoom({...editRoom, title: e.target.value});
@@ -608,12 +580,15 @@ function Rooms() {
                 <input
                   type="text"
                   name="roomNumbers"
-                  value={isEditing ? editRoom.roomNumbers.join(',') : newRoom.roomNumbers}
+                  value={isEditing ? editRoom.roomNumbers.map(room => room.number).join(',') : newRoom.roomNumbers}
                   onChange={(e) => {
                     if (isEditing) {
                       setEditRoom({
                         ...editRoom,
-                        roomNumbers: e.target.value.split(',').map(num => num.trim())
+                        roomNumbers: e.target.value.split(',').map(num => ({
+                          number: parseInt(num.trim()),
+                          unavailableDates: []
+                        }))
                       });
                     } else {
                       handleInputChange(e);
@@ -636,67 +611,75 @@ function Rooms() {
                   className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
                 />
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh phòng</label>
-                  
-                  {/* Grid container cho cả ảnh cũ và ảnh mới */}
-                  <div className="grid grid-cols-3 gap-2 mt-2 mb-4">
-                    {/* Hiển thị ảnh hiện có */}
-                    {isEditing && editRoom.existingImages && editRoom.existingImages.map((img, index) => (
-                      <div key={`existing-${index}`} className="relative">
-                        <img
-                          src={`http://localhost:8800${img}`}
-                          alt={`Room ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveExistingImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Hiển thị preview ảnh mới */}
-                    {imagePreview.map((url, index) => (
-                      <div key={`preview-${index}`} className="relative">
-                        <img
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                {isEditing && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ảnh hiện tại
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {currentImages.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={image.url || `${API_IMAGES}/${image}`}
+                            alt={`Room ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                            onError={(e) => {
+                              console.error('Image load error:', e);
+                              e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                              e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
+                            }}
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(image)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
 
-                  {/* Input chọn ảnh */}
-                  <div className="mt-2">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="mt-1 block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">
-                      Tổng số ảnh không được vượt quá 5
-                    </p>
-                  </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thêm ảnh mới
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleImageChange}
+                    className="w-full"
+                    accept="image/*"
+                  />
                 </div>
+
+                {selectedImages.length > 0 && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ảnh mới đã chọn
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedImages.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => {
+                              setSelectedImages(selectedImages.filter((_, i) => i !== index));
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
@@ -726,63 +709,6 @@ function Rooms() {
             </div>
           </div>
         )}
-        {/* </div> */}
-
-        {/* <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
-              Danh sách phòng
-            </h2>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
-            >
-              + Thêm Phòng
-            </button>
-          </div>
-
-          {rooms.length === 0 ? (
-            <p className="text-center text-gray-500">
-              Chưa có phòng nào được thêm vào khách sạn này
-            </p>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rooms.map((room) => (
-                <div
-                  key={room._id}
-                  className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <h3 className="text-xl font-semibold mb-2">{room.title}</h3>
-                  <p>
-                    <span className="font-semibold">Giá: </span>
-                    <span className="text-blue-600">
-                      {new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      }).format(room.price)}
-                      /đêm
-                    </span>
-                  </p>
-                  <p>
-                    <span className="font-semibold">Số người tối đa:</span>{" "}
-                    {room.maxPeople} người
-                  </p>
-                  <p>
-                    <span className="font-semibold">Số phòng: </span>
-                    {room.roomNumbers?.map((r) => r.number).join(", ") ||
-                      "Chưa có số phòng"}
-                  </p>
-                  {room.desc && (
-                    <p className="mt-2 text-gray-600">
-                      <span className="font-semibold">Mô tả: </span>
-                      {room.desc}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div> */}
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
@@ -803,28 +729,26 @@ function Rooms() {
                 className="Room-1 flex-col justify-start items-start gap-2 flex px-2"
               >
                 <div className="flex flex-col items-center h-full w-full p-6 border rounded-lg shadow-sm">
-                  {/* Hiển thị nhiều ảnh dạng slider hoặc grid */}
-                  {room.images && room.images.length > 0 ? (
-                    <div className="w-full mb-4 grid grid-cols-2 gap-2">
-                      {room.images.map((image, index) => (
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {room.imageIds && room.imageIds.length > 0 ? (
+                      room.imageIds.map((image, index) => (
                         <img
                           key={index}
-                          src={`http://localhost:8800${image}`}
-                          alt={`${room.title} - ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
+                          src={image.url || `${API_IMAGES}/${image}`}
+                          alt={`Room ${index + 1}`}
+                          className="w-full h-48 object-cover rounded-lg"
                           onError={(e) => {
-                            console.error("Image load error for URL:", e.target.src);
-                            e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+                            console.error('Image load error:', e);
+                            e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
                           }}
                         />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
-                      <span className="text-gray-500">No images available</span>
-                    </div>
-                  )}
+                      ))
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-500">No images</span>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="Name text-[#1a1a1a] text-xl font-semibold font-['Inter'] leading-loose text-center w-full">
                     {room.title}
@@ -862,7 +786,7 @@ function Rooms() {
 
                   <div className="flex gap-6 mt-auto pt-4">
                     <button
-                      onClick={() => handleEditClick(room)}
+                      onClick={() => handleEdit(room)}
                       className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
                     >
                       Sửa
