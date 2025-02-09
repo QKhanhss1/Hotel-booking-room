@@ -89,8 +89,10 @@ const Hotel = () => {
   useEffect(() => {
     if (data && options.room && days) {
       const calculatedPrice = days * data.cheapestPrice * options.room;
-      setTotalPrice(calculatedPrice);
-      localStorage.setItem("totalprice", calculatedPrice);
+      // Làm tròn số để tránh số thập phân dài
+      const roundedPrice = Math.round(calculatedPrice);
+      setTotalPrice(roundedPrice);
+      localStorage.setItem("totalprice", roundedPrice.toString());
     }
   }, [days, data, options]);
 
@@ -242,7 +244,7 @@ const Hotel = () => {
                   Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc 9,8!
                 </span>
                 <h2>
-                  <b>${totalprice}</b> ({days} nights)
+                  <b>{totalprice.toLocaleString('vi-VN')} VND</b> ({days} đêm)
                 </h2>
                 <button onClick={handleClick}>Đặt chỗ hoặc Đặt ngay!</button>
               </div>

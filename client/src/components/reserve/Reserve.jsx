@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCircleXmark, faUser, faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import "./reserve.css";
 import useFetch from "../../hooks/useFetch";
 import { useContext, useState, useEffect } from "react";
@@ -7,6 +7,8 @@ import { SearchContext } from "../../context/SearchContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Payment from "../../pages/payment/payment";
+import { API_IMAGES } from "../../utils/apiConfig";
+
 
 const Reserve = ({ setOpen, hotelId }) => {
   const [selectedRooms, setSelectedRooms] = useState([]);
@@ -15,6 +17,10 @@ const Reserve = ({ setOpen, hotelId }) => {
   const { dates } = useContext(SearchContext);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
+  const [imageUrls, setImageUrls] = useState({});
+  const [currentImageIndexes, setCurrentImageIndexes] = useState({});
+
+  console.log("Room data received:", data); 
 
   // Hàm lấy danh sách ngày trong phạm vi
   const getDatesInRange = (startDate, endDate) => {
@@ -71,6 +77,32 @@ const Reserve = ({ setOpen, hotelId }) => {
     }
   }, [data]);
 
+  useEffect(() => {
+    console.log("Room data:", data);
+  }, [data]);
+
+  useEffect(() => {
+    const fetchImageUrls = async () => {
+      if (data) {
+        const urlPromises = data.flatMap(room => 
+          room.imageIds.map(async (imageId) => {
+            try {
+              const response = await axios.get(`/images/${imageId}`);
+              setImageUrls(prev => ({
+                ...prev,
+                [imageId]: response.data.imageUrl
+              }));
+            } catch (error) {
+              console.error("Error fetching image URL:", error);
+            }
+          })
+        );
+        await Promise.all(urlPromises);
+      }
+    };
+    fetchImageUrls();
+  }, [data]);
+
   const handleClick = () => {
     if (selectedRooms.length === 0 || !days || days <= 0) {
       alert("Vui lòng chọn phòng và kiểm tra lại ngày đặt!");
@@ -115,6 +147,18 @@ const Reserve = ({ setOpen, hotelId }) => {
     setShowPaymentModal(true);
   };
 
+  const handleImageNav = (roomId, direction) => {
+    setCurrentImageIndexes(prev => {
+      const currentIndex = prev[roomId] || 0;
+      const totalImages = data.find(room => room._id === roomId)?.imageIds.length || 0;
+      
+      if (direction === 'next') {
+        return { ...prev, [roomId]: (currentIndex + 1) % totalImages };
+      } else {
+        return { ...prev, [roomId]: (currentIndex - 1 + totalImages) % totalImages };
+      }
+    });
+  };
 
   return (
     <div className="reserve">
@@ -122,54 +166,102 @@ const Reserve = ({ setOpen, hotelId }) => {
         <FontAwesomeIcon
           icon={faCircleXmark}
           className="rClose"
-          onClick={() => {
-            setSelectedRooms([]); // Reset danh sách phòng đã chọn
-            setOpen(false); // Đóng modal
-          }}
+          onClick={() => setOpen(false)}
         />
-        <span>Chọn phòng bạn muốn:</span>
+        <h2 className="text-2xl font-bold mb-6">Chọn phòng của bạn</h2>
 
-        {loading && <span>Loading...</span>}
-        {error && <span>Lỗi tải lại trang , vui lòng thử lại.</span>}
-
-        {!loading && !error && data?.length > 0 ? (
-          data.map((item) => (
+        {loading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div>Error: {error}</div>
+        ) : (
+          data?.map((item) => (
             <div className="rItem" key={item._id}>
-              <div className="rItemInfo">
-                <div className="rTitle">{item?.title || "No title available"}</div>
-                <div className="rDesc">{item?.desc || "No description available"}</div>
-                <div className="rMax">
-                  Max people: <b>{item?.maxPeople || "N/A"}</b>
-                </div>
-                <div className="rPrice">{item?.price || "N/A"}</div>
-              </div>
-              <div className="rSelectRooms">
-                {item?.roomNumbers?.map((roomNumber) => (
-                  <div className="room" key={roomNumber?._id}>
-                    <label>{roomNumber?.number || "Room"}</label>
-                    <input
-                      type="checkbox"
-                      value={roomNumber?._id}
-                      onChange={handleSelect}
-                      disabled={!isAvailable(roomNumber)}
-                    />
+              <div className="rItemImage">
+                {item.imageIds && item.imageIds.length > 0 ? (
+                  <div className="image-slider">
+                    <div className="image-grid">
+                      <img
+                        src={imageUrls[item.imageIds[currentImageIndexes[item._id] || 0]] || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+                        }}
+                      />
+                      {item.imageIds.length > 1 && (
+                        <>
+                          <button 
+                            className="slider-nav prev"
+                            onClick={() => handleImageNav(item._id, 'prev')}
+                          >
+                            <FontAwesomeIcon icon={faChevronLeft} />
+                          </button>
+                          <button 
+                            className="slider-nav next"
+                            onClick={() => handleImageNav(item._id, 'next')}
+                          >
+                            <FontAwesomeIcon icon={faChevronRight} />
+                          </button>
+                          <div className="image-dots">
+                            {item.imageIds.map((_, index) => (
+                              <span
+                                key={index}
+                                className={`dot ${index === (currentImageIndexes[item._id] || 0) ? 'active' : ''}`}
+                                onClick={() => setCurrentImageIndexes(prev => ({ ...prev, [item._id]: index }))}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">No image</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="rItemInfo">
+                <h3 className="rTitle">{item.title}</h3>
+                <p className="rDesc">{item.desc}</p>
+                
+                <div className="rDetails">
+                  <div className="rMax">
+                    <FontAwesomeIcon icon={faUser} />
+                    <span>Tối đa {item.maxPeople} người</span>
+                  </div>
+                </div>
+
+                <div className="rSelectRooms">
+                  {item.roomNumbers?.map((roomNumber) => (
+                    <div className="room" key={roomNumber._id}>
+                      <label>Phòng {roomNumber.number}</label>
+                      <input
+                        type="checkbox"
+                        value={roomNumber._id}
+                        onChange={handleSelect}
+                        disabled={!isAvailable(roomNumber)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ))
-        ) : (
-          <span>Không có phòng nào.</span>
         )}
 
         <button
           onClick={handleClick}
-          className="rButton"
           disabled={selectedRooms.length === 0}
+          className="rButton"
         >
-          Đặt ngay!
+          Đặt phòng ngay!
         </button>
       </div>
+
       {showPaymentModal && (
         <div className="modal-overlay">
           <Payment onClose={() => setShowPaymentModal(false)} />
