@@ -6,6 +6,9 @@ import Login from "./pages/login/Login";
 import SingUp from "./pages/singup/singUp";
 import FavoritePage from "./pages/fa/FavoritePage";
 import { HashRouter } from "react-router-dom"; 
+
+import VerifyEmail from "./pages/VerifyEmail";
+
 import HotelTypes from "./pages/hotelTypes/hotelTypes";
 import { FavoriteContextProvider } from "./context/FavoriteContext";
 import { useContext } from "react";
@@ -30,6 +33,7 @@ function App() {
             <Route path="/favorites" element={<FavoritePage />} />
             <Route path="/payment/:status" element={<PaymentStatus />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="/verify/:token" element={<VerifyEmail />} />
           </Routes>
         </BrowserRouter>
       </FavoriteContextProvider>

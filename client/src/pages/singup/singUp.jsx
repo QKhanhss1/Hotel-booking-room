@@ -52,6 +52,7 @@ function SingUp() {
           headers: {
             "Content-Type": "application/json",
           },
+          withCredentials: true, 
         }
       );
       console.log("Response:", response.data);

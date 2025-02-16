@@ -15,6 +15,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import authRoutes from "./routes/auth.js";
 
 const app = express();
 
@@ -26,6 +27,9 @@ const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
 }
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files từ thư mục uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -66,8 +70,10 @@ app.use(
     credentials: true, // Cho phép gửi cookie
   })
 );
+
 app.use(cookieParser());
 app.use(express.json());
+app.use("/api/auth", authRoutes);
 
 app.use("/api", imageRoutes);
 app.use("/api/auth", authRoute);
