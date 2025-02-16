@@ -5,7 +5,9 @@
   margin-top: 20px;
 
 }
-
+.hotelImgList{
+  display: flex;
+}
 .hotelWrapper {
   width: 100%;
   max-width: 1024px;
@@ -49,6 +51,60 @@
   color: #008009;
   font-weight: 500;
 }
+/* hotel.css */
+
+.hotelImgList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* Khoảng cách giữa các ảnh */
+}
+
+.hotelImgWrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.hotelImg {
+  display: block;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    width: 100%;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.hotelImg:hover {
+     transform: scale(1.1); /* Phóng to ảnh khi hover */
+}
+
+/* Ảnh đầu tiên lớn hơn */
+.hotelImgWrapper:first-child {
+    flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.hotelImgWrapper:first-child .hotelImg {
+  height: 400px; /* Chiều cao ảnh đầu tiên */
+    width: 100%;
+}
+
+/* Các ảnh còn lại nhỏ hơn */
+.hotelImgWrapper:not(:first-child) {
+    flex: 1 1 48%;
+  max-width: calc(50% - 5px);
+}
+.hotelImgWrapper:not(:first-child) .hotelImg {
+height: 200px;
+ width: 100%;
+}
+
+@media (min-width: 768px) {
+    .hotelImgWrapper:not(:first-child) {
+    flex: 1 1 23%;
+  max-width: calc(25% - 7px);
+    }
+}
 
 .hotelImages {
   flex-wrap: wrap;
@@ -58,15 +114,8 @@
 .Containerbooking{
   display:flex;
 }
-.hotelImgWrapper {
-  width: 33%;
-}
 
-.hotelImg {
-  width: 100%;
-  object-fit: cover;
-  cursor: pointer;
-}
+
 
 .hotelDetails {
   display: flex;
@@ -114,7 +163,33 @@
   cursor: pointer;
   border-radius: 5px;
 }
+.showMoreButton {
+  display: flex;
+align-items: center;
+justify-content: center;
+  flex: 1 1 48%;
+max-width: calc(50% - 5px);
+height: 200px;
+background-color:rgba(0, 0, 0, 0.5);
+border-radius: 5px;
+font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid #d1d1d1;
+}
+.showMoreButton:hover{
+   background-color: #e0e0e0;
+}
 
+@media (min-width: 768px) {
+  .hotelImgWrapper:not(:first-child) {
+  flex: 1 1 23%;
+max-width: calc(25% - 7px);
+  }
+.showMoreButton {
+    flex: 1 1 23%;
+    max-width: calc(50% - 7px);
+  }
+}
 .slider{
   position: sticky;
   top: 0;

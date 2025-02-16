@@ -9,7 +9,7 @@ import hotelsRoute from "./routes/hotels.js";
 import imageRoutes from "./routes/image.js";
 import roomsRoute from "./routes/rooms.js";
 import bookingRoute from "./routes/booking.js";
-import paymentRoute from "./routes/vnpay.js";
+import vnpayRoute from "./routes/vnpay.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
@@ -81,11 +81,11 @@ app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 // app.use("/api/rooms", roomsRoute);
 // app.use("/api/hotels", roomsRoute);
-app.use("/api/hotels/:hotelid/rooms", roomsRoute);
+app.use("/api/rooms", roomsRoute);
 app.use("/api/booking", bookingRoute);
+app.use("/api/vnpay", vnpayRoute);
 
 app.use("/api/favorites", favoriteRoute);
-app.use("/api/v1/vnpay", paymentRoute);
 
 app.use((req, res, next) => {
   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');

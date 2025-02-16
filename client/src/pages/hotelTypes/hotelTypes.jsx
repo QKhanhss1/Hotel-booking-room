@@ -30,8 +30,8 @@ const HotelTypes = () => {
   const navigate = useNavigate();
 
   const handleCityClick = (destination) => {
-    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options  } });
-    navigate("/hotels", { state: {  destination, dates, options   } });
+    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } });
+    navigate("/hotels", { state: { destination, dates, options } });
   };
 
   return (
@@ -52,12 +52,20 @@ const HotelTypes = () => {
                   onClick={() => handleCityClick(hotel.city)}
                 >
                   <div className="hotelImages">
-                    <div className="hotelImgWrapper">
-                      <img
-                        src={`http://localhost:8800/api/images/${hotel.photos}`}
-                        alt={hotel.name}
-                        className="hotelImg"
-                      />
+                    <div className="hotelImgWrappers">
+                      {hotel.imageIds && hotel.imageIds.length > 0 ? (
+                        <img
+                          src={hotel.imageIds[0].url}
+                          alt={hotel.name}
+                          className="hotelImg"
+                        />
+                      ) : (
+                        <img
+                          src="/images/placeholder.png"
+                          alt={hotel.name}
+                          className="hotelImg"
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="hotelTitles">

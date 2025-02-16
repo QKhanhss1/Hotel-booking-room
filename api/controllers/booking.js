@@ -10,71 +10,44 @@ export const createBooking = async (req, res) => {
       selectedRooms,
       totalPrice,
       customer,
-      checkinDate,
-      checkoutDate,
+      paymentInfo,
+      paymentStatus
     } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
-    if (
-      !hotelId ||
-      !selectedRooms ||
-      !totalPrice ||
-      !customer ||
-      !checkinDate ||
-      !checkoutDate
-    ) {
+    // Validate required fields
+    if (!hotelId || !selectedRooms || !totalPrice || !customer || !paymentInfo) {
       return res.status(400).json({ error: "Dữ liệu không đầy đủ!" });
     }
 
-    // Chuyển đổi định dạng ngày tháng từ dd-mm-yyyy sang yyyy-mm-dd
-    const convertToISODate = (dateStr) => {
-      const [day, month, year] = dateStr.split("-");
-      return `${year}-${month}-${day}`;
-    };
+    // Log received data
+    console.log("Received booking data:", {
+      hotelId,
+      selectedRooms,
+      totalPrice,
+      customer,
+      paymentInfo,
+      paymentStatus
+    });
 
-    // Chuyển đổi ngày tháng
-    const checkin = new Date(convertToISODate(checkinDate));
-    const checkout = new Date(convertToISODate(checkoutDate));
-
-    // Điều chỉnh thời gian để phù hợp với múi giờ của người dùng
-    // Ví dụ: Nếu bạn đang ở GMT+7, bạn cần thêm 7 giờ vào thời gian UTC
-    const timezoneOffset = 7 * 60; // 7 giờ = 420 phút
-
-    const checkinWithTimezone = new Date(
-      checkin.getTime() + timezoneOffset * 60 * 1000
-    );
-    const checkoutWithTimezone = new Date(
-      checkout.getTime() + timezoneOffset * 60 * 1000
-    );
-
-    // Kiểm tra tính hợp lệ của ngày tháng
-    if (
-      isNaN(checkinWithTimezone.getTime()) ||
-      isNaN(checkoutWithTimezone.getTime())
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Ngày check-in hoặc check-out không hợp lệ!" });
-    }
-
-    // Tạo booking mới
+    // Create new booking
     const newBooking = new Booking({
       hotelId,
       selectedRooms,
       totalPrice,
       customer,
-      paymentStatus: "pending", // Mặc định là "pending"
       paymentInfo: {
-        checkinDate: checkinWithTimezone,
-        checkoutDate: checkoutWithTimezone,
+        checkinDate: new Date(paymentInfo.checkinDate),
+        checkoutDate: new Date(paymentInfo.checkoutDate)
       },
+      paymentStatus: paymentStatus || "pending"
     });
 
-    await newBooking.save();
-    res.status(200).json(newBooking);
+    // Save booking
+    const savedBooking = await newBooking.save();
+    res.status(200).json(savedBooking);
   } catch (error) {
-    console.error("Lỗi tạo đơn hàng:", error); // In ra lỗi chi tiết
-    res.status(500).json({ error: "Lỗi tạo đơn hàng!" });
+    console.error("Server error:", error);
+    res.status(500).json({ error: "Lỗi server khi tạo booking!" });
   }
 };
 //update status
