@@ -15,6 +15,7 @@ import { FavoriteContext } from "../../context/FavoriteContext";
 import axios from "axios";
 import Reserve from "../../components/reserve/Reserve";
 import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
+import { ToastContainer, toast, Bounce } from 'react-toastify';
 
 const Hotel = () => {
   const location = useLocation();
@@ -114,6 +115,8 @@ const Hotel = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         dispatch({ type: "REMOVE_FAVORITE", payload: id });
+        toast.info(' Bạn đã xóa khỏi trang yêu thích', {
+        });
       } else {
         // Thêm vào danh sách yêu thích
         await axios.post(
@@ -122,6 +125,7 @@ const Hotel = () => {
           { headers: { Authorization: `Bearer ${user.token}` } }
         );
         dispatch({ type: "ADD_FAVORITE", payload: { _id: id } });
+        toast.info("Bạn đã thêm vào trang yêu thích!")
       }
       setIsFavorite(!isFavorite); // Thay đổi trạng thái của `isFavorite`
     } catch (error) {
@@ -249,8 +253,20 @@ const Hotel = () => {
                 <button onClick={handleClick}>Đặt chỗ hoặc Đặt ngay!</button>
               </div>
             </div>
-
           </div>
+          <ToastContainer
+                  position="top-center"
+                  autoClose={1500}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick={false}
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="light"
+                  transition={Bounce}
+                />
           <Comment />
           <MailList />
           <Footer />

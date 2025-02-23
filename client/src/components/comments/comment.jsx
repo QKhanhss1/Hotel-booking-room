@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import "./comment.css";
 import { AuthContext } from "../../context/AuthContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { toast, Bounce } from 'react-toastify';
 
 const Comment = () => {
   const { user } = useContext(AuthContext);
@@ -17,7 +18,6 @@ const Comment = () => {
     rating: 0,
     comment: "",
   });
- 
 
   const handleRatingChange = (ratingValue) => {
     setFormData((prevState) => ({ ...prevState, rating: ratingValue }));
@@ -61,27 +61,25 @@ const Comment = () => {
       console.log("Response:", data);
 
       if (response.status === 400 && data.message === "Bạn đã đánh giá trước đó rồi!") {
-        // If the user has already reviewed, show an error alert
         alert(data.message);
         return;
       }
 
-      // Reset form sau khi gửi thành công
       setFormData({ userId: user.details._id, rating: 0, comment: "" });
-      alert("Đánh giá của bạn đã được gửi thành công!");
+      toast.success("Đánh giá của bạn đã được gửi thành công!");
     } catch (error) {
       console.error("Error:", error);
-      alert("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại!");
+      toast.error("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại!");
     }
   };
-  //mở model comment
+
   const toggleModal = () => {
     if (!isModalOpen) {
       fetchComments();
     }
     setIsModalOpen(!isModalOpen);
   };
-  //lấy comment
+
   const fetchComments = async () => {
     try {
       const response = await fetch(`http://localhost:8800/api/hotels/review/all/${id}`);
@@ -91,14 +89,38 @@ const Comment = () => {
       console.error("Error fetching comments:", error);
     }
   };
+  const userId = user.details._id;
+  // Hàm xử lý xóa comment
+  const handleDeleteComment = async (reviewId) => {
+    try {
+      const token = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).token : null;
+      // Gọi API xóa comment
+      const response = await fetch(`http://localhost:8800/api/hotels/${id}/reviews/${reviewId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`, // Thêm header Authorization
+        },
+      });
 
+      if (response.status === 200) {
+        // Nếu xóa thành công, cập nhật lại danh sách comment
+        setComments(comments.filter((comment) => comment._id !== reviewId));
+        toast.success("Xóa đánh giá thành công!");
+      } else {
+        toast.error("Không thể xóa đánh giá này.");
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa đánh giá:", error);
+      toast.error("Đã xảy ra lỗi khi xóa đánh giá. Vui lòng thử lại!");
+    }
+  };
 
   return (
     <div className="Form">
       <div className="headerct">
         <h2>Bình luận và đánh giá</h2>
         <button className="viewCommentButton" onClick={toggleModal}>
-          {showComments ? "Đóng danh sách" : "Xem bình luận"}
+          {showComments ? "Đóng danh sách" : "Xem đánh giá"}
         </button>
       </div>
       {/* Modal */}
@@ -106,7 +128,6 @@ const Comment = () => {
         <div className="modalOverlay">
           <div className="modalContent">
             <div className="modalHeader">
-              {/* Font Awesome Close Icon */}
               <h3 className="modalTitle">Bình luận</h3>
               <FontAwesomeIcon
                 icon={faTimes}
@@ -128,6 +149,15 @@ const Comment = () => {
                             ★
                           </span>
                         ))}
+                        {/* Nút xóa comment */}
+                        {(user?.isAdmin == true || userId === comment.user) && (
+                          <button
+                            className="deleteCommentButton"
+                            onClick={() => handleDeleteComment(comment._id)}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        )}
                       </p>
                     </div>
                     <p className="commentContent">
@@ -136,7 +166,7 @@ const Comment = () => {
                   </div>
                 ))
               ) : (
-                <p>Chưa có bình luận nào.</p>
+                <p>Chưa có đánh giá nào.</p>
               )}
             </div>
           </div>
@@ -159,7 +189,7 @@ const Comment = () => {
         </div>
         <textarea
           name="comment"
-          placeholder="Viết bình luận..."
+          placeholder="Viết đánh giá..."
           value={formData.comment}
           onChange={handleChange}
           required
