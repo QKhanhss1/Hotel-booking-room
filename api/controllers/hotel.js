@@ -191,30 +191,30 @@ export const createReview = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
-//get all
-export const getReviewsByHotelId = async (req, res, next) => {
-  try {
-    const hotelId = req.params.id;
+  //get all
+  export const getReviewsByHotelId = async (req, res, next) => {
+    try {
+      const hotelId = req.params.id;
 
-    // Tìm khách sạn theo ID và chỉ lấy trường `reviews` và `name`
-    const hotel = await Hotel.findById(hotelId);
-    
-    if (!hotel) {
-      return res.status(404).json({ message: "Khách sạn không tồn tại" });
+      // Tìm khách sạn theo ID và chỉ lấy trường `reviews` và `name`
+      const hotel = await Hotel.findById(hotelId);
+      
+      if (!hotel) {
+        return res.status(404).json({ message: "Khách sạn không tồn tại" });
+      }
+
+      // Trả về các đánh giá kèm tên khách sạn
+      const reviews = hotel.reviews.map((review) => ({
+        ...review._doc,
+        hotelName: hotel.name,
+      }));
+
+      res.status(200).json(reviews);
+    } catch (err) {
+      console.error("Lỗi:", err);
+      next(err);
     }
-
-    // Trả về các đánh giá kèm tên khách sạn
-    const reviews = hotel.reviews.map((review) => ({
-      ...review._doc,
-      hotelName: hotel.name,
-    }));
-
-    res.status(200).json(reviews);
-  } catch (err) {
-    console.error("Lỗi:", err);
-    next(err);
-  }
-};
+  };
 
 //
 export const getHotelsByType = async (req, res, next) => {
@@ -237,6 +237,54 @@ export const getHotelsByType = async (req, res, next) => {
     res.status(200).json(hotels);
   } catch (err) {
     next(err);
+  }
+};
+export const deleteReview = async (req, res) => {
+  const { hotelId, reviewId } = req.params;
+
+  try {
+    // 1. Tìm khách sạn
+    const hotel = await Hotel.findById(hotelId);
+
+    if (!hotel) {
+      return res.status(404).json({ message: "Không tìm thấy khách sạn" });
+    }
+    
+    const review = hotel.reviews.id(reviewId); // Lấy review bằng ID của nó
+    if (!review) {
+      return res.status(404).json({ message: "Không tìm thấy bình luận" });
+    }
+    console.log("req.user:", req.user); // DEBUG
+    console.log("review.user:", review.user); // DEBUG
+    // Kiểm tra quyền xóa: chỉ admin hoặc người tạo bình luận mới được xóa
+    if (req.user.isAdmin !== true && review.user.toString() !== req.user.id.toString()) { 
+      return res.status(403).json({ message: "Bạn không có quyền xóa bình luận này" });
+    }
+    // 2. Lọc bỏ review cần xóa
+    hotel.reviews = hotel.reviews.filter(
+      (review) => review._id.toString() !== reviewId
+    );
+
+    // 3. Cập nhật lại số lượng review và rating trung bình
+    hotel.numReviews = hotel.reviews.length;
+
+    if (hotel.numReviews > 0) {
+      const totalRating = hotel.reviews.reduce(
+        (sum, review) => sum + review.rating,
+        0
+      );
+      hotel.rating = totalRating / hotel.numReviews;
+    } else {
+      hotel.rating = 0; // Nếu không còn review nào thì rating = 0
+    }
+
+    // 4. Lưu lại khách sạn đã cập nhật
+    await hotel.save();
+
+    res.status(200).json({ message: "Xóa bình luận thành công", hotel });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
 
