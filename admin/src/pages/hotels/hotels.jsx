@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
 import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
+import { ToastContainer, toast, Bounce } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 function Hotels() {
   const { user } = useContext(AuthContext);
@@ -63,7 +66,10 @@ function Hotels() {
         !newHotel.desc ||
         !newHotel.cheapestPrice
       ) {
-        alert("Vui lòng điền đầy đủ thông tin!");
+        toast.warn("Vui lòng điền đầy đủ thông tin!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
         return;
       }
       // console.log("selectedImages:", selectedImages);
@@ -115,10 +121,16 @@ function Hotels() {
       });
       setSelectedImages([]);
       setShowAddForm(false);
-      alert("Thêm khách sạn thành công!");
+      toast.success("Thêm khách sạn thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (error) {
       console.error("Error creating hotel:", error);
-      alert("Có lỗi xảy ra khi thêm khách sạn: " + error.message);
+      toast.error("Có lỗi xảy ra khi thêm khách sạn: " + error.message, {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
@@ -133,7 +145,7 @@ function Hotels() {
         `${API_HOTELS}/${id}`,
         {
           ...editingHotel,
-          imageIds: editingHotel.imageIds, 
+          imageIds: editingHotel.imageIds,
         },
         {
           headers: {
@@ -149,10 +161,16 @@ function Hotels() {
         prevHotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel))
       );
       closeEditModal();
-      alert("Cập nhật khách sạn thành công!");
+      toast.success("Cập nhật khách sạn thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (error) {
       console.error("Error updating hotel:", error);
-      alert("Có lỗi xảy ra khi cập nhật khách sạn: " + error.message);
+      toast.error("Có lỗi xảy ra khi cập nhật khách sạn: " + error.message, {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
@@ -168,8 +186,16 @@ function Hotels() {
         },
       });
       setHotels(hotels.filter((hotel) => hotel._id !== id));
+      toast.success("Xóa khách sạn thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (error) {
       console.error("Error deleting hotel:", error);
+      toast.error("Có lỗi xảy ra khi xóa khách sạn: " + error.message, {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
   useEffect(() => {
@@ -616,6 +642,19 @@ function Hotels() {
           </div>
         </div>
       </div>
+      <ToastContainer
+        position="top-center"
+        autoClose={1500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
     </div>
   );
 }

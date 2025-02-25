@@ -3,11 +3,13 @@ import { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
-import { AuthContext } from "../../context/AuthContext"; 
+import { AuthContext } from "../../context/AuthContext";
 import { API_UPLOAD, API_ROOMS, API_IMAGES } from '../../utils/apiConfig';
+import { ToastContainer, toast, Bounce } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Rooms() {
-  const { user } = useContext(AuthContext); 
+  const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const { id } = useParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -106,9 +108,9 @@ function Rooms() {
               }
             }
           );
-          
+
           console.log("Rooms data:", roomsResponse.data);
-          
+
           if (Array.isArray(roomsResponse.data)) {
             setRooms(roomsResponse.data);
           } else {
@@ -165,7 +167,10 @@ function Rooms() {
   const createRoom = async () => {
     try {
       if (!hotelId || !newRoom.title || !newRoom.price || !newRoom.maxPeople) {
-        alert("Vui lòng điền đầy đủ thông tin!");
+        toast.warn("Vui lòng điền đầy đủ thông tin!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
         return;
       }
 
@@ -177,7 +182,7 @@ function Rooms() {
       });
 
       const imageResponses = await Promise.all(imageUploadPromises);
-      const imageIds = imageResponses.flatMap(response => 
+      const imageIds = imageResponses.flatMap(response =>
         response.data.map(img => img._id)
       );
 
@@ -206,12 +211,18 @@ function Rooms() {
       setRooms([...rooms, res.data]);
       resetForm();
       setIsModalOpen(false);
-      alert("Tạo phòng thành công!");
+      toast.success("Tạo phòng thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (err) {
       console.error("Create room error:", err);
       console.error("API Error:", err.response?.status, err.response?.statusText);
       console.error("Error details:", err.response?.data);
-      alert(err.response?.data?.message || "Có lỗi xảy ra khi tạo phòng!");
+      toast.error(err.response?.data?.message || "Có lỗi xảy ra khi tạo phòng!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
@@ -224,10 +235,10 @@ function Rooms() {
       roomNumbers: [],
       existingImages: []
     });
-    
+
     // Giải phóng URL objects
     imagePreview.forEach(url => URL.revokeObjectURL(url));
-    
+
     setSelectedImages([]);
     setImagePreview([]);
   };
@@ -258,7 +269,7 @@ function Rooms() {
           return axios.post(API_UPLOAD, formData);
         });
         const imageResponses = await Promise.all(imageUploadPromises);
-        newImageIds = imageResponses.flatMap(response => 
+        newImageIds = imageResponses.flatMap(response =>
           response.data.map(img => img._id).filter(id => id) // Lọc bỏ các giá trị null/undefined
         );
       }
@@ -278,7 +289,7 @@ function Rooms() {
         imageIds: allImageIds
       };
 
-      console.log('Update room data:', roomData); 
+      console.log('Update room data:', roomData);
 
       const res = await axios.put(`${API_ROOMS}/${id}`, roomData, {
         headers: {
@@ -290,16 +301,22 @@ function Rooms() {
       resetForm();
       setIsModalOpen(false);
       setIsEditing(false);
-      alert("Cập nhật phòng thành công!");
+      toast.success("Cập nhật phòng thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (err) {
       console.error("Error updating room:", err);
-      alert(err.response?.data?.message || "Có lỗi xảy ra khi cập nhật phòng!");
+      toast.error(err.response?.data?.message || "Có lỗi xảy ra khi cập nhật phòng!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
   // Hàm xóa ảnh đã chọn
   const handleRemoveImage = (imageIdToRemove) => {
-    setCurrentImages(currentImages.filter(image => 
+    setCurrentImages(currentImages.filter(image =>
       (image._id || image) !== (imageIdToRemove._id || imageIdToRemove)
     ));
   };
@@ -327,13 +344,22 @@ function Rooms() {
       });
 
       setRooms(rooms.filter(room => room._id !== id));
-      alert("Xóa phòng thành công!");
+      toast.success("Xóa phòng thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (error) {
       console.error("Error deleting room:", error);
       if (error.response?.status === 401) {
-        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
       } else {
-        alert(error.response?.data?.message || "Có lỗi xảy ra khi xóa phòng!");
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa phòng!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
       }
     }
   };
@@ -342,14 +368,17 @@ function Rooms() {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     console.log("Selected files:", files);
-    
+
     // Kiểm tra số lượng ảnh
     const totalImages = (editRoom?.existingImages?.length || 0) + selectedImages.length + files.length;
     if (totalImages > 5) {
-      alert("Tổng số ảnh không được vượt quá 5!");
+      toast.warn("Tổng số ảnh không được vượt quá 5!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
       return;
     }
-    
+
     // Thêm ảnh mới vào state
     setSelectedImages(prevImages => [...prevImages, ...files]);
 
@@ -362,7 +391,7 @@ function Rooms() {
   const handleEdit = (room) => {
     console.log("Room data for edit:", room);
     setEditRoom(room);
-    setEditingRoom(room); 
+    setEditingRoom(room);
     setCurrentImages(room.imageIds || []);
     setSelectedImages([]);
     setIsEditing(true);
@@ -749,7 +778,7 @@ function Rooms() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="Name text-[#1a1a1a] text-xl font-semibold font-['Inter'] leading-loose text-center w-full">
                     {room.title}
                   </div>
@@ -804,6 +833,19 @@ function Rooms() {
           </div>
         </div>
       </div>
+      <ToastContainer
+        position="top-center"
+        autoClose={1500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
     </div>
   );
 }

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./users.css";
 import Navbar from "../navbar/Navbar";
+import { ToastContainer, toast, Bounce } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
-  const [editingUser, setEditingUser] = useState(null); 
-  const [newRole, setNewRole] = useState(""); 
+  const [editingUser, setEditingUser] = useState(null);
+  const [newRole, setNewRole] = useState("");
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -26,6 +28,10 @@ const Users = () => {
         setUsers(res.data);
       } catch (err) {
         console.error("Error fetching users:", err);
+        toast.error("Lỗi khi tải danh sách người dùng", {
+          position: "top-center",
+          autoClose: 2000,
+        });
       }
     };
 
@@ -46,14 +52,22 @@ const Users = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUsers(users.filter((user) => user._id !== id)); 
+      setUsers(users.filter((user) => user._id !== id));
       console.log("User deleted successfully.");
+      toast.success("Xóa người dùng thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (err) {
       console.error("Failed to delete user", err);
+      toast.error("Không thể xóa người dùng", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
-  
+
   const handleUpdateRole = async (id) => {
     const token = localStorage.getItem("token");
 
@@ -65,7 +79,7 @@ const Users = () => {
     try {
       await axios.put(
         `http://localhost:8800/api/users/${id}`,
-        { isAdmin: newRole === "admin" }, 
+        { isAdmin: newRole === "admin" },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -78,15 +92,23 @@ const Users = () => {
           user._id === id ? { ...user, isAdmin: newRole === "admin" } : user
         )
       );
-      setEditingUser(null); 
+      setEditingUser(null);
+      toast.success("Cập nhật quyền thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     } catch (err) {
       console.error("Failed to update role", err);
+      toast.error("Không thể cập nhật quyền", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
   const handleOpenEditForm = (user) => {
     setEditingUser(user);
-    setNewRole(user.isAdmin ? "admin" : "user"); 
+    setNewRole(user.isAdmin ? "admin" : "user");
   };
 
   return (
@@ -155,6 +177,19 @@ const Users = () => {
           </button>
         </div>
       )}
+      <ToastContainer
+        position="top-center"
+        autoClose={1500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
     </div>
   );
 };
