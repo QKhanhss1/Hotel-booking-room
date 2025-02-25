@@ -5,6 +5,8 @@ import { AuthContext } from "../../context/AuthContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCreditCard, faCalendarAlt, faUser, faBed, faMoneyBill } from "@fortawesome/free-solid-svg-icons";
 import { API_URL } from "../../utils/apiConfig";
+import { ToastContainer, toast, Bounce } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Payment = ({ onClose }) => {
   const [reservationData, setReservationData] = useState(null);
@@ -17,7 +19,7 @@ const Payment = ({ onClose }) => {
     const data = localStorage.getItem("reservationData");
     const datesData = localStorage.getItem("dates");
     const storedPrice = localStorage.getItem("totalprice");
-    
+
     if (data) {
       const parsedData = JSON.parse(data);
       setReservationData({
@@ -54,7 +56,10 @@ const Payment = ({ onClose }) => {
   const createBooking = async () => {
     try {
       if (!user?.details?._id) {
-        alert("Vui lòng đăng nhập để đặt phòng!");
+        toast.warn("Vui lòng đăng nhập để đặt phòng!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
         return null;
       }
 
@@ -77,7 +82,7 @@ const Payment = ({ onClose }) => {
       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
 
       const response = await axios.post(`${API_URL}/booking/create`, bookingData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         }
@@ -86,12 +91,29 @@ const Payment = ({ onClose }) => {
       return response.data;
     } catch (error) {
       console.error("Error creating booking:", error.response?.data || error.message);
-      alert(error.response?.data?.error || "Không thể tạo đơn đặt phòng. Vui lòng thử lại.");
+      toast.error(error.response?.data?.error || "Không thể tạo đơn đặt phòng. Vui lòng thử lại.", {
+        position: "top-center",
+        autoClose: 2000,
+      });
       return null;
     }
   };
 
+  const isValidEmail = (email) => {
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handlePayment = async (email) => {
+    if (!isValidEmail(email)) {
+      toast.error("Vui lòng nhập địa chỉ email hợp lệ!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      return;
+    }
+
     try {
       const booking = await createBooking();
       if (!booking) return;
@@ -101,18 +123,18 @@ const Payment = ({ onClose }) => {
 
       const paymentData = {
         amount: Math.round(totalPrice),
-        bankCode: "",
+        bankCode: "NCB",
         language: "vn",
         orderInfo: `Thanh toan booking ${booking._id}`,
         orderType: "billpayment",
-        email: email 
+        email: email
       };
 
       const response = await axios.post(
         `${API_URL}/vnpay/create_payment_url`,
         paymentData,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${user.token}`,
             'Content-Type': 'application/json'
           }
@@ -124,7 +146,10 @@ const Payment = ({ onClose }) => {
       }
     } catch (err) {
       console.error("Payment error:", err);
-      alert("Lỗi khi tạo thanh toán. Vui lòng thử lại!");
+      toast.error("Lỗi khi tạo thanh toán. Vui lòng thử lại!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
     }
   };
 
@@ -178,8 +203,8 @@ const Payment = ({ onClose }) => {
           <h3>Thông tin xác nhận</h3>
           <div className="form-group">
             <label>Email nhận xác nhận đặt phòng:</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Nhập email của bạn"
@@ -189,8 +214,8 @@ const Payment = ({ onClose }) => {
         </div>
 
         <div className="payment-actions">
-          <button 
-            className="payment-button" 
+          <button
+            className="payment-button"
             onClick={() => handlePayment(email)}
             disabled={!email}
           >
@@ -201,6 +226,19 @@ const Payment = ({ onClose }) => {
           </button>
         </div>
       </div>
+      <ToastContainer
+        position="top-center"
+        autoClose={1500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
     </div>
   );
 };
