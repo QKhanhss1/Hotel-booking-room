@@ -1,3 +1,4 @@
+import DialogflowChatbot from "../../components/chatbot/chatbot";
 import Featured from "../../components/featured/Featured";
 import FeaturedProperties from "../../components/featuredProperties/FeaturedProperties";
 import Footer from "../../components/footer/Footer";
@@ -18,6 +19,7 @@ const Home = () => {
         <PropertyList/>
         <h1 className="homeTitle">Những Khách sạn được khách yêu thích</h1>
         <FeaturedProperties/>
+        <DialogflowChatbot/>
         <MailList/>
         <Footer/>
       </div>

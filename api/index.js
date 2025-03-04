@@ -16,6 +16,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import authRoutes from "./routes/auth.js";
+import dialogflowRoutes from "./routes/dialogflowRoutes.js";
 
 const app = express();
 
@@ -24,8 +25,8 @@ const __dirname = path.dirname(__filename);
 
 // Tạo thư mục uploads nếu chưa tồn tại
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 app.use(express.json());
@@ -86,6 +87,7 @@ app.use("/api/booking", bookingRoute);
 app.use("/api/vnpay", vnpayRoute);
 
 app.use("/api/favorites", favoriteRoute);
+app.use('/api', dialogflowRoutes); 
 
 app.use((req, res, next) => {
   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');

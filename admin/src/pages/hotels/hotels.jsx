@@ -7,7 +7,6 @@ import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
 function Hotels() {
   const { user } = useContext(AuthContext);
   const [hotels, setHotels] = useState([]);
@@ -24,10 +23,14 @@ function Hotels() {
     photos: null,
   });
   const [selectedImages, setSelectedImages] = useState([]);
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingHotel, setEditingHotel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [imageIds, setImageIds] = useState([]); // Store imageIds
+
   const navigate = useNavigate();
+
 
   //fetch images
   const fetchHotelImages = async (hotel) => {
@@ -35,7 +38,6 @@ function Hotels() {
       const images = await Promise.all(
         hotel.imageIds.map(async (image) => {
           const imageId = typeof image === 'string' ? image : image._id
-          console.log('id', imageId);
           const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
           return imageResponse.data.imageUrl;
         })
@@ -72,29 +74,26 @@ function Hotels() {
         });
         return;
       }
-      // console.log("selectedImages:", selectedImages);
+      if (isImageUploading) {
+        toast.warn("Vui lòng chờ ảnh được tải lên trước khi tạo khách sạn!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+        return;
+      }
+      if (imageIds.length === 0) {
+        toast.warn("Vui lòng tải ảnh lên trước khi tạo khách sạn!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+        return;
+      }
 
-      const formData = new FormData();
-      selectedImages.forEach((image) => {
-        formData.append('images', image);
-      });
-
-      const imageResponse = await axios.post(API_UPLOAD, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      // console.log(imageResponse);
-
-      const imageIds = imageResponse.data.map((image) => image._id);
       // Tạo khách sạn với mảng ID ảnh
       const newHotelData = {
         ...newHotel,
         imageIds: imageIds, // Lưu mảng các ID ảnh
       };
-
-      // console.log('newHotelData:', newHotelData);
-
       const response = await axios.post(
         API_HOTELS,
         newHotelData,
@@ -120,6 +119,8 @@ function Hotels() {
         photos: null,
       });
       setSelectedImages([]);
+      setImageIds([]);
+      setIsImageUploading(false);
       setShowAddForm(false);
       toast.success("Thêm khách sạn thành công!", {
         position: "top-center",
@@ -127,12 +128,45 @@ function Hotels() {
       });
     } catch (error) {
       console.error("Error creating hotel:", error);
+      setIsImageUploading(false);
       toast.error("Có lỗi xảy ra khi thêm khách sạn: " + error.message, {
         position: "top-center",
         autoClose: 2000,
       });
     }
   };
+
+  const handleUploadImage = async () => {
+    try {
+      setIsImageUploading(true);
+      console.log("selectedImages:", selectedImages);
+
+      const formData = new FormData();
+      selectedImages.forEach((image) => {
+        formData.append('images', image); // Sử dụng 'images'
+      });
+      const imageResponse = await axios.post(API_UPLOAD, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log(imageResponse);
+      const imageIds = imageResponse.data.map((image) => image._id);
+      setImageIds(imageIds);
+      toast.success("Tải ảnh thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      setIsImageUploading(false);
+    } catch (error) {
+      console.error("Error creating hotel:", error);
+      setIsImageUploading(false);
+      toast.error("Có lỗi xảy ra khi tải ảnh: " + error.message, {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
+  }
 
   const handleHotelClick = (hotelId) => {
     navigate(`/rooms/${hotelId}`);
@@ -241,6 +275,7 @@ function Hotels() {
     },
   };
 
+
   return (
     <div className="w-full overflow-x-hidden">
       <Navbar />
@@ -269,6 +304,7 @@ function Hotels() {
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, name: e.target.value })
                   }
+                  disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -276,6 +312,7 @@ function Hotels() {
                   placeholder="Loại khách sạn"
                   value={newHotel.type}
                   onChange={(e) => setNewHotel({ ...newHotel, type: e.target.value })}
+                  disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -285,6 +322,7 @@ function Hotels() {
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, city: e.target.value })
                   }
+                  disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -293,7 +331,7 @@ function Hotels() {
                   value={newHotel.address}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, address: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -302,7 +340,7 @@ function Hotels() {
                   value={newHotel.distance}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, distance: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -311,7 +349,7 @@ function Hotels() {
                   value={newHotel.title}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, title: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
               </div>
@@ -322,7 +360,7 @@ function Hotels() {
                   value={newHotel.rating}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, rating: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="p-2 border rounded-md"
                   min="1"
                   max="5"
@@ -333,7 +371,7 @@ function Hotels() {
                   value={newHotel.cheapestPrice}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, cheapestPrice: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="p-2 border rounded-md"
                 />
                 <input
@@ -341,7 +379,16 @@ function Hotels() {
                   multiple
                   onChange={handleImageChange}
                   className="p-2 border rounded-md"
+                  disabled={isImageUploading}
                 />
+                {isImageUploading && <p>Đang tải ảnh...</p>}  {/* Hiển thị loading */}
+                <button
+                      onClick={handleUploadImage}
+                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                      disabled={isImageUploading}
+                  >
+                      Tải ảnh
+                  </button>
               </div>
               <div className="md:col-span-2">
                 <textarea
@@ -349,22 +396,28 @@ function Hotels() {
                   value={newHotel.desc}
                   onChange={(e) =>
                     setNewHotel({ ...newHotel, desc: e.target.value })
-                  }
+                  } disabled={isImageUploading}
                   className="w-full p-2 border rounded-md"
                   rows="3"
                 />
               </div>
               <div className="md:col-span-2 flex justify-end">
+                
                 <button
                   onClick={handleCreate}
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                  disabled={isImageUploading || selectedImages.length === 0}
                 >
                   Thêm Khách Sạn
                 </button>
+                {isImageUploading && (
+                  <p>Xin vui lòng chờ ảnh được tải lên trước khi tạo khách sạn!</p>
+                )}
               </div>
             </div>
           </div>
         )}
+
 
         {/* Form chỉnh sửa khách sạn */}
         {isEditModalOpen && editingHotel && (
@@ -500,8 +553,7 @@ function Hotels() {
                             }
                           );
                           const newImageIds = response.data.map(image => image._id);
-                          console.log("newImageIds:", newImageIds);
-                          console.log("editingHotel.imageIds ", editingHotel);
+
                           setEditingHotel({
                             ...editingHotel,
                             imageIds: editingHotel.imageIds ? [...editingHotel.imageIds, ...newImageIds] : [...newImageIds],
@@ -556,7 +608,7 @@ function Hotels() {
                 <div className="flex flex-col items-center h-full w-full">
                   <img
                     className="Image h-60 relative w-full object-cover rounded-lg"
-                    src={hotel.images[0]}
+                    src={Array.isArray(hotel.images) ? hotel.images[0] : null}
                     alt={hotel.name}
                     onClick={() => handleHotelClick(hotel._id)}
                   />
