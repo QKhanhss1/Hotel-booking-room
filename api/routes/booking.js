@@ -5,14 +5,12 @@ import { verifyUser, verifyAdmin } from "../utils/verifyToken.js";
 const router = express.Router();
 //ADD
 router.post("/create", verifyUser, createBooking);
-//UPDATE
-router.put("/update/status", updateBookingStatus);
+//UPDATE 
+router.put("/update/status", updateBookingStatus); // Đảm bảo đường dẫn này khớp
 //DELETE
-// Thêm route để lấy booking theo hotelId
-router.get("/hotel/:hotelId", getBookingsByHotelId);
-// Thêm route để xóa booking
 router.delete("/:id", verifyAdmin, deleteBooking);
-// Thêm route để lấy booking theo userId
+//GET
+router.get("/hotel/:hotelId", getBookingsByHotelId);
 router.get("/user/:id", verifyUser, getBookings);
 
 export default router;

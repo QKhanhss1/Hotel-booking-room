@@ -3,6 +3,7 @@ import config from 'config';
 import crypto from 'crypto';
 import moment from 'moment';
 import querystring from 'qs';
+import axios from 'axios'; // Thêm import axios
 
 const router = express.Router();
 
@@ -62,36 +63,28 @@ router.post('/create_payment_url', function (req, res, next) {
         req.socket.remoteAddress ||
         req.connection.socket.remoteAddress;
 
-
     let tmnCode = config.get('vnp_TmnCode');
     let secretKey = config.get('vnp_HashSecret');
     let vnpUrl = config.get('vnp_Url');
     let returnUrl = config.get('vnp_ReturnUrl');
     let orderId = moment(date).format('DDHHmmss');
     let amount = req.body.amount;
-    let bankCode = req.body.bankCode;
 
-    let locale = req.body.language;
-    if (locale === null || locale === '') {
-        locale = 'vn';
-    }
-    let currCode = 'VND';
-    let vnp_Params = {};
-    vnp_Params['vnp_Version'] = '2.1.0';
-    vnp_Params['vnp_Command'] = 'pay';
-    vnp_Params['vnp_TmnCode'] = tmnCode;
-    vnp_Params['vnp_Locale'] = locale;
-    vnp_Params['vnp_CurrCode'] = currCode;
-    vnp_Params['vnp_TxnRef'] = orderId;
-    vnp_Params['vnp_OrderInfo'] = 'Thanh toan cho ma GD:' + orderId;
-    vnp_Params['vnp_OrderType'] = 'other';
-    vnp_Params['vnp_Amount'] = amount * 100;
-    vnp_Params['vnp_ReturnUrl'] = returnUrl;
-    vnp_Params['vnp_IpAddr'] = ipAddr;
-    vnp_Params['vnp_CreateDate'] = createDate;
-    if (bankCode !== null && bankCode !== '') {
-        vnp_Params['vnp_BankCode'] = bankCode;
-    }
+    let vnp_Params = {
+        vnp_Version: '2.1.0',
+        vnp_Command: 'pay',
+        vnp_TmnCode: tmnCode,
+        vnp_Locale: 'vn',
+        vnp_CurrCode: 'VND',
+        vnp_TxnRef: orderId,
+        vnp_OrderInfo: req.body.orderInfo || 'Thanh toan don hang: ' + orderId,
+        vnp_OrderType: 'billpayment',
+        vnp_Amount: amount * 100,
+        vnp_ReturnUrl: returnUrl,
+        vnp_IpAddr: ipAddr,
+        vnp_CreateDate: createDate,
+        vnp_BankCode: 'NCB' // Thêm mặc định bank code là NCB
+    };
 
     vnp_Params = sortObject(vnp_Params);
 
@@ -106,6 +99,95 @@ router.post('/create_payment_url', function (req, res, next) {
     console.log('check vnpay')
 
     res.send(vnpUrl)
+});
+
+// Thêm route GET và sửa lại xử lý params
+router.get('/create_payment_url', function (req, res, next) {
+    process.env.TZ = 'Asia/Ho_Chi_Minh';
+    
+    const { bookingId, amount } = req.query;
+    
+    let date = new Date();
+    let createDate = moment(date).format('YYYYMMDDHHmmss');
+    let orderId = moment(date).format('DDHHmmss');
+
+    let ipAddr = req.headers['x-forwarded-for'] ||
+        req.connection.remoteAddress ||
+        req.socket.remoteAddress ||
+        req.connection.socket.remoteAddress;
+
+    let tmnCode = config.get('vnp_TmnCode');
+    let secretKey = config.get('vnp_HashSecret');
+    let vnpUrl = config.get('vnp_Url');
+    let returnUrl = config.get('vnp_ReturnUrl');
+
+    let vnp_Params = {
+        vnp_Version: '2.1.0',
+        vnp_Command: 'pay',
+        vnp_TmnCode: tmnCode,
+        vnp_Locale: 'vn',
+        vnp_CurrCode: 'VND',
+        vnp_TxnRef: orderId,
+        vnp_OrderInfo: 'Thanh toan don hang: ' + bookingId,
+        vnp_OrderType: 'billpayment',
+        vnp_Amount: Number(amount) * 100,
+        vnp_ReturnUrl: returnUrl,
+        vnp_IpAddr: ipAddr,
+        vnp_CreateDate: createDate,
+        vnp_BankCode: 'NCB'
+    };
+
+    vnp_Params = sortObject(vnp_Params);
+    let signData = querystring.stringify(vnp_Params, { encode: false });
+    let hmac = crypto.createHmac("sha512", secretKey);
+    let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+    vnp_Params['vnp_SecureHash'] = signed;
+    vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false });
+    
+    res.redirect(vnpUrl);
+});
+
+router.get('/vnpay_return', async function (req, res, next) {
+    try {
+        let vnp_Params = req.query;
+        let secureHash = vnp_Params['vnp_SecureHash'];
+        const bookingId = vnp_Params['vnp_OrderInfo'].split(': ')[1];
+        const amount = vnp_Params['vnp_Amount'] / 100; // Chuyển về đơn vị gốc
+        
+        delete vnp_Params['vnp_SecureHash'];
+        delete vnp_Params['vnp_SecureHashType'];
+        
+        vnp_Params = sortObject(vnp_Params);
+        
+        let secretKey = config.get('vnp_HashSecret');
+        let signData = querystring.stringify(vnp_Params, { encode: false });
+        let hmac = crypto.createHmac("sha512", secretKey);
+        let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+        if (secureHash === signed) {
+            const responseCode = vnp_Params['vnp_ResponseCode'];
+            const paymentStatus = responseCode === '00' ? 'success' : 'failed';
+            
+            try {
+                await axios.put('http://localhost:8800/api/booking/update/status', {
+                    bookingId,
+                    paymentStatus,
+                    amount // Thêm amount vào request
+                });
+                
+                // Thêm amount vào URL redirect
+                res.redirect(`${config.get('frontend_url')}/payment/${paymentStatus}?amount=${amount}`);
+            } catch (updateError) {
+                console.error("Error updating booking status:", updateError);
+                res.redirect(`${config.get('frontend_url')}/payment/failed`);
+            }
+        } else {
+            res.redirect(`${config.get('frontend_url')}/payment/failed`);
+        }
+    } catch (error) {
+        console.error("Error processing payment return:", error);
+        res.redirect(`${config.get('frontend_url')}/payment/failed`);
+    }
 });
 
 function sortObject(obj) {

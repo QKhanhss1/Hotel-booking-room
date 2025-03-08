@@ -181,3 +181,96 @@
   color: #6c757d; /* Thay đổi màu placeholder */
   font-style: italic; /* In nghiêng chữ placeholder */
 }
+
+/* Body container cho PaymentStatus */
+.body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Đảm bảo chiếm toàn bộ chiều cao viewport */
+  margin: 0;
+  background-color: #f0f2f5; /* Màu nền nhẹ nhàng hơn */
+  font-family: 'Arial', sans-serif; /* Chọn font chữ */
+}
+
+/* Container cho PaymentStatus */
+.container {
+  background-color: #ffffff; /* Màu nền trắng */
+  padding: 40px; /* Tăng padding */
+  border-radius: 15px; /* Bo tròn góc hơn */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Đổ bóng sâu hơn */
+  text-align: center;
+  width: 80%; /* Tăng chiều rộng */
+  max-width: 600px; /* Giới hạn chiều rộng tối đa */
+}
+
+/* Tiêu đề cho PaymentStatus */
+.title {
+  font-size: 2.5rem; /* Tăng kích thước chữ */
+  font-weight: bold;
+  color: #333; /* Màu chữ đậm hơn */
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.05); /* Thêm bóng chữ */
+}
+
+/* Mô tả cho PaymentStatus */
+.description {
+  color: #555; /* Màu chữ nhạt hơn một chút */
+  margin-top: 15px;
+  font-size: 1.1rem; /* Tăng kích thước chữ */
+  line-height: 1.6; /* Tăng khoảng cách dòng */
+}
+
+/* Icon thành công cho PaymentStatus */
+.success-icon {
+  font-size: 80px; /* Tăng kích thước icon */
+  color: #28a745; /* Màu xanh lá thành công */
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Thêm bóng icon */
+}
+
+/* Icon lỗi cho PaymentStatus */
+.error-icon {
+  font-size: 80px; /* Tăng kích thước icon */
+  color: #dc3545; /* Màu đỏ lỗi */
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Thêm bóng icon */
+}
+
+/* Button chung cho PaymentStatus */
+.button-status {
+  display: inline-block;
+  padding: 15px 30px; /* Tăng padding */
+  border-radius: 35px; /* Bo tròn góc hơn */
+  text-decoration: none;
+  margin-top: 30px;
+  font-size: 1.2rem; /* Tăng kích thước chữ */
+  font-weight: 600; /* In đậm chữ */
+  transition: background-color 0.3s ease, transform 0.2s ease; /* Thêm transition */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Thêm đổ bóng */
+}
+
+.button-status:hover {
+  transform: scale(1.05); /* Hiệu ứng phóng to nhẹ khi hover */
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15); /* Đổ bóng đậm hơn khi hover */
+}
+
+/* Button thành công cho PaymentStatus */
+.button-success {
+  background-color: #28a745;  /* Màu xanh lá thành công */
+  color: white;
+}
+
+.button-success:hover {
+  background-color: #218838;  /* Màu xanh lá đậm hơn khi hover */
+}
+
+/* Button lỗi cho PaymentStatus */
+.button-error {
+  background-color: #dc3545;  /* Màu đỏ cho lỗi */
+  color: white;
+}
+
+.button-error:hover {
+  background-color: #c82333;  /* Đổi sang màu đỏ đậm khi hover */
+}

@@ -53,14 +53,14 @@ const Payment = ({ onClose }) => {
 
   const { totalPrice, selectedRooms, hotelId } = reservationData;
 
-  const createBooking = async () => {
+  const createBooking = async (inputEmail) => {
     try {
       if (!user?.details?._id) {
         toast.warn("Vui lòng đăng nhập để đặt phòng!", {
           position: "top-center",
           autoClose: 2000,
         });
-        return null;
+        return null;  
       }
 
       const bookingData = {
@@ -76,10 +76,9 @@ const Payment = ({ onClose }) => {
           checkinDate: new Date(reservationDates.checkinDate).toISOString(),
           checkoutDate: new Date(reservationDates.checkoutDate).toISOString()
         },
-        paymentStatus: "pending"
+        paymentStatus: "pending",
+        email: inputEmail // Sử dụng email được nhập vào
       };
-
-      console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
 
       const response = await axios.post(`${API_URL}/booking/create`, bookingData, {
         headers: {
@@ -115,38 +114,41 @@ const Payment = ({ onClose }) => {
     }
 
     try {
-      const booking = await createBooking();
+      const booking = await createBooking(email);
       if (!booking) return;
 
-      // Lưu email vào localStorage để sử dụng sau khi thanh toán
-      localStorage.setItem('confirmationEmail', email);
+      // Lưu ID booking và totalPrice vào localStorage
+      localStorage.setItem("bookingId", booking._id);
+      localStorage.setItem("totalprice", booking.totalPrice.toString());
 
-      const paymentData = {
-        amount: Math.round(totalPrice),
-        bankCode: "NCB",
-        language: "vn",
-        orderInfo: `Thanh toan booking ${booking._id}`,
-        orderType: "billpayment",
-        email: email
-      };
-
+      // Tạo URL thanh toán VNPay
       const response = await axios.post(
-        `${API_URL}/vnpay/create_payment_url`,
-        paymentData,
+        `${API_URL}/vnpay/create_payment_url`, 
+        {
+          amount: booking.totalPrice,
+          orderInfo: `Thanh toan don hang: ${booking._id}`
+        },
         {
           headers: {
-            Authorization: `Bearer ${user.token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
           }
         }
       );
 
-      if (response.data) {
-        window.location.href = response.data;
-      }
+      // Chuyển hướng người dùng đến trang lịch sử đặt phòng
+      toast.success("Đặt phòng thành công! Vui lòng kiểm tra email để xác nhận thanh toán", {
+        position: "top-center", 
+        autoClose: 2000,
+      });
+
+      setTimeout(() => {
+        window.location.href = '/booking';
+      }, 2000);
+
     } catch (err) {
       console.error("Payment error:", err);
-      toast.error("Lỗi khi tạo thanh toán. Vui lòng thử lại!", {
+      toast.error("Lỗi khi đặt phòng. Vui lòng thử lại!", {
         position: "top-center",
         autoClose: 2000,
       });
@@ -219,7 +221,7 @@ const Payment = ({ onClose }) => {
             onClick={() => handlePayment(email)}
             disabled={!email}
           >
-            Thanh toán ngay
+            Đặt phòng
           </button>
           <button className="cancel-button" onClick={onClose}>
             Hủy

@@ -1,18 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
-import './payment.css';
-import { API_URL } from '../../utils/apiConfig';
+import React, { useEffect, useState } from "react";
+import { useParams, useLocation } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheckCircle,
+  faTimesCircle,
+} from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
+import "./payment.css";
+import { API_URL } from "../../utils/apiConfig";
 
 const PaymentStatus = () => {
-  const { status } = useParams(); // Lấy giá trị status từ URL
+  const { status } = useParams();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const amount = queryParams.get('amount');
+  // Lấy amount từ query params hoặc localStorage
+  const amount = queryParams.get("amount") || localStorage.getItem("totalprice") || 0;
   const [selectedRoomDetails, setSelectedRoomDetails] = useState([]);
-  const [updateStatus, setUpdateStatus] = useState({ success: true, message: '' });
+  const [updateStatus, setUpdateStatus] = useState({
+    success: true,
+    message: "",
+  });
   const [loading, setLoading] = useState(false);
 
   // Hàm để chuyển đổi danh sách ngày về định dạng đúng
@@ -24,7 +31,7 @@ const PaymentStatus = () => {
     let current = new Date(start);
 
     while (current <= end) {
-      dates.push(current.toISOString().split('T')[0]);
+      dates.push(current.toISOString().split("T")[0]);
       current.setDate(current.getDate() + 1);
     }
     return dates;
@@ -34,81 +41,95 @@ const PaymentStatus = () => {
     const updateBookingAndRooms = async () => {
       try {
         setLoading(true);
-        const reservationData = JSON.parse(localStorage.getItem('reservationData'));
-        const rawDates = JSON.parse(localStorage.getItem('dates'));
-        const bookingId = localStorage.getItem('bookingId');
+        const reservationData = JSON.parse(
+          localStorage.getItem("reservationData")
+        );
+        const rawDates = JSON.parse(localStorage.getItem("dates"));
+        const bookingId = localStorage.getItem("bookingId");
 
         if (!bookingId || !reservationData || !rawDates) {
           throw new Error("Thiếu thông tin cần thiết");
         }
 
-        if (status === 'success') {
+        if (status === "success") {
           await axios.put(`${API_URL}/booking/update/status`, {
             bookingId,
-            paymentStatus: 'success'
+            paymentStatus: "success",
           });
-          const formattedDates = getDatesInRange(rawDates[0].startDate, rawDates[0].endDate);
+          const formattedDates = getDatesInRange(
+            rawDates[0].startDate,
+            rawDates[0].endDate
+          );
           await Promise.all(
-            reservationData.selectedRooms.map(room =>
+            reservationData.selectedRooms.map((room) =>
               axios.put(`${API_URL}/hotels/rooms/availability/${room.roomId}`, {
-                dates: formattedDates
+                dates: formattedDates,
               })
             )
           );
 
           setUpdateStatus({
             success: true,
-            message: 'Đặt phòng thành công!'
+            message: "Đặt phòng thành công!",
           });
         } else {
           await axios.put(`${API_URL}/booking/update/status`, {
             bookingId,
-            paymentStatus: 'failed'
+            paymentStatus: "failed",
           });
           setUpdateStatus({
             success: false,
-            message: 'Thanh toán thất bại!'
+            message: "Thanh toán thất bại!",
           });
         }
       } catch (error) {
         console.error("Error updating booking:", error);
         setUpdateStatus({
           success: false,
-          message: 'Có lỗi xảy ra khi cập nhật đơn đặt phòng'
+          message: "Có lỗi xảy ra khi cập nhật đơn đặt phòng",
         });
       } finally {
         setLoading(false);
-        localStorage.removeItem('reservationData');
-        localStorage.removeItem('dates');
-        localStorage.removeItem('bookingId');
-
+        // Đợi một chút trước khi xóa dữ liệu để đảm bảo hiển thị số tiền
+        setTimeout(() => {
+          localStorage.removeItem("reservationData");
+          localStorage.removeItem("dates");
+          localStorage.removeItem("bookingId");
+          localStorage.removeItem("totalprice");
+        }, 1000);
       }
     };
 
     updateBookingAndRooms();
   }, [status]);
 
-  // Giao diện
+  // Format số tiền với đơn vị VND
+  const formatAmount = (amount) => {
+    return Number(amount).toLocaleString("vi-VN");
+  };
+
   return (
     <div className="body">
       <div className="container">
-        {status === 'success' ? (
+        {status === "success" ? (
           <>
             <FontAwesomeIcon icon={faCheckCircle} className="success-icon" />
-            <h1 className="title">Thanh toán thành công số tiền {amount}₫</h1>
-            <p className="description">Cảm ơn vì đã sử dụng dịch vụ của chúng tôi.</p>
-            <a href="/" className="button-success">
+            <h1 className="title">Thanh toán thành công số tiền {formatAmount(amount)} VND</h1>
+            <p className="description">
+              Cảm ơn vì đã sử dụng dịch vụ của chúng tôi.
+            </p>
+            <a href="/" className="button-status button-success">
               Quay lại trang chủ
             </a>
           </>
         ) : (
           <>
             <FontAwesomeIcon icon={faTimesCircle} className="error-icon" />
-            <h1 className="title">Thanh toán không thành công</h1>
-            <p className="description">
+            <h1 className="title error">Thanh toán không thành công</h1>
+            <p className="description error">
               Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.
             </p>
-            <a href="/" className="button-error">
+            <a href="/" className="button-status button-error">
               Quay lại trang chủ
             </a>
           </>

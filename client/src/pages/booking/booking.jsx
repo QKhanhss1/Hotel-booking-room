@@ -7,6 +7,7 @@ import "./booking.css";
 import Header from "../../components/header/Header";
 import Navbar from "../../components/navbar/Navbar";
 import { API_URL } from "../../utils/apiConfig";
+import { toast } from "react-toastify";
 
 const BookingPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -77,6 +78,7 @@ const BookingPage = () => {
                 key={booking._id}
                 booking={booking}
                 formatDate={formatDate}
+                user={user}  // Thêm user prop
               />
             ))
           )}
@@ -86,7 +88,36 @@ const BookingPage = () => {
   );
 };
 
-const BookingCard = ({ booking, formatDate }) => {
+const BookingCard = ({ booking, formatDate, user }) => {  // Thêm user vào props
+  const getStatusText = (status) => {
+    switch (status) {
+      case "pending":
+        return "Chưa thanh toán";
+      case "success":
+        return "Thanh toán thành công";
+      case "failed":
+        return "Thanh toán thất bại";
+      case "expired":
+        return "Đã hủy";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return "text-yellow-500";
+      case "success":
+        return "text-green-500";
+      case "failed":
+      case "expired":
+        return "text-red-500";
+      default:
+        return "text-gray-500";
+    }
+  };
+
   return (
     <div className="bookingCard">
       <h2>{booking.hotelId?.name || "Thông tin khách sạn không có"}</h2>
@@ -108,11 +139,9 @@ const BookingCard = ({ booking, formatDate }) => {
       <p>Ngày check-in: {formatDate(booking.paymentInfo?.checkinDate)}</p>
       <p>Ngày check-out: {formatDate(booking.paymentInfo?.checkoutDate)}</p>
       <p>Số tiền: {booking.totalPrice?.toLocaleString("vi-VN")} VND</p>
-      <p>Trạng thái thanh toán: {
-        booking.paymentStatus === "success" ? "Thành công" :
-        booking.paymentStatus === "failed" ? "Thất bại" :
-        "Đang xử lý"
-      }</p>
+      <div className={`booking-status ${getStatusColor(booking.paymentStatus)}`}>
+        <p>Trạng thái: {getStatusText(booking.paymentStatus)}</p>
+      </div>
     </div>
   );
 };

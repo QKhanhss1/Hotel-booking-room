@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const BookingSchema = new mongoose.Schema(
   {
     hotelId: {
@@ -27,9 +28,19 @@ const BookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    email: {
+      type: String,
+      required: true,
+    },
+    expiryTime: {
+      type: Date,
+      required: function() {
+        return this.paymentStatus === 'pending';  // chỉ required khi status là pending
+      }
+    },
     paymentStatus: {
       type: String,
-      enum: ["pending", "success", "failed"],
+      enum: ["pending", "success", "failed", "expired"],
       default: "pending",
     },
     paymentDate: {

@@ -24,66 +24,101 @@ transporter.verify(function(error, success) {
   }
 });
 
-export const sendBookingConfirmation = async (booking, recipientEmail) => {
+export const sendBookingConfirmation = async (booking, email) => {
   try {
-    // Đảm bảo booking đã được populate đầy đủ
-    const populatedBooking = await booking.populate([
-      {
-        path: 'hotelId',
-        select: 'name address' 
-      },
-      {
-        path: 'selectedRooms.roomId',
-        select: 'roomNumber' 
-      }
-    ]);
-
-    const checkinDate = new Date(booking.paymentInfo.checkinDate).toLocaleDateString('vi-VN');
-    const checkoutDate = new Date(booking.paymentInfo.checkoutDate).toLocaleDateString('vi-VN');
-
+    // Populate thông tin khách sạn và phòng
+    const populatedBooking = await booking.populate('hotelId', 'name address');
+    const rooms = booking.selectedRooms.map(room => `Phòng ${room.roomNumber}`).join(', ');
+    
+    const paymentUrl = `http://localhost:8800/api/vnpay/create_payment_url?bookingId=${booking._id}&amount=${booking.totalPrice}`;
+    
     const mailOptions = {
-      from: '"Hotel Booking" <your-email@gmail.com>', 
-      to: recipientEmail,
-      subject: 'Xác nhận đặt phòng thành công',
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Xác nhận đặt phòng',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0071c2;">Xác nhận đặt phòng thành công</h2>
-          <p>Cảm ơn bạn đã đặt phòng tại khách sạn của chúng tôi!</p>
-          
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #333;">Chi tiết đặt phòng:</h3>
-            <ul style="list-style: none; padding: 0;">
-              <li>Mã đặt phòng: ${populatedBooking._id}</li>
-              <li>Khách sạn: ${populatedBooking.hotelId.name}</li>
-              <li>Địa chỉ: ${populatedBooking.hotelId.address}</li>
-              <li>Ngày check-in: ${checkinDate}</li>
-              <li>Ngày check-out: ${checkoutDate}</li>
-              <li>Tổng tiền: ${populatedBooking.totalPrice.toLocaleString('vi-VN')} VND</li>
-            </ul>
-
-            <h3 style="color: #333;">Phòng đã đặt:</h3>
-            <ul style="list-style: none; padding: 0;">
-              ${populatedBooking.selectedRooms.map(room => `
-                <li>Số phòng: ${room.roomNumber}</li>
-              `).join('')}
-            </ul>
-          </div>
-
-          <p style="color: #666;">Vui lòng giữ email này để tham khảo.</p>
-          <p style="color: #666;">Nếu bạn có bất kỳ câu hỏi nào, xin vui lòng liên hệ với chúng tôi.</p>
-          
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #888;">
-            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
-          </div>
-        </div>
+        <h2>Xác nhận đặt phòng của bạn</h2>
+        <p>Cảm ơn bạn đã đặt phòng. Chi tiết đặt phòng:</p>
+        <ul>
+          <li>Mã đặt phòng: ${booking._id}</li>
+          <li>Khách sạn: ${populatedBooking.hotelId.name}</li>
+          <li>Địa chỉ: ${populatedBooking.hotelId.address}</li>
+          <li>Phòng đã đặt: ${rooms}</li>
+          <li>Tổng tiền: ${booking.totalPrice.toLocaleString('vi-VN')} VND</li>
+          <li>Ngày nhận phòng: ${new Date(booking.paymentInfo.checkinDate).toLocaleDateString('vi-VN')}</li>
+          <li>Ngày trả phòng: ${new Date(booking.paymentInfo.checkoutDate).toLocaleDateString('vi-VN')}</li>
+        </ul>
+        <p>Vui lòng thanh toán trong vòng 1 phút.</p>
+        <a href="${paymentUrl}" 
+           style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Xác nhận và Thanh toán
+        </a>
+        <p>Nếu không thanh toán trong thời gian quy định, đơn đặt phòng sẽ tự động hủy.</p>
       `
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully to:', recipientEmail);
-    return info;
+    await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw error;
+    console.error('Error sending confirmation email:', error);
   }
-}; 
+};
+
+export const sendPaymentReminder = async (booking, email) => {
+  try {
+    const populatedBooking = await booking.populate('hotelId', 'name address');
+    const rooms = booking.selectedRooms.map(room => `Phòng ${room.roomNumber}`).join(', ');
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Nhắc nhở thanh toán',
+      html: `
+        <h2>Nhắc nhở thanh toán</h2>
+        <p>Bạn còn 1 phút để hoàn tất thanh toán</p>
+        <p>Chi tiết đặt phòng:</p>
+        <ul>
+          <li>Mã đặt phòng: ${booking._id}</li>
+          <li>Khách sạn: ${populatedBooking.hotelId.name}</li>
+          <li>Địa chỉ: ${populatedBooking.hotelId.address}</li>
+          <li>Phòng đã đặt: ${rooms}</li>
+          <li>Tổng tiền: ${booking.totalPrice.toLocaleString('vi-VN')} VNĐ</li>
+        </ul>
+        <a href="${process.env.CLIENT_URL}/booking/payment/${booking._id}">Nhấn vào đây để thanh toán</a>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending reminder email:', error);
+  }
+};
+
+export const sendPaymentTimeout = async (booking, email) => {
+  try {
+    const populatedBooking = await booking.populate('hotelId', 'name address');
+    const rooms = booking.selectedRooms.map(room => `Phòng ${room.roomNumber}`).join(', ');
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Đặt phòng đã hết hạn',
+      html: `
+        <h2>Đặt phòng đã hết hạn</h2>
+        <p>Rất tiếc, thời gian thanh toán đã hết hạn</p>
+        <p>Chi tiết đặt phòng:</p>
+        <ul>
+          <li>Mã đặt phòng: ${booking._id}</li>
+          <li>Khách sạn: ${populatedBooking.hotelId.name}</li>
+          <li>Địa chỉ: ${populatedBooking.hotelId.address}</li>
+          <li>Phòng đã đặt: ${rooms}</li>
+          <li>Tổng tiền: ${booking.totalPrice.toLocaleString('vi-VN')} VNĐ</li>
+        </ul>
+        <p>Vui lòng thực hiện đặt phòng mới nếu bạn vẫn muốn đặt phòng.</p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Error sending timeout email:', error);
+  }
+};

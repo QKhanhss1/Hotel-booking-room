@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
-import User from "../models/User.js";
+import User from "../models/User.js"; 
+import { sendBookingConfirmation, sendPaymentReminder, sendPaymentTimeout } from "../utils/emailService.js";
 
 //create
 export const createBooking = async (req, res) => {
@@ -11,12 +12,27 @@ export const createBooking = async (req, res) => {
       totalPrice,
       customer,
       paymentInfo,
-      paymentStatus
+      email
     } = req.body;
 
-    // Validate required fields
-    if (!hotelId || !selectedRooms || !totalPrice || !customer || !paymentInfo) {
-      return res.status(400).json({ error: "Dữ liệu không đầy đủ!" });
+    // Validate required fields with detailed error message
+    const requiredFields = {
+      hotelId,
+      selectedRooms,
+      totalPrice, 
+      customer,
+      paymentInfo,
+      email
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: `Dữ liệu không đầy đủ! Thiếu các trường: ${missingFields.join(', ')}` 
+      });
     }
 
     // Log received data
@@ -26,7 +42,7 @@ export const createBooking = async (req, res) => {
       totalPrice,
       customer,
       paymentInfo,
-      paymentStatus
+      email
     });
 
     // Create new booking
@@ -39,11 +55,32 @@ export const createBooking = async (req, res) => {
         checkinDate: new Date(paymentInfo.checkinDate),
         checkoutDate: new Date(paymentInfo.checkoutDate)
       },
-      paymentStatus: paymentStatus || "pending"
+      paymentStatus: "pending",
+      email: email,
+      expiryTime: new Date(Date.now() + 60 * 1000) // 1 phút
     });
 
     // Save booking
     const savedBooking = await newBooking.save();
+
+    // Send confirmation email
+    await sendBookingConfirmation(savedBooking, email);
+
+    // Lưu timeout để có thể hủy nếu thanh toán thành công
+    if (!global.bookingTimeouts) {
+      global.bookingTimeouts = {};
+    }
+
+    global.bookingTimeouts[savedBooking._id] = setTimeout(async () => {
+      const booking = await Booking.findById(savedBooking._id);
+      // Chỉ cập nhật thành expired nếu vẫn đang ở trạng thái pending
+      if (booking && booking.paymentStatus === "pending") {
+        booking.paymentStatus = "expired";
+        await booking.save();
+        await sendPaymentTimeout(booking, email);
+      }
+    }, 60 * 1000); // 1 minute
+
     res.status(200).json(savedBooking);
   } catch (error) {
     console.error("Server error:", error);
@@ -55,41 +92,37 @@ export const updateBookingStatus = async (req, res) => {
   try {
     const { bookingId, paymentStatus } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
     if (!bookingId || !paymentStatus) {
       return res.status(400).json({ error: "Dữ liệu không đầy đủ!" });
     }
 
-    // Kiểm tra paymentStatus có hợp lệ không
-    const validStatuses = ["success", "failed"];
-    if (!validStatuses.includes(paymentStatus)) {
-      return res
-        .status(400)
-        .json({ error: "Trạng thái thanh toán không hợp lệ!" });
-    }
+    const updateData = {
+      paymentStatus: paymentStatus,
+      paymentDate: paymentStatus === 'success' ? Date.now() : undefined,
+      expiryTime: paymentStatus === 'success' ? null : undefined
+    };
 
-    // Tìm và cập nhật trạng thái thanh toán trong một bước
-    const updatedBooking = await Booking.findOneAndUpdate(
-      { _id: bookingId }, // Tìm booking bằng _id
-      {
-        paymentStatus,
-        paymentDate: Date.now(), // Cập nhật trạng thái và ngày thanh toán
-      },
-      { new: true } // Trả về tài liệu sau khi cập nhật
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateData },
+      { new: true, runValidators: false }  // tắt validation khi update
     );
 
-    // Nếu không tìm thấy đơn đặt phòng
-    if (!updatedBooking) {
-      return res
-        .status(404)
-        .json({ error: "Không tìm thấy đơn đặt phòng với bookingId này!" });
+    if (!booking) {
+      return res.status(404).json({ error: "Không tìm thấy đơn đặt phòng!" });
     }
 
-    // Trả về kết quả cập nhật
+    // Hủy timeout nếu có
+    if (paymentStatus === 'success' && global.bookingTimeouts?.[bookingId]) {
+      clearTimeout(global.bookingTimeouts[bookingId]);
+      delete global.bookingTimeouts[bookingId];
+    }
+
     res.status(200).json({
       message: "Cập nhật trạng thái thành công!",
-      booking: updatedBooking,
+      booking: booking
     });
+
   } catch (error) {
     console.error("Lỗi cập nhật trạng thái thanh toán:", error.message);
     res.status(500).json({ error: "Lỗi cập nhật trạng thái thanh toán!" });
