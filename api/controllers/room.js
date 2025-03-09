@@ -98,9 +98,15 @@ export const deleteUnavailableDates = async (req, res, next) => {
     const { roomNumberId } = req.params; // ID của roomNumber
     const { dates } = req.body; // Danh sách ngày cần xóa
 
+    console.log("Room delete dates:", {roomNumberId, dates}); // Debug log
+
+    if (!roomNumberId || !dates) {
+      return res.status(400).json({ message: "Missing roomNumberId or dates" });
+    }
+
     // Xóa các ngày khỏi trường unavailableDates
     const result = await Room.updateOne(
-      { "roomNumbers._id": roomNumberId },
+      { "roomNumbers.idRoomNumber": roomNumberId },
       {
         $pull: {
           "roomNumbers.$.unavailableDates": { $in: dates },
@@ -114,6 +120,7 @@ export const deleteUnavailableDates = async (req, res, next) => {
 
     res.status(200).json({ message: "Xóa ngày thành công!", result });
   } catch (err) {
+    console.error("Error in deleteUnavailableDates:", err);
     next(err); // Chuyển lỗi cho middleware xử lý lỗi
   }
 };

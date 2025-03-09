@@ -50,7 +50,7 @@ const BookingPage = () => {
           setError(null);
         } catch (error) {
           console.error("Error fetching bookings:", error);
-          setError("Không thể tải lịch sử đặt phòng");
+          setError("Không có đơn đặt phòng nào.");
         } finally {
           setLoading(false);
         }

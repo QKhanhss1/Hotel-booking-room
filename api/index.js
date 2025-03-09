@@ -16,7 +16,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import authRoutes from "./routes/auth.js";
-import dialogflowRoutes from "./routes/dialogflowRoutes.js";
+
 
 const app = express();
 
@@ -87,7 +87,7 @@ app.use("/api/booking", bookingRoute);
 app.use("/api/vnpay", vnpayRoute);
 
 app.use("/api/favorites", favoriteRoute);
-app.use('/api', dialogflowRoutes); 
+
 
 app.use((req, res, next) => {
   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');

@@ -11,6 +11,7 @@ const StatusRoom = () => {
   const [bookings, setBookings] = useState([]);
   const [selectedHotelId, setSelectedHotelId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [bookedRoomDetails, setBookedRoomDetails] = useState([]);
 
   useEffect(() => {
     const fetchHotels = async () => {
@@ -39,35 +40,37 @@ const StatusRoom = () => {
           const response = await axios.get(
             `http://localhost:8800/api/booking/hotel/${selectedHotelId}`
           );
+          
+          // Lấy tất cả booking
+          const allBookings = response.data;
+
+          // Tạo danh sách chi tiết phòng đã đặt
+          const bookedRooms = allBookings.flatMap(booking => 
+            booking.selectedRooms.map(room => ({
+              bookingId: booking._id,
+              roomId: room.roomId._id,
+              roomNumber: room.roomNumber,
+              idRoomNumber: room.idRoomNumber, // Thêm idRoomNumber
+              roomTitle: room.roomId.title,
+              customerName: booking.customer.username,
+              checkinDate: new Date(booking.paymentInfo.checkinDate),
+              checkoutDate: new Date(booking.paymentInfo.checkoutDate),
+              status: booking.paymentStatus,
+              canCancel: true // Đã sửa đổi ở đây
+            }))
+          );
+
+          setBookedRoomDetails(bookedRooms);
           setBookings(response.data);
           setErrorMessage("");
-          const extractedData = response.data.map((booking) => {
-            const bookingId = booking._id;
-            const roomId = booking.selectedRooms.map((room) => room.idRoomNumber);
-            const checkinDate = booking.paymentInfo.checkinDate; // checkinDate
-            const checkoutDate = booking.paymentInfo.checkoutDate; // checkoutDate
-            return {
-              roomId,
-              checkinDate,
-              checkoutDate,
-              bookingId
-            };
-          });
-          console.log("Extracted Data:", extractedData);
         } catch (error) {
-          console.error(
-            "Error fetching bookings:",
-            error.response ? error.response.data : error.message
-          );
+          console.error("Error fetching bookings:", error);
           setErrorMessage("Không tìm thấy đơn đặt phòng nào cho khách sạn này!");
           setBookings([]);
-          toast.warn("Không tìm thấy đơn đặt phòng nào cho khách sạn này!", {
-            position: "top-center",
-            autoClose: 2000,
-          });
         }
       } else {
         setBookings([]);
+        setBookedRoomDetails([]);
         setErrorMessage("");
       }
     };
@@ -77,16 +80,16 @@ const StatusRoom = () => {
 
   const hasBookings = bookings.length > 0;
   //hủy phòng
-  const cancelBooking = async (roomId, roomNumberId, checkinDate, checkoutDate, bookingId) => {
+  const cancelBooking = async (roomId, roomIdNumber, checkinDate, checkoutDate, bookingId) => {
     try {
       const dates = [
         new Date(checkinDate).toISOString().split("T")[0],
         new Date(checkoutDate).toISOString().split("T")[0],
       ];
   
-      // Sửa URL ở đây, sử dụng ID của roomNumber
+      // Sử dụng roomIdNumber thay vì roomId
       const response = await axios.put(
-        `http://localhost:8800/api/rooms/availability/${roomNumberId}`,
+        `http://localhost:8800/api/rooms/availability/${roomIdNumber}`,
         { dates },
         {
           headers: {
@@ -94,6 +97,7 @@ const StatusRoom = () => {
           },
         }
       );
+      // Xóa booking
       const deleteResponse = await axios.delete(
         `http://localhost:8800/api/booking/${bookingId}`,
         {
@@ -102,6 +106,7 @@ const StatusRoom = () => {
           },
         }
       );
+      
       console.log("Hủy phòng thành công:", response.data);
       console.log("Đặt phòng đã bị hủy:", deleteResponse.data);
       toast.success("Hủy phòng thành công!", {
@@ -109,35 +114,46 @@ const StatusRoom = () => {
         autoClose: 2000,
       });
   
-      // Cập nhật state bookings ở đây
-      setBookings(prevBookings => {
-        return prevBookings.map(booking => {
-          if (booking._id === bookingId) {
-            // Lọc bỏ các phòng đã bị hủy khỏi selectedRooms
-            const updatedSelectedRooms = booking.selectedRooms.filter(
-              room => room._id !== roomNumberId
-            );
+      // Cập nhật state bookedRoomDetails để loại bỏ phòng đã hủy
+      setBookedRoomDetails(prevDetails => 
+        prevDetails.filter(room => !(room.bookingId === bookingId && room.idRoomNumber === roomIdNumber))
+      );
   
-            // Nếu không còn phòng nào trong booking, trả về null để xóa booking
-            if (updatedSelectedRooms.length === 0) {
-              return null;
-            }
-  
-            // Cập nhật booking với selectedRooms đã lọc
-            return { ...booking, selectedRooms: updatedSelectedRooms };
-          }
-          return booking;
-        }).filter(booking => booking !== null); // Lọc bỏ các booking đã bị xóa
-      });
     } catch (error) {
       console.error("Lỗi khi hủy phòng:", error.response ? error.response.data : error.message);
       toast.error(`Lỗi khi hủy phòng: ${error.response ? error.response.data : error.message}`, {
-        position: "top-center",
+        position: "top-center", 
         autoClose: 2000,
       });
     }
   };
 
+  const isRoomCurrentlyOccupied = (roomId) => {
+    const now = new Date();
+    return bookedRoomDetails.some(room => 
+      room.roomId === roomId &&
+      room.checkinDate <= now &&
+      room.checkoutDate >= now
+    );
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "success": return "Đang sử dụng";
+      case "pending": return "Chờ thanh toán";
+      case "expired": return "Đã hết hạn";
+      default: return status;
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "success": return "text-green-500";
+      case "pending": return "text-yellow-500";
+      case "expired": return "text-red-500";
+      default: return "text-gray-500";
+    }
+  };
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -186,38 +202,38 @@ const StatusRoom = () => {
           </thead>
           <tbody>
             {hasBookings ? (
-              bookings.map((booking) =>
-                booking.selectedRooms.map((room) => (
-                  <tr key={room._id}>
-                    <td className="border border-gray-200 p-2">{room.roomId?.title || "N/A"}</td>
-                    <td className="border border-gray-200 p-2">{room.roomNumber || "N/A"}</td>
-                    <td className="border border-gray-200 p-2">{booking.paymentStatus}</td>
-                    <td className="border border-gray-200 p-2">{booking.customer.username}</td>
-                    <td className="border border-gray-200 p-2">
-                      {new Date(booking.paymentInfo.checkinDate).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="border border-gray-200 p-2">
-                      {new Date(booking.paymentInfo.checkoutDate).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="border border-gray-200 p-2">
+              bookedRoomDetails.map((room) => (
+                <tr key={`${room.bookingId}-${room.roomId}`}>
+                  <td className="border border-gray-200 p-2">{room.roomTitle}</td>
+                  <td className="border border-gray-200 p-2">{room.roomNumber}</td>
+                  <td className={`border border-gray-200 p-2 ${getStatusClass(room.status)}`}>
+                    {getStatusText(room.status)}
+                  </td>
+                  <td className="border border-gray-200 p-2">{room.customerName}</td>
+                  <td className="border border-gray-200 p-2">
+                    {new Date(room.checkinDate).toLocaleDateString("vi-VN")}
+                  </td>
+                  <td className="border border-gray-200 p-2">
+                    {new Date(room.checkoutDate).toLocaleDateString("vi-VN")}
+                  </td>
+                  <td className="border border-gray-200 p-2">
+                    {room.canCancel && (
                       <button
                         className="bg-red-500 text-white p-1 rounded"
-                        onClick={() =>
-                          cancelBooking(
-                            room.roomId._id,
-                            room._id, // sửa ở đây
-                            booking.paymentInfo.checkinDate,
-                            booking.paymentInfo.checkoutDate,
-                            booking._id,
-                          )
-                        }
+                        onClick={() => cancelBooking(
+                          room.roomId,
+                          room.idRoomNumber, // Sử dụng idRoomNumber 
+                          room.checkinDate,
+                          room.checkoutDate,
+                          room.bookingId
+                        )}
                       >
                         Hủy
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )
+                    )}
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
                 <td colSpan="8" className="text-center border border-gray-200 p-2">
