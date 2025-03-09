@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "nodemailer": "^6.10.0",
-    "uniqid": "^5.4.0"
-  }
-}

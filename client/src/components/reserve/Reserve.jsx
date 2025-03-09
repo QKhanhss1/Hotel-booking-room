@@ -12,13 +12,17 @@ import { API_IMAGES } from "../../utils/apiConfig";
 
 const Reserve = ({ setOpen, hotelId }) => {
   const [selectedRooms, setSelectedRooms] = useState([]);
-  const { data, loading, error } = useFetch(`/hotels/rooms/${hotelId}`);
-  const [roomPrices, setRoomPrices] = useState({});
   const { dates } = useContext(SearchContext);
+  // Add startDate and endDate to API call
+  const { data, loading, error } = useFetch(
+    `/hotels/rooms/${hotelId}?startDate=${dates[0]?.startDate}&endDate=${dates[0]?.endDate}`
+  );
+  const [roomPrices, setRoomPrices] = useState({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
   const [imageUrls, setImageUrls] = useState({});
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
+  const [bookedRooms, setBookedRooms] = useState([]);
 
   console.log("Room data received:", data); 
 
@@ -40,12 +44,36 @@ const Reserve = ({ setOpen, hotelId }) => {
 
   const alldates = getDatesInRange(dates?.[0]?.startDate, dates?.[0]?.endDate);
 
-  // Kiểm tra xem phòng có khả dụng không
+  // Cập nhật lại hàm isAvailable
   const isAvailable = (roomNumber) => {
-    const unavailableDates = roomNumber?.unavailableDates?.map((date) =>
-      new Date(date).toISOString().split("T")[0]
-    );
-    return !alldates.some((date) => unavailableDates?.includes(date));
+    try {
+      if (!dates || !dates[0] || !roomNumber) return false;
+
+      // Convert dates to timestamps for easier comparison
+      const requestStart = new Date(dates[0].startDate).getTime();
+      const requestEnd = new Date(dates[0].endDate).getTime();
+
+      // Check if room is booked in the requested period
+      const isBooked = bookedRooms.some(booking => {
+        const bookedRoomIds = booking.roomId.map(id => id._id || id);
+        
+        if (bookedRoomIds.includes(roomNumber._id)) {
+          const bookedStart = new Date(booking.checkinDate).getTime();
+          const bookedEnd = new Date(booking.checkoutDate).getTime();
+
+          // Room is unavailable if there's any overlap between periods
+          return (
+            (requestStart < bookedEnd && requestEnd > bookedStart)
+          );
+        }
+        return false;
+      });
+
+      return !isBooked;
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      return false;
+    }
   };
 
   // Cập nhật danh sách phòng đã chọn
@@ -87,10 +115,11 @@ const Reserve = ({ setOpen, hotelId }) => {
         const urlPromises = data.flatMap(room => 
           room.imageIds.map(async (imageId) => {
             try {
-              const response = await axios.get(`/images/${imageId}`);
+              // Sử dụng API_IMAGES từ config
+              const response = await axios.get(`${API_IMAGES}/${imageId._id}`);
               setImageUrls(prev => ({
                 ...prev,
-                [imageId]: response.data.imageUrl
+                [imageId._id]: response.data.imageUrl
               }));
             } catch (error) {
               console.error("Error fetching image URL:", error);
@@ -102,6 +131,39 @@ const Reserve = ({ setOpen, hotelId }) => {
     };
     fetchImageUrls();
   }, [data]);
+
+  // Cập nhật useEffect cho việc lấy danh sách phòng đã đặt
+  useEffect(() => {
+    const fetchBookedRooms = async () => {
+      try {
+        const response = await axios.get(`/booking/hotel/${hotelId}`);
+        const bookings = response.data;
+        
+        // Chỉ lấy các booking đã thanh toán thành công
+        const successfulBookings = bookings.filter(
+          booking => booking.paymentStatus === "success"
+        );
+
+        // Map dữ liệu booking để dễ sử dụng
+        const booked = successfulBookings.map(booking => ({
+          roomId: booking.selectedRooms.map(room => ({ 
+            _id: room.roomId._id || room.roomId,
+            number: room.roomNumber
+          })),
+          checkinDate: booking.paymentInfo.checkinDate,
+          checkoutDate: booking.paymentInfo.checkoutDate
+        }));
+
+        setBookedRooms(booked);
+      } catch (error) {
+        console.error("Error fetching booked rooms:", error);
+      }
+    };
+
+    if (hotelId && dates?.[0]?.startDate && dates?.[0]?.endDate) {
+      fetchBookedRooms();
+    }
+  }, [hotelId, dates]);
 
   const handleClick = () => {
     if (selectedRooms.length === 0 || !days || days <= 0) {
@@ -175,82 +237,87 @@ const Reserve = ({ setOpen, hotelId }) => {
         ) : error ? (
           <div>Error: {error}</div>
         ) : (
-          data?.map((item) => (
-            <div className="rItem" key={item._id}>
-              <div className="rItemImage">
-                {item.imageIds && item.imageIds.length > 0 ? (
-                  <div className="image-slider">
-                    <div className="image-grid">
-                      <img
-                        src={imageUrls[item.imageIds[currentImageIndexes[item._id] || 0]] || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-                        }}
-                      />
-                      {item.imageIds.length > 1 && (
-                        <>
-                          <button 
-                            className="slider-nav prev"
-                            onClick={() => handleImageNav(item._id, 'prev')}
-                          >
-                            <FontAwesomeIcon icon={faChevronLeft} />
-                          </button>
-                          <button 
-                            className="slider-nav next"
-                            onClick={() => handleImageNav(item._id, 'next')}
-                          >
-                            <FontAwesomeIcon icon={faChevronRight} />
-                          </button>
-                          <div className="image-dots">
-                            {item.imageIds.map((_, index) => (
-                              <span
-                                key={index}
-                                className={`dot ${index === (currentImageIndexes[item._id] || 0) ? 'active' : ''}`}
-                                onClick={() => setCurrentImageIndexes(prev => ({ ...prev, [item._id]: index }))}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">No image</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="rItemInfo">
-                <h3 className="rTitle">{item.title}</h3>
-                <p className="rDesc">{item.desc}</p>
-                
-                <div className="rDetails">
-                  <div className="rMax">
-                    <FontAwesomeIcon icon={faUser} />
-                    <span>Tối đa {item.maxPeople} người</span>
-                  </div>
-                </div>
+          data?.map((item) => {
+            // Lọc ra các phòng còn trống
+            const availableRooms = item.roomNumbers.filter(roomNumber => isAvailable(roomNumber));
 
-                <div className="rSelectRooms">
-                  {item.roomNumbers?.map((roomNumber) => (
-                    <div className="room" key={roomNumber._id}>
-                      <label>Phòng {roomNumber.number}</label>
-                      <input
-                        type="checkbox"
-                        value={roomNumber._id}
-                        onChange={handleSelect}
-                        disabled={!isAvailable(roomNumber)}
-                      />
+            // Chỉ hiển thị các phòng còn trống
+            return availableRooms.length > 0 ? (
+              <div className="rItem" key={item._id}>
+                <div className="rItemImage">
+                  {item.imageIds && item.imageIds.length > 0 ? (
+                    <div className="image-slider">
+                      <div className="image-grid">
+                        <img
+                          src={imageUrls[item.imageIds[currentImageIndexes[item._id] || 0]._id] || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+                          }}
+                        />
+                        {item.imageIds.length > 1 && (
+                          <>
+                            <button 
+                              className="slider-nav prev"
+                              onClick={() => handleImageNav(item._id, 'prev')}
+                            >
+                              <FontAwesomeIcon icon={faChevronLeft} />
+                            </button>
+                            <button 
+                              className="slider-nav next"
+                              onClick={() => handleImageNav(item._id, 'next')}
+                            >
+                              <FontAwesomeIcon icon={faChevronRight} />
+                            </button>
+                            <div className="image-dots">
+                              {item.imageIds.map((_, index) => (
+                                <span
+                                  key={index}
+                                  className={`dot ${index === (currentImageIndexes[item._id] || 0) ? 'active' : ''}`}
+                                  onClick={() => setCurrentImageIndexes(prev => ({ ...prev, [item._id]: index }))}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">No image</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="rItemInfo">
+                  <h3 className="rTitle">{item.title}</h3>
+                  <p className="rDesc">{item.desc}</p>
+                  
+                  <div className="rDetails">
+                    <div className="rMax">
+                      <FontAwesomeIcon icon={faUser} />
+                      <span>Tối đa {item.maxPeople} người</span>
+                    </div>
+                  </div>
+
+                  <div className="rSelectRooms">
+                    {availableRooms.map((roomNumber) => (
+                      <div className="room" key={roomNumber._id}>
+                        <label>Phòng {roomNumber.number}</label>
+                        <input
+                          type="checkbox"
+                          value={roomNumber._id}
+                          onChange={handleSelect}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ) : null;
+          })
         )}
 
         <button

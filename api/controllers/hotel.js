@@ -1,6 +1,7 @@
 import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
 import User from "../models/User.js";
+import Booking from "../models/Booking.js";
 
 export const createHotel = async (req, res, next) => {
   const newHotel = new Hotel(req.body);
@@ -125,17 +126,63 @@ export const getHotelRooms = async (req, res, next) => {
       return res.status(404).json({ message: "Hotel not found" });
     }
 
-    // Sử dụng populate để lấy thông tin chi tiết của rooms
+    // Populate rooms with all details
     const hotelWithRooms = await Hotel.findById(req.params.id)
-      .populate('rooms')
+      .populate({
+        path: 'rooms',
+        populate: {
+          path: 'imageIds',
+          model: 'Image',
+          select: '_id url'
+        }
+      })
       .exec();
 
-    // Lọc ra những phòng còn tồn tại trong collection Room
     const validRooms = hotelWithRooms.rooms.filter(room => room !== null);
 
-    console.log("Valid rooms:", validRooms);
+    // Get all successful and pending bookings
+    const bookings = await Booking.find({
+      hotelId: req.params.id,
+      paymentStatus: { $in: ["success", "pending"] }, // Include both successful and pending bookings
+      'paymentInfo.checkoutDate': { $gte: new Date() } // Only consider current and future bookings
+    });
 
-    res.status(200).json(validRooms);
+    // Process each room to check availability
+    const processedRooms = validRooms.map(room => {
+      const roomObj = room.toObject();
+      
+      // Check each roomNumber's availability
+      const availableRoomNumbers = room.roomNumbers.filter(roomNumber => {
+        return !bookings.some(booking => {
+          return booking.selectedRooms.some(selectedRoom => {
+            if (selectedRoom.roomId.equals(room._id) && 
+                selectedRoom.roomNumber === roomNumber.number) {
+                
+              const bookingStart = new Date(booking.paymentInfo.checkinDate);
+              const bookingEnd = new Date(booking.paymentInfo.checkoutDate);
+              const requestStart = new Date(req.query.startDate);
+              const requestEnd = new Date(req.query.endDate);
+
+              // Check if there's any overlap in dates
+              return (
+                (requestStart <= bookingEnd && requestEnd >= bookingStart)
+              );
+            }
+            return false;
+          });
+        });
+      });
+
+      return {
+        ...roomObj,
+        roomNumbers: availableRoomNumbers
+      };
+    });
+
+    // Only return rooms that have available room numbers
+    const availableRooms = processedRooms.filter(room => room.roomNumbers.length > 0);
+    res.status(200).json(availableRooms);
+
   } catch (err) {
     console.error("Error in getHotelRooms:", err);
     next(err);

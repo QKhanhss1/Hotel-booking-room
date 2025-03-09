@@ -87,7 +87,7 @@ app.use("/api/booking", bookingRoute);
 app.use("/api/vnpay", vnpayRoute);
 
 app.use("/api/favorites", favoriteRoute);
-app.use('/api', dialogflowRoutes); 
+
 
 app.use((req, res, next) => {
   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
