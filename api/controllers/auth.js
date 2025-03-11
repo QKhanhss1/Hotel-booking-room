@@ -2,12 +2,29 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import uniqid from "uniqid";
 import { sendMail } from "../utils/sendMail.js";
+import emailValidator from 'email-validator';
 import { createError } from "../utils/error.js";
+import { fileURLToPath } from 'url';
+import path from "path";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 import dotenv from "dotenv";
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const validateEmailWithAbstract = async (email) => {
+  const API_KEY = process.env.ABSTRACT_API_KEY;
+  try {
+    const response = await axios.get(`https://emailvalidation.abstractapi.com/v1/?api_key=${API_KEY}&email=${email}`);
+    return response.data.is_smtp_valid.value;
+  } catch (error) {
+    console.error("Error checking email with Abstract API:", error);
+    return false; 
+  }
+};
 
 export const register = async (req, res, next) => {
   try {
@@ -19,17 +36,19 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: "Thiếu thông tin đăng ký" });
     }
 
+    if (!emailValidator.validate(email)) {
+      return res.status(400).json({ message: "Email không hợp lệ" });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return next(createError(400, "Email đã tồn tại"));
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    // **Tạo token xác thực**
     const verificationToken = uniqid();
     console.log("Generated verification token:", verificationToken);
 
-    // **Lưu token vào cookie**
     res.cookie("registerToken", JSON.stringify({
       username,
       email,
@@ -38,19 +57,18 @@ export const register = async (req, res, next) => {
       token: verificationToken,
     }), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",  // Chỉ bật nếu chạy HTTPS
+      secure: process.env.NODE_ENV === "production",  
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 15 * 60 * 1000, // 15 phút
+      maxAge: 15 * 60 * 1000, 
     });
     
     
     console.log("Cookie set:", res.getHeaders()["set-cookie"]);
 
-    // **Tạo link xác thực**
     const verificationLink = `${process.env.URL_SERVER}/api/auth/verify/${verificationToken}`;
     console.log("Verification Link:", verificationLink);
 
-    // **Gửi email**
+
     const emailContent = `
       <h2>Xác nhận đăng ký tài khoản</h2>
       <p>Nhấn vào link dưới đây để hoàn tất đăng ký:</p>
@@ -69,6 +87,7 @@ export const register = async (req, res, next) => {
     res.status(500).json({ message: "Lỗi hệ thống", error: err.message });
   }
 };
+
 
 export const verifyEmail = async (req, res) => {
   try {
@@ -94,17 +113,40 @@ export const verifyEmail = async (req, res) => {
 
     console.log("User data from cookie:", registerToken);
 
-    const newUser = new User({
-      username: registerToken.username,
-      email: registerToken.email,
-      phone: registerToken.phone,
-      password: registerToken.password,
+     
+     let user = await User.findOne({ email: registerToken.email });
+     if (!user) {
+       user = new User({
+         username: registerToken.username,
+         email: registerToken.email,
+         phone: registerToken.phone,
+         password: registerToken.password,
+       });
+ 
+       await user.save();
+     }
+ 
+     
+     res.clearCookie("registerToken");
+ 
+  
+     const jwtToken = jwt.sign(
+       { id: user._id, isAdmin: user.isAdmin, username: user.username },
+       process.env.JWT,
+       { expiresIn: "7d" }
+     );
+ 
+ 
+     res.cookie("access_token", jwtToken, {
+      httpOnly: true,
+      secure: false, 
+      sameSite: "Lax", 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
-    await newUser.save();
-    res.clearCookie("registerToken");
-
-    return res.json({ success: true, message: "Tài khoản đã được kích hoạt thành công!" });
+    
+     console.log("User verified and logged in:", user);
+ 
+     return res.redirect("http://localhost:3000/login");
   } catch (err) {
     console.error("Verification error:", err);
     return res.status(500).json({ message: "Lỗi hệ thống", error: err.message });
@@ -137,5 +179,40 @@ export const login = async (req, res, next) => {
       .json({ details: { ...otherDetails }, isAdmin, token });
   } catch (err) {
     next(err);
+  }
+};
+
+export const facebookLogin = async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+      return res.status(400).json({ message: "Access token is required" });
+    }
+    const response = await axios.get(`https://graph.facebook.com/me?access_token=${accessToken}&fields=id,name,email`);
+    const { id, email, name } = response.data;
+    if (!id) {
+      return res.status(400).json({ message: "Đăng nhập thất bại" });
+    }
+    let user = await User.findOne({ facebookId: id });
+    if (!user) {
+      user = new User({
+        username: name,
+        email,
+        facebookId: id,
+        is_active: true,
+      });
+      await user.save();
+    }
+    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin, username: user.username }, process.env.JWT, { expiresIn: "7d" });
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return res.status(200).json({ user, token });
+  } catch (err) {
+    console.error("Facebook login error:", err);
+    return res.status(500).json({ message: "Lỗi hệ thống", error: err.message });
   }
 };

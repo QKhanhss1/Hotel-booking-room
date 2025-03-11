@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./singUp.css";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 function SingUp() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ function SingUp() {
     setLoginError("");
     setSuccessMessage("");
 
-    if (!email || !password) {
+    if (!username || !email || !phone || !password || !confirmPassword) {
       setEmptyError("Vui lòng điền đầy đủ thông tin!");
       return;
     }
@@ -65,17 +66,17 @@ function SingUp() {
       }
     } catch (error) {
       console.error("Error details:", error);
+    
       if (error.response) {
-        console.log("Error response:", error.response.data);
-        // Lỗi từ server
-        setLoginError(
-          error.response.data.message || "Đăng ký thất bại. Vui lòng thử lại!"
-        );
+        console.log("Error response:", error.response);
+    
+        // Kiểm tra nếu error.response.data tồn tại trước khi truy cập message
+        const errorMessage = error.response.data?.message || "Đăng ký thất bại. Vui lòng thử lại!";
+        setLoginError(errorMessage);
       } else {
-        // Lỗi kết nối
         setLoginError("Không thể kết nối đến server!");
       }
-    }
+    }    
   };
   // Thêm useEffect để reset data khi component mount
   useEffect(() => {
