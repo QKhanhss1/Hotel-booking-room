@@ -91,6 +91,15 @@ const FeaturedProperties = () => {
                     />
                   )}
                 <span className="fpName">{item.name}</span>
+                {item.rating && item.numReviews && (
+                  <div className="fpRating">
+                     <img src="/assets/icons/review.png" alt="Rating Icon" className="ratingIcon" />
+                    <span className="fpRatingValue">{item.rating.toFixed(1)}/5</span>
+                    <span className="fpRatingCount">({item.numReviews})</span>
+                  </div>
+                )}
+
+
                 <span className="fpCity">{item.city}</span>
                 <span className="fpPrice">Giá khoảng {item.cheapestPrice} VND</span>
                 {/* {item.rating && <div className="fpRating">

@@ -2,6 +2,8 @@ import axios from "axios";
 import { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import FacebookLogin from "react-facebook-login";
+import { facebookAuth } from "../../utils/auth";
 import "./login.css";
 
 const Login = () => {
@@ -52,15 +54,18 @@ const Login = () => {
   };
 
   // Xử lý đăng nhập bằng Facebook
-  const handleFacebookLogin = async () => {
+  const handleResponseFacebook = async (data) => {
     try {
-      dispatch({ type: "LOGIN_START" });
-      // Gọi API đăng nhập Facebook
-      const res = await axios.get("/auth/facebook");
-      dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
-      navigate("/");
-    } catch (err) {
-      dispatch({ type: "LOGIN_FAILURE", payload: err.response.data });
+      const result = await facebookAuth.facebookAuth(data.accessToken);
+      if (result?.role === "user") {
+        dispatch({ type: "LOGIN_SUCCESS", payload: result });
+        navigate("/");
+        alert("Đăng nhập thành công");
+      } else {
+        alert("Đăng nhập thất bại");
+      }
+    } catch (error) {
+      alert("Đăng nhập Facebook thất bại");
     }
   };
 
@@ -101,17 +106,19 @@ const Login = () => {
         <h1 className="tieu-de-dang-nhap">Đăng nhập</h1>
 
         <div className="khung-nut-mxh">
-          <button
-            className="nut-mxh nut-facebook"
-            onClick={handleFacebookLogin}
-          >
-            <img
-              src="/assets/images/facebook1.png"
-              alt="Facebook"
-              className="icon-mxh"
-            />
-            <span className="text-nut-mxh">Facebook</span>
-          </button>
+        <FacebookLogin
+          appId={process.env.REACT_APP_FB_CLIENT_ID}
+          autoLoad={false}
+          fields="name,email,picture"
+          callback={handleResponseFacebook}
+          render={(renderProps) => (
+            <button className="nut-mxh nut-facebook" onClick={renderProps.onClick}>
+              <img src="/assets/images/facebook1.png" alt="Facebook" className="icon-mxh" />
+              <span className="text-nut-mxh">Facebook</span>
+            </button>
+          )}
+        />
+
           <button className="nut-mxh nut-google" onClick={handleGoogleLogin}>
             <img
               src="/assets/images/google.png"
