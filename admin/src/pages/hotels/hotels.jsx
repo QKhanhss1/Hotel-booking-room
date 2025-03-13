@@ -281,7 +281,7 @@ function Hotels() {
       <Navbar />
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{ marginLeft: '220px' }}>
         <div className="flex justify-between items-center mb-12 px-4">
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold font-['Poppins'] leading-tight text-black">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-['Poppins'] leading-tight text-black">
             Danh Sách Khách Sạn
           </h1>
           <button

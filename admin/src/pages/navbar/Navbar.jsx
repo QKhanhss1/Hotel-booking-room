@@ -13,13 +13,7 @@ function Navbar() {
   };
   return (
     <div className="layout">
-      {/* Navbar */}
-      <div className="navbar">
-        <input type="text" className="search-bar" placeholder="Tìm kiếm..." />
-        <button className="btn" onClick={handleLogout}>
-          Đăng xuất
-        </button>
-      </div>
+
 
       {/* Sidebar */}
       <div className="sidebar">
@@ -32,12 +26,9 @@ function Navbar() {
         <Link to="/status_room">
           <button className="nav-btn">Quản lý trạng thái phòng</button>
         </Link>
-      </div>
-
-      {/* Nội dung chính */}
-      <div className="content">
-        {/* <h1>Welcome to My Page</h1>
-        <p>Đây là nội dung chính của trang.</p> */}
+        <button className="btn" onClick={handleLogout}>
+          Đăng xuất
+        </button>
       </div>
     </div>
   );

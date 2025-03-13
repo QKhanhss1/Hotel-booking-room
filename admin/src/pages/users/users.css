@@ -1,6 +1,7 @@
 .users-container {
   margin-top: 70px; 
   display: flex;
+  
   justify-content: center; 
   align-items: center; /* Đặt form và bảng nằm chính giữa */
   padding: 20px;
@@ -19,6 +20,7 @@
 .textheader{
   font-size: 30px;
   font-weight: bold;
+  
 
 
 }
@@ -26,7 +28,7 @@
 .usersTable {
   width:80%; 
   margin: 0 auto; 
-  margin-top: 20px; 
+  margin: 20px 50px 0 200px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);

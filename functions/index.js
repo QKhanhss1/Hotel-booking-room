@@ -1,172 +1,220 @@
-// import * as functions from 'firebase-functions';
 import { WebhookClient } from "dialogflow-fulfillment";
 import moment from "moment";
 import { onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
-import fulfillmentPkgJson from "dialogflow-fulfillment/package.json" with { type: "json" };
-const fulfillmentVersion = fulfillmentPkgJson.version;
-logger.info(`Phiên bản dialogflow-fulfillment đang sử dụng: ${fulfillmentVersion}`);
+import faqDataJson from "./faq_data.json" with { type: "json" };
+
+let faqData = faqDataJson; // ✅ Gán trực tiếp dữ liệu FAQ từ JSON
+
+// --- FUNCTION TO FIND FAQ ANSWER (KEYWORD MATCHING) ---
+function findFaqAnswer(userQuestion) {
+    if (faqData.length === 0) {
+        return "Xin lỗi, chức năng FAQ hiện không khả dụng."; 
+    }
+    let bestMatchAnswer = "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp cho câu hỏi này.";
+    let maxSimilarity = -1;
+
+    for (const faqItem of faqData) {
+        const similarityScore = calculateKeywordSimilarity(userQuestion, faqItem.question);
+        if (similarityScore > maxSimilarity) {
+            maxSimilarity = similarityScore;
+            bestMatchAnswer = faqItem.answer;
+        }
+    }
+    return bestMatchAnswer;
+}
+
+// --- FUNCTION TO CALCULATE KEYWORD SIMILARITY (SIMPLE) ---
+function calculateKeywordSimilarity(question1, question2) {
+    const keywords1 = question1.toLowerCase().split(/\s+/);
+    const keywords2 = question2.toLowerCase().split(/\s+/);
+    let commonKeywords = 0;
+    for (const keyword1 of keywords1) {
+        if (keywords2.includes(keyword1)) {
+            commonKeywords++;
+        }
+    }
+    return commonKeywords;
+}
+
+// --- INTENT HANDLER FOR FAQ ---
+function handleFaqIntent(agent) {
+    logger.info("--- BẮT ĐẦU XỬ LÝ FUNCTION handleFaqIntent ---");
+    const userQuestion = agent.query;
+    logger.info(`🔍 Câu hỏi người dùng: ${userQuestion}`);
+
+    if (faqData.length === 0) {
+        agent.add("Xin lỗi, chức năng FAQ hiện không khả dụng. Vui lòng thử lại sau.");
+        logger.warn("⚠️ Dữ liệu FAQ chưa được tải hoặc tải lỗi.");
+        return;
+    }
+
+    const faqAnswer = findFaqAnswer(userQuestion);
+    agent.add(faqAnswer);
+    logger.info(`🤖 Trả lời FAQ: ${faqAnswer}`);
+    logger.info("--- KẾT THÚC XỬ LÝ FUNCTION handleFaqIntent ---");
+}
 
 function bookHotel(agent) {
-  logger.info("Function bookHotel được gọi!");
+    logger.info("--- BẮT ĐẦU XỬ LÝ FUNCTION bookHotel ---");
 
-  // **LOGGING THÊM - BẮT ĐẦU**
-  logger.info("--- BẮT ĐẦU XỬ LÝ FUNCTION bookHotel ---");
-
-  // **Get parameters from agent.parameters (current turn)**
-  const destination = agent.parameters["des"];
-  const numberOfPeople = agent.parameters["number"];
-  const checkInDate = agent.parameters["check-in"];
-  const duration = agent.parameters["duration"];
-  const datePeriod = agent.parameters["date-period"];
-  const dayOfWeekPeriod = agent.parameters["day-range"];
-
-  logger.info(
-      "Parameters nhận được từ Dialogflow (agent.parameters):", JSON.stringify(agent.parameters, null, 2));
-
-  // **Get parameters from context (previous turns)**
-  const contextParams = agent.getContext("bookhotel-context")?.parameters || {};
-  const contextDestination = contextParams.des;
-  const contextNumberOfPeople = contextParams.number;
-
-  logger.info(
-      "Parameters từ Context (bookhotel-context):", JSON.stringify(contextParams, null, 2));
-
-  // **LOGGING THÊM - GIÁ TRỊ BIẾN TRƯỚC IF**
-  logger.info("Giá trị biến TRƯỚC kiểm tra if:", {
-      destination: destination,
-      numberOfPeople: numberOfPeople,
-      contextDestination: contextDestination,
-      contextNumberOfPeople: contextNumberOfPeople
-  });
+    // Lấy context hiện tại
+    const bookHotelContext = agent.context.get("bookhotel-context") || { parameters: {} };
+    const contextParams = bookHotelContext.parameters;
 
 
-  let calculatedDatePeriod = null;
-  let responseText = ""; // Khởi tạo responseText rỗng ban đầu
-  let askForInfo = false; // Flag để kiểm soát việc hỏi thông tin
+    // Lấy thông tin từ Dialogflow hoặc context cũ
+    const parameters = agent.parameters || {};
+    const destination = parameters["des"] || contextParams["destination"] || "";
+    const numberOfPeople = parameters["number"] || contextParams["numberOfPeople"] || "";
+    let checkInDate = parameters["check-in"] || contextParams["checkIn"] || "";
+    const duration = parameters["duration"] || contextParams["duration"] || "";
+    const datePeriod = agent.parameters["dateperiod"] || contextParams["datePeriod"];
+    const dayOfWeekPeriod = parameters["day-range"] || contextParams["dayRange"] || "";
+    const askedDate = contextParams["askedDate"] || false;
 
-  // **Kiểm tra và hỏi nếu thiếu destination (des)**
-  if (!destination) {
-      logger.info("--> THIẾU destination, hỏi lại."); // LOGGING THÊM
-      responseText = "Vui lòng cho biết thành phố hoặc khu vực bạn muốn đặt phòng.";
-      askForInfo = true;
-  } else if (!numberOfPeople) {
-      logger.info("--> THIẾU numberOfPeople, hỏi lại."); // LOGGING THÊM
-      responseText = `Bạn muốn đặt phòng ở ${destination}. Xin hỏi bạn đi bao nhiêu người?`;
-      askForInfo = true;
-  } else {
-      logger.info("--> ĐÃ CÓ destination và numberOfPeople, xử lý date."); // LOGGING THÊM
-      responseText = `Bạn muốn đặt phòng ở ${destination} cho ${numberOfPeople} người. `;
+    // ✅ Log dữ liệu đầy đủ
+    logger.info("🔍 Dữ liệu từ Dialogflow:", JSON.stringify(parameters, null, 2));
+    logger.info("🔍 Dữ liệu từ context:", JSON.stringify(contextParams, null, 2));
 
-      if (datePeriod && datePeriod.startDate && datePeriod.endDate) {
-          logger.info("Sử dụng date-period hiện có từ Dialogflow: ", datePeriod);
-          calculatedDatePeriod = `${datePeriod.startDate}/${datePeriod.endDate}`;
-      } else if (checkInDate && duration) {
-          logger.info("Bắt đầu tính toán date-period từ check-in và duration...");
-          const checkInMoment = moment(checkInDate);
-          const durationNumber = parseInt(duration);
-          const checkOutMoment = checkInMoment.clone().add(durationNumber, "days");
-          calculatedDatePeriod = `${checkInMoment.format("YYYY-MM-DD")}/${checkOutMoment.format("YYYY-MM-DD")}`;
-          logger.info("Date-period đã tính toán (từ check-in/duration):", {calculatedDatePeriod: calculatedDatePeriod});
-      } else if (dayOfWeekPeriod) {
-          logger.info("Bắt đầu tính toán date-period từ dayOfWeekPeriod:", dayOfWeekPeriod);
-          calculatedDatePeriod = calculateDatePeriodFromDayOfWeek(dayOfWeekPeriod);
-          logger.info("Date-period đã tính toán (từ dayOfWeekPeriod):", {calculatedDatePeriod: calculatedDatePeriod});
-      } else {
-          logger.info("--> THIẾU thông tin date, hỏi lại."); // LOGGING THÊM
-          responseText += "Xin hỏi bạn muốn đặt phòng vào ngày nào? Ví dụ: 'ngày mai', '25/05', hoặc 'từ thứ 6 đến chủ nhật'.";
-          askForInfo = true; // Vẫn cần hỏi thêm thông tin
-      }
+    // Log riêng từng biến để dễ kiểm tra
+    logger.info("📌 Tổng hợp thông tin:");
+    logger.info(`📍 Điểm đến: ${destination || "❌ Không có"}`);
+    logger.info(`👥 Số người: ${numberOfPeople || "❌ Không có"}`);
+    logger.info(`📅 Check-in date: ${checkInDate || "❌ Không có"}`);
+    logger.info(`🕒 Duration: ${duration || "❌ Không có"}`);
+    logger.info(`📆 Date-period: ${JSON.stringify(datePeriod) || "❌ Không có"}`);
+    logger.info(`📅 Day-range: ${JSON.stringify(dayOfWeekPeriod) || "❌ Không có"}`);
+    logger.info(`❓ Đã hỏi ngày chưa: ${askedDate}`);
 
-      if (calculatedDatePeriod) {
-          const [startDate, endDate] = calculatedDatePeriod.split("/");
-          responseText += `Ngày nhận phòng dự kiến ${startDate}, trả phòng ngày ${endDate}.`;
-      }
-  }
+    let calculatedDatePeriod = "";
 
-  if (askForInfo) {
-      // Nếu cần hỏi thêm thông tin, set output context để duy trì trạng thái
-      agent.setContext({
-          name: "bookhotel-context",
-          lifespan: 2, // Tăng lifespan để context tồn tại lâu hơn nếu cần hỏi nhiều lượt
-          parameters: {
-              "des": destination || contextDestination, // **GIỮ NGUYÊN - Ưu tiên contextDestination**
-              "number": numberOfPeople || contextNumberOfPeople,
-              // ...
-          },
-      });
-      logger.info("--> Set context (askForInfo=true):", JSON.stringify(agent.getContext("bookhotel-context"), null, 2)); // LOGGING THÊM
-  } else if (calculatedDatePeriod) {
-      // Nếu đã có đủ thông tin date, set context với date-period (nếu cần cho lượt sau)
-      agent.setContext({
-          name: "bookhotel-context",
-          lifespan: 1,
-          parameters: {
-              "date-period": calculatedDatePeriod,
-              "des": destination || contextDestination,
-              "number": numberOfPeople || contextNumberOfPeople
-          },
-      });
-      logger.info("--> Set context (calculatedDatePeriod):", JSON.stringify(agent.getContext("bookhotel-context"), null, 2)); // LOGGING THÊM
-  }
+    // --- XỬ LÝ DATE-PERIOD ---
 
-  logger.info("Response chatbot:", {responseText: responseText});
-  agent.add(responseText);
-  logger.info("agent.add(responseText) đã gọi");
-  logger.info("--- KẾT THÚC XỬ LÝ FUNCTION bookHotel ---"); // LOGGING THÊM
+    if (datePeriod && datePeriod.startDate && datePeriod.endDate) {
+        logger.info("✅ Dùng datePeriod từ Dialogflow:", JSON.stringify(datePeriod));
+        calculatedDatePeriod = `${datePeriod.startDate}/${datePeriod.endDate}`;
+        checkInDate = datePeriod.startDate;
+    } else if (checkInDate && duration) {
+        logger.info("🔄 Tính toán datePeriod từ check-in & duration...");
+        const checkInMoment = moment(checkInDate);
+        const durationNumber = parseInt(duration, 10);
+        const checkOutMoment = checkInMoment.clone().add(durationNumber, "days");
+        calculatedDatePeriod = `${checkInMoment.format("DD-MM-YYYY")}/${checkOutMoment.format("DD-MM-YYYY")}`;
+        logger.info("📅 DatePeriod đã tính toán:", { calculatedDatePeriod });
+    } else if (dayOfWeekPeriod) {
+        logger.info("🔄 Tính toán datePeriod từ dayOfWeekPeriod:", JSON.stringify(dayOfWeekPeriod));
+        calculatedDatePeriod = calculateDatePeriodFromDayOfWeek(dayOfWeekPeriod);
+        if (calculatedDatePeriod) {
+            logger.info("📅 DatePeriod từ dayOfWeekPeriod:", { calculatedDatePeriod });
+        } else {
+            logger.warn("⚠️ Không thể tính toán datePeriod từ dayOfWeekPeriod:", JSON.stringify(dayOfWeekPeriod));
+            agent.add("Xin lỗi, tôi chưa hỗ trợ đặt phòng theo khoảng thời gian này. Vui lòng chọn ngày cụ thể.");
+            agent.context.set({
+                name: "bookhotel-context",
+                lifespan: 3,
+                parameters: { destination, numberOfPeople, datePeriod: calculatedDatePeriod || "" }
+            });
+            return;
+        }
+    } else {
+        // Nếu không có thông tin ngày trong request, ưu tiên lấy từ context nếu có
+        const effectiveDatePeriod = contextParams["datePeriod"] || "";
+        if (effectiveDatePeriod) {
+            calculatedDatePeriod = effectiveDatePeriod;
+        } else {
+            if (askedDate) {
+                logger.warn("⚠️ Người dùng đã được hỏi về ngày nhưng chưa cung cấp.");
+                agent.add("Bạn vui lòng cung cấp ngày đặt phòng để tiếp tục.");
+            } else {
+                logger.info("🛑 Thiếu thông tin date, hỏi lại.");
+                agent.add("Bạn muốn đặt phòng vào ngày nào?");
+                agent.context.set({
+                    name: "bookhotel-context",
+                    lifespan: 3,
+                    parameters: { destination, numberOfPeople, askedDate: true }
+                });
+            }
+            return;
+        }
+    }
 
-  // **LOGGING ĐÃ CHUYỂN VÀO ĐÂY - TRƯỚC KHI KẾT THÚC FUNCTION bookHotel**
-  logger.info("--- LOG TRƯỚC KHI FUNCTION bookHotel KẾT THÚC ---");
-  logger.info("Giá trị biến destination TRƯỚC KHI KẾT THÚC bookHotel:", destination); // Log biến destination
-  logger.info("Giá trị biến numberOfPeople TRƯỚC KHI KẾT THÚC bookHotel:", numberOfPeople); // Log biến numberOfPeople
+    // Kiểm tra thiếu thông tin nào khác
+    const missingInfo = [];
+    if (!destination) missingInfo.push("điểm đến");
+    if (!numberOfPeople) missingInfo.push("số người");
 
-  logger.info("Kết thúc function bookHotel");
+    if (missingInfo.length > 0) {
+        logger.info("❓ Thiếu thông tin:", missingInfo);
+        agent.add(`Bạn có thể cung cấp thêm ${missingInfo.join(", ")} không?`);
+    } else {
+        const [startDate, endDate] = calculatedDatePeriod.split("/");
+        agent.add(`Xác nhận đặt phòng cho ${numberOfPeople} người tại ${destination} từ ${startDate} đến ${endDate}. Bạn có muốn tiếp tục không?`);
+    }
+
+    // Lưu lại context với dữ liệu cập nhật
+    agent.context.set({
+        name: "bookhotel-context",
+        lifespan: 5,
+        parameters: {
+            destination: destination || contextParams["destination"] || "",
+            numberOfPeople: numberOfPeople || contextParams["numberOfPeople"] || "",
+            checkIn: checkInDate || contextParams["checkIn"] || "",
+            duration: duration || contextParams["duration"] || "",
+            datePeriod: calculatedDatePeriod || contextParams["datePeriod"] || datePeriod || "",
+            dayRange: dayOfWeekPeriod || contextParams["dayRange"] || "",
+            askedDate: true
+        }
+
+    });
+
+    // ✅ Log context sau khi cập nhật
+    logger.info("📌 Context sau khi cập nhật:", JSON.stringify(agent.context.get("bookhotel-context"), null, 2));
+    logger.info("--- KẾT THÚC XỬ LÝ FUNCTION bookHotel ---");
 }
 
 
 function calculateDatePeriodFromDayOfWeek(dayOfWeekPeriod) {
-  const today = moment().startOf("day");
-  let startDateMoment; let endDateMoment;
+    const today = moment().startOf("day");
+    let startDateMoment; let endDateMoment;
 
-  if (dayOfWeekPeriod === "saturday_to_sunday" || dayOfWeekPeriod === "weekend") {
-      startDateMoment = today.clone().day(6);
-      endDateMoment = today.clone().day(7);
-      if (today.day() >= 6) {
-          startDateMoment.add(7, "days");
-          endDateMoment.add(7, "days");
-      }
-  }
-  // Add cases for other dayOfWeekPeriod values if needed
+    if (dayOfWeekPeriod === "saturday_to_sunday" || dayOfWeekPeriod === "weekend") {
+        startDateMoment = today.clone().day(6);
+        endDateMoment = today.clone().day(7);
+        if (today.day() >= 6) {
+            startDateMoment.add(7, "days");
+            endDateMoment.add(7, "days");
+        }
+    } else if (dayOfWeekPeriod === "monday_to_friday" || dayOfWeekPeriod === "weekdays") { // Ví dụ mở rộng cho "weekdays"
+        startDateMoment = today.clone().day(1);
+        endDateMoment = today.clone().day(5);
+        if (today.day() >= 5) { // Nếu hôm nay đã là thứ 6 hoặc cuối tuần, đặt cho tuần tới
+            startDateMoment.add(7, "days");
+            endDateMoment.add(7, "days");
+        }
+    }
+    // Thêm các trường hợp khác cho dayOfWeekPeriod nếu cần
 
-  if (startDateMoment && endDateMoment) {
-      return `${startDateMoment.format("YYYY-MM-DD")}/${endDateMoment.format("YYYY-MM-DD")}`;
-  } else {
-      return null;
-  }
+    if (startDateMoment && endDateMoment) {
+        return `${startDateMoment.format("DD-MM-YYYY")}/${endDateMoment.format("DD-MM-YYYY")}`;
+    } else {
+        return null;
+    }
 }
+export const dialogflowFulfillment = onRequest(async (request, response) => {
+    logger.info(
+        "Webhook dialogflowFulfillment function được gọi! (logger.info)",
+    );
+    const agent = new WebhookClient({ request, response });
 
-export const dialogflowFulfillment = onRequest(dialogflowFulfillmentHandler);
-
-function dialogflowFulfillmentHandler(request, response) {
-  logger.info(
-      "Webhook dialogflowFulfillment function được gọi! (logger.info)",
-  );
-  const agent = new WebhookClient({request, response});
-  /**
- * Xử lý logic cho intent "BookHotel".
- *
- * Hàm này trích xuất thông tin về điểm đến, ngày check-in, thời lượng lưu trú,
- * số lượng người và khoảng thời gian đặt phòng từ parameters của Dialogflow Agent.
- * Nếu có check-in và duration nhưng thiếu date-period, nó sẽ tự động
- * tính toán date-period và set parameter này trong Dialogflow context.
- *
- * @param {WebhookClient} agent Dialogflow WebhookClient agent object.
- */
-
-  
-  const intentMap = new Map();
-  intentMap.set("BookHotel", bookHotel);
-  agent.handleRequest(intentMap);
-  logger.info("agent.handleRequest() đã gọi");
-  logger.info("Kết thúc function dialogflowFulfillment");
-}
+    if (faqData.length === 0) {
+        faqData = faqDataJson;
+        logger.info(`✅ Đã tải ${faqData.length} câu hỏi FAQ từ file JSON.`);
+    }
+    const intentMap = new Map();
+    intentMap.set("BookHotel", bookHotel);
+    intentMap.set("FAQ_Intent", handleFaqIntent);
+    agent.handleRequest(intentMap);
+    logger.info("agent.handleRequest() đã gọi");
+    logger.info("Kết thúc function dialogflowFulfillment");
+});

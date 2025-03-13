@@ -1,31 +1,8 @@
 /* Tổng thể Layout */
 .layout {
   display: flex;
-  /* flex-direction: column;
-  height: 100vh; */
-}
+  flex-direction: column;
 
-/* Navbar ngang */
-.navbar {
-  width: 100%;
-  padding: 10px 20px;
-  background-color: rgb(90, 165, 245);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1;
-}
-
-.search-bar {
-  width: 50%;
-  padding: 8px;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-left: 300px;
 }
 
 .btn {
@@ -34,9 +11,9 @@
   background-color: #fff;
   color: #0729ec;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
-  margin-right: 200px;
+  margin: 20px 25px 0 20px;
 }
 
 .btn:hover {
@@ -73,10 +50,3 @@
   color: #0729ec;
 }
 
-/* Nội dung chính */
-.content {
-  flex-grow: 1;
-  margin-left: 300px; /* Chừa chỗ cho sidebar */
-  margin-top: 10px; /* Chừa chỗ cho navbar */
-  padding: 20px;
-}

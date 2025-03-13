@@ -162,7 +162,7 @@ const StatusRoom = () => {
         className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12"
         style={{ marginLeft: "220px" }}
       >
-        <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold leading-tight text-black mb-8">
+        <h2 className="text-xl md:text-2xl lg:text-3xl font-bold  font-['Poppins'] leading-tight text-black mb-8">
           Quản lý nhận trả phòng
         </h2>
 

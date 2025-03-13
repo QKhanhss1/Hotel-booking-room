@@ -1,7 +1,7 @@
 #FITVAA
 
 tạo file .env trong api
-MONGO=mongodb://localhost:27017/(tên database của mn)
+MONGO=mongodb://localhost:27017/(tên database )
 JWT = 8hEnPGeoBqGUT6zksxt4G95gW+uMdzwe7EVaRnp0xRI=
 
 Tạo file .env trong admin 
