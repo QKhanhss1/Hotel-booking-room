@@ -75,6 +75,16 @@ export const getHotels = async (req, res, next) => {
     next(err);
   }
 };
+export const getAllHotel= async (req, res, next) => {
+  try {
+    const hotels = await Hotel.find({
+    
+    }).populate('imageIds')
+    res.status(200).json(hotels);
+  } catch (err) {
+    next(err);
+  }
+};
 export const getFeaturedHotels = async (req, res, next) => {
   try {
 
