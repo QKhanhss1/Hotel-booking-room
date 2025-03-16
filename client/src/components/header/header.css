@@ -70,11 +70,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  position: relative;
 }
 
 .headerSearchInput {
   border: none;
   outline: none;
+  width: 100%;
 }
 
 .headerSearchText {
@@ -125,4 +127,112 @@
 
 .optionCounterButton:disabled {
   cursor: not-allowed;
+}
+
+/* Search dropdown styles */
+.searchInputContainer {
+  position: relative;
+  width: 100%;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 400px;
+  max-height: 450px;
+  overflow-y: auto;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+  margin-top: 10px;
+  color: #333;
+  font-size: 14px;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 500;
+  color: #333;
+}
+
+.dropdownHeaderIcon {
+  color: #666;
+  font-size: 14px;
+}
+
+.recentSearchesContainer,
+.suggestionsContainer,
+.popularLocationsContainer {
+  padding: 0;
+}
+
+.popularLocationsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 500;
+  color: #333;
+  margin-top: 8px;
+}
+
+.searchResultItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.searchResultItem:hover {
+  background-color: #f5f5f5;
+}
+
+.searchResultItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.searchResultIcon {
+  color: #0071c2;
+  font-size: 16px;
+  min-width: 16px;
+}
+
+.searchResultText {
+  font-weight: 400;
+  color: #333;
+}
+
+.searchResultItemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.searchResultCount {
+  font-size: 12px;
+  color: #666;
+}
+
+.searchResultType {
+  font-size: 11px;
+  color: #999;
+  background-color: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 10px;
 }

@@ -335,6 +335,77 @@ export const deleteReview = async (req, res) => {
   }
 };
 
+export const getCitiesByQuery = async (req, res, next) => {
+  try {
+    const { query } = req.query;
+    
+    // Find unique cities that match the query (case-insensitive) with counts
+    const cities = await Hotel.aggregate([
+      { 
+        $match: { 
+          city: query ? { $regex: query, $options: "i" } : { $exists: true }
+        } 
+      },
+      { 
+        $group: { 
+          _id: "$city",
+          count: { $sum: 1 }
+        } 
+      },
+      { 
+        $project: { 
+          _id: 0, 
+          name: "$_id",
+          count: 1,
+          category: "city"
+        } 
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: query ? 5 : 10
+      }
+    ]);
+    
+    // Find unique types that match the query (case-insensitive) with counts
+    let types = [];
+    if (query) {
+      types = await Hotel.aggregate([
+        { 
+          $match: { 
+            type: { $regex: query, $options: "i" } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: "$type",
+            count: { $sum: 1 }
+          } 
+        },
+        { 
+          $project: { 
+            _id: 0, 
+            name: "$_id",
+            count: 1,
+            category: "type"
+          } 
+        },
+        {
+          $limit: 3
+        }
+      ]);
+    }
+    
+    // Combine results
+    const results = query ? [...cities, ...types] : cities;
+    
+    res.status(200).json(results);
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 
