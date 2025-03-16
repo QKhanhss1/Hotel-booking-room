@@ -5,74 +5,62 @@ import { createError } from "../utils/error.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 export const createRoom = async (req, res, next) => {
+  const hotelId = req.params.hotelId;
+  const { title, price, maxPeople, desc, roomNumbers, imageIds, amenities, roomSize } = req.body;
+
   try {
-    console.log('Request body:', req.body); // Debug log
-
-    const hotelId = req.params.hotelId;
+    console.log("Creating room with hotelId:", hotelId);
+    
     if (!hotelId) {
-      return res.status(400).json({ message: "Hotel ID is required" });
+      return res.status(400).json({ success: false, message: "Hotel ID is required" });
     }
 
-    // Kiểm tra và xử lý roomNumbers
-    const roomNumbers = req.body.roomNumbers || [];
-    if (!Array.isArray(roomNumbers)) {
-      return res.status(400).json({ message: "roomNumbers must be an array" });
+    // Kiểm tra hotelId có hợp lệ không
+    const hotelExists = await Hotel.findById(hotelId);
+    if (!hotelExists) {
+      return res.status(404).json({ success: false, message: "Hotel not found" });
     }
 
-    const roomData = {
-      title: req.body.title,
-      price: req.body.price,
-      maxPeople: req.body.maxPeople,
-      desc: req.body.desc,
-      roomNumbers: roomNumbers,
-      imageIds: req.body.imageIds || [],
-      hotelId: hotelId
-    };
+    const newRoom = new Room({
+      title,
+      price,
+      maxPeople,
+      desc,
+      roomNumbers,
+      imageIds,
+      hotelId, // Đảm bảo hotelId được gán đúng
+      amenities: amenities || [],
+      roomSize: roomSize || "30"
+    });
 
-    const newRoom = new Room(roomData);
     const savedRoom = await newRoom.save();
 
-    try {
-      await Hotel.findByIdAndUpdate(hotelId, {
-        $push: { rooms: savedRoom._id },
-      });
-    } catch (err) {
-      console.error('Error updating hotel:', err);
-      await Room.findByIdAndDelete(savedRoom._id); // Rollback if hotel update fails
-      return next(err);
-    }
+    // Thêm id phòng vào hotel
+    await Hotel.findByIdAndUpdate(hotelId, {
+      $push: { rooms: savedRoom._id },
+    });
 
-    res.status(200).json(savedRoom);
+    res.status(201).json(savedRoom);
   } catch (err) {
-    console.error('Error in createRoom:', err);
-    next(err);
+    console.error("Error creating room:", err);
+    res.status(500).json({ 
+      success: false, 
+      status: 500, 
+      message: err.message,
+      stack: err.stack 
+    });
   }
 };
 
 export const updateRoom = async (req, res, next) => {
   try {
-    console.log("Update room request body:", req.body); // Debug log
-
-    const roomData = {
-      title: req.body.title,
-      price: req.body.price,
-      maxPeople: req.body.maxPeople,
-      desc: req.body.desc,
-      roomNumbers: req.body.roomNumbers,
-      imageIds: req.body.imageIds
-    };
-
-    console.log("Processed room data:", roomData); // Debug log
-
     const updatedRoom = await Room.findByIdAndUpdate(
       req.params.id,
-      { $set: roomData },
+      { $set: req.body },
       { new: true }
     );
-
     res.status(200).json(updatedRoom);
   } catch (err) {
-    console.error("Error in updateRoom:", err);
     next(err);
   }
 };
@@ -172,7 +160,7 @@ export const getRoom = async (req, res, next) => {
 };
 export const getRooms = async (req, res, next) => {
   try {
-    const hotelId = req.params.hotelid;
+    const hotelId = req.params.hotelId;
     console.log("Getting rooms for hotelId:", hotelId);
 
     // Tìm khách sạn và populate rooms

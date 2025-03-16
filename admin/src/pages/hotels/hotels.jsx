@@ -3,7 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
-import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
+import { API_UPLOAD, API_HOTEL, API_IMAGES, API_HOTELS } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -21,6 +21,7 @@ function Hotels() {
     distance: "",
     title: "",
     photos: null,
+    amenities: [],
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [isImageUploading, setIsImageUploading] = useState(false);
@@ -31,6 +32,50 @@ function Hotels() {
 
   const navigate = useNavigate();
 
+  // Danh sách các tiện ích phổ biến
+  const availableAmenities = [
+    { id: "wifi", name: "WiFi", icon: "📶" },
+    { id: "parking", name: "Chỗ đậu xe", icon: "🅿️" },
+    { id: "pool", name: "Hồ bơi", icon: "🏊" },
+    { id: "gym", name: "Phòng tập thể dục", icon: "🏋️" },
+    { id: "restaurant", name: "Nhà hàng", icon: "🍴" },
+    { id: "ac", name: "Điều hòa", icon: "🌡️" },
+    { id: "spa", name: "Spa", icon: "💆" },
+    { id: "meeting", name: "Phòng họp", icon: "🤝" },
+    { id: "bar", name: "Quầy bar", icon: "🍸" },
+    { id: "laundry", name: "Giặt ủi", icon: "🧺" },
+    { id: "roomService", name: "Dịch vụ phòng", icon: "🛏️" },
+    { id: "childFriendly", name: "Thân thiện với trẻ em", icon: "👶" },
+    { id: "petFriendly", name: "Cho phép thú cưng", icon: "🐾" },
+    { id: "breakfast", name: "Bữa sáng", icon: "🥣" },
+    { id: "tv", name: "TV", icon: "📺" },
+    { id: "shuttle", name: "Đưa đón sân bay", icon: "🛫" },
+  ];
+
+  // Hàm xử lý khi chọn/bỏ chọn tiện ích
+  const handleAmenityChange = (amenityId, isEdit = false) => {
+    if (isEdit) {
+      // Xử lý cho form chỉnh sửa
+      const updatedAmenities = editingHotel.amenities?.includes(amenityId)
+        ? editingHotel.amenities.filter(id => id !== amenityId)
+        : [...(editingHotel.amenities || []), amenityId];
+      
+      setEditingHotel({
+        ...editingHotel,
+        amenities: updatedAmenities
+      });
+    } else {
+      // Xử lý cho form thêm mới
+      const updatedAmenities = newHotel.amenities.includes(amenityId)
+        ? newHotel.amenities.filter(id => id !== amenityId)
+        : [...newHotel.amenities, amenityId];
+      
+      setNewHotel({
+        ...newHotel,
+        amenities: updatedAmenities
+      });
+    }
+  };
 
   //fetch images
   const fetchHotelImages = async (hotel) => {
@@ -95,7 +140,7 @@ function Hotels() {
         imageIds: imageIds, // Lưu mảng các ID ảnh
       };
       const response = await axios.post(
-        API_HOTELS,
+        API_HOTEL,
         newHotelData,
         {
           headers: {
@@ -117,6 +162,7 @@ function Hotels() {
         distance: "",
         title: "",
         photos: null,
+        amenities: [],
       });
       setSelectedImages([]);
       setImageIds([]);
@@ -176,7 +222,7 @@ function Hotels() {
     try {
       console.log('editingHotel ahihi :', editingHotel);
       const response = await axios.put(
-        `${API_HOTELS}/${id}`,
+        `${API_HOTEL}/${id}`,
         {
           ...editingHotel,
           imageIds: editingHotel.imageIds,
@@ -214,7 +260,7 @@ function Hotels() {
     if (!confirmDelete) return;
     try {
 
-      await axios.delete(`${API_HOTELS}/${id}`, {
+      await axios.delete(`${API_HOTEL}/${id}`, {
         headers: {
           Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
         },
@@ -401,6 +447,26 @@ function Hotels() {
                   rows="3"
                 />
               </div>
+              <div className="md:col-span-2 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tiện ích khách sạn</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {availableAmenities.map((amenity) => (
+                    <div 
+                      key={amenity.id}
+                      className={`flex items-center p-2 border rounded-md cursor-pointer hover:bg-gray-50 ${
+                        newHotel.amenities.includes(amenity.id) ? 'bg-blue-50 border-blue-500' : ''
+                      }`}
+                      onClick={() => handleAmenityChange(amenity.id)}
+                    >
+                      <span className="text-gray-600 mr-2">{amenity.icon}</span>
+                      <span>{amenity.name}</span>
+                      {newHotel.amenities.includes(amenity.id) && (
+                        <span className="material-icons text-blue-500 ml-auto">check</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="md:col-span-2 flex justify-end">
                 
                 <button
@@ -579,6 +645,26 @@ function Hotels() {
                     rows="3"
                   />
                 </div>
+                <div className="md:col-span-2 mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tiện ích khách sạn</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {availableAmenities.map((amenity) => (
+                      <div 
+                        key={amenity.id}
+                        className={`flex items-center p-2 border rounded-md cursor-pointer hover:bg-gray-50 ${
+                          editingHotel.amenities?.includes(amenity.id) ? 'bg-blue-50 border-blue-500' : ''
+                        }`}
+                        onClick={() => handleAmenityChange(amenity.id, true)}
+                      >
+                        <span className="text-gray-600 mr-2">{amenity.icon}</span>
+                        <span>{amenity.name}</span>
+                        {editingHotel.amenities?.includes(amenity.id) && (
+                          <span className="material-icons text-blue-500 ml-auto">check</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <button
                     onClick={closeEditModal}
@@ -667,6 +753,24 @@ function Hotels() {
                       /đêm
                     </span>
                   </div>
+
+                  {/* Tiện ích */}
+                  {hotel.amenities && hotel.amenities.length > 0 && (
+                    <div className="w-full mt-2">
+                      <span className="font-semibold">Tiện ích: </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {hotel.amenities.map(amenityId => {
+                          const amenity = availableAmenities.find(a => a.id === amenityId);
+                          return amenity ? (
+                            <span key={amenityId} className="inline-flex items-center bg-gray-100 px-2 py-1 rounded-md text-xs">
+                              <span className="text-gray-600 text-xs mr-1">{amenity.icon}</span>
+                              {amenity.name}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Mô tả */}
                   <div className="Mo-ta text-[#667084] text-base font-normal font-['Inter'] leading-relaxed overflow-hidden flex-grow mt-2">

@@ -12,12 +12,18 @@ const List = () => {
   const { destination, dates, options, dispatch } = useContext(SearchContext);
   const [openDate, setOpenDate] = useState(false);
   const [min, setMin] = useState(0);
-  const [max, setMax] = useState(999);
+  const [max, setMax] = useState(999999999);
 
 
   const { data, loading, error, reFetch } = useFetch(
     `/hotels?city=${destination}&min=${min}&max=${max}`
   );
+
+  useEffect(() => {
+    console.log("Search data:", data);
+    console.log("Search error:", error);
+    console.log("Search params:", { destination, min, max });
+  }, [data, error, destination, min, max]);
 
   const handleDestinationChange = (e) => {
     dispatch({ type: "UPDATE_DESTINATION", payload: e.target.value });
@@ -28,6 +34,7 @@ const List = () => {
   };
 
   const handleClick = () => {
+    console.log("Searching with params:", { destination, min, max });
     //kiểm tra giá
     console.log("Min Price:", min);
     console.log("Max Price:", max);
@@ -124,10 +131,14 @@ const List = () => {
               "loading"
             ) : (
               <>
-                {Array.isArray(data) && data.length > 0 ? (
+                {console.log("Data in render:", data)}
+                {data && data.length > 0 ? (
                   data.map((item) => <SearchItem item={item} key={item._id} />)
                 ) : (
-                  <p>Không tìm thấy kết quả</p>
+                  <div>
+                    <p>Không tìm thấy kết quả</p>
+                    <p>Đã thử tìm: {destination} (giá từ {min} đến {max})</p>
+                  </div>
                 )}
               </>
             )}

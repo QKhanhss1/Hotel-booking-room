@@ -13,7 +13,8 @@ import {
   getReviewsByHotelId,
   getHotelsByType,
   getCitiesByQuery,
-  deleteReview
+  deleteReview,
+  getAllHotel
 } from "../controllers/hotel.js";
 import Hotel from "../models/Hotel.js";
 import { verifyAdmin, verifyUser } from "../utils/verifyToken.js";
