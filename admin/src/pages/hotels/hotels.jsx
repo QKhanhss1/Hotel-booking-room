@@ -377,6 +377,7 @@ const handleEditImageUpload = async () => {
 
         {/* Modal chỉnh sửa khách sạn */}
         <HotelEditModal
+          handleAmenityChange={handleAmenityChange}
           isEditModalOpen={isEditModalOpen}
           editingHotel={editingHotel}
           closeEditModal={closeEditModal}
