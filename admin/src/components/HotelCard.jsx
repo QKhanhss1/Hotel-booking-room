@@ -58,7 +58,23 @@ function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete }) {
                         /đêm
                     </span>
                 </div>
-
+                {/* Tiện ích */}
+                {hotel.amenities && hotel.amenities.length > 0 && (
+                    <div className="w-full mt-2">
+                        <span className="font-semibold">Tiện ích: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            {hotel.amenities.map(amenityId => {
+                                const amenity = availableAmenities.find(a => a.id === amenityId);
+                                return amenity ? (
+                                    <span key={amenityId} className="inline-flex items-center bg-gray-100 px-2 py-1 rounded-md text-xs">
+                                        <span className="text-gray-600 text-xs mr-1">{amenity.icon}</span>
+                                        {amenity.name}
+                                    </span>
+                                ) : null;
+                            })}
+                        </div>
+                    </div>
+                )}
                 <div className="Mo-ta text-[#667084] text-base font-normal font-['Inter'] leading-relaxed overflow-hidden flex-grow mt-2">
                     <span className="font-semibold">Mô tả: </span>
                     <span>{hotel.desc}</span>

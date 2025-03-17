@@ -12,7 +12,7 @@ function HotelEditModal({
     handleEditImageUpload,
     isImageUploading,
     setEditSelectedImages,
-    
+
 }) {
     const modalStyles = {
         overlay: {
@@ -161,13 +161,13 @@ function HotelEditModal({
                             />
                             {isImageUploading && <p>Đang tải ảnh...</p>}
                             <button
-                                onClick={handleEditImageUpload} 
+                                onClick={handleEditImageUpload}
                                 className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
                                 disabled={isImageUploading}
                             >
                                 Tải ảnh
                             </button>
-                            
+
                         </div>
                         <div className="md:col-span-2">
                             <textarea
@@ -180,6 +180,25 @@ function HotelEditModal({
                                 className="w-full p-2 border rounded-md"
                                 rows="3"
                             />
+                        </div>
+                        <div className="md:col-span-2 mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Tiện ích khách sạn</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {availableAmenities.map((amenity) => (
+                                    <div
+                                        key={amenity.id}
+                                        className={`flex items-center p-2 border rounded-md cursor-pointer hover:bg-gray-50 ${editingHotel.amenities?.includes(amenity.id) ? 'bg-blue-50 border-blue-500' : ''
+                                            }`}
+                                        onClick={() => handleAmenityChange(amenity.id, true)}
+                                    >
+                                        <span className="text-gray-600 mr-2">{amenity.icon}</span>
+                                        <span>{amenity.name}</span>
+                                        {editingHotel.amenities?.includes(amenity.id) && (
+                                            <span className="material-icons text-blue-500 ml-auto">check</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <div className="md:col-span-2 flex justify-end gap-2">
                             <button
