@@ -3,9 +3,12 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
-import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
+import { API_UPLOAD, API_HOTELS,API_HOTEL, API_IMAGES } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import HotelList from '../../components/HotelList';
+import HotelAddForm from '../../components/HotelAddForm';
+import HotelEditModal from '../../components/HotelEditModal';
 
 function Hotels() {
   const { user } = useContext(AuthContext);
@@ -27,12 +30,13 @@ function Hotels() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingHotel, setEditingHotel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [imageIds, setImageIds] = useState([]); // Store imageIds
+  const [imageIds, setImageIds] = useState([]);
+  const [editSelectedImages, setEditSelectedImages] = useState([]);
+  const [editImageIds, setEditImageIds] = useState([]);
 
   const navigate = useNavigate();
 
-
-  //fetch images
+  //fetch images (giữ nguyên hàm này)
   const fetchHotelImages = async (hotel) => {
     if (hotel.imageIds && hotel.imageIds.length > 0) {
       const images = await Promise.all(
@@ -54,11 +58,11 @@ function Hotels() {
   }
 
   const handleImageChange = (e) => {
-    console.log("e.target.files:", e.target.files);
-    setSelectedImages(Array.from(e.target.files)); // Chắc chắn e.target.files là một mảng
+    setSelectedImages(Array.from(e.target.files));
   };
 
   const handleCreate = async () => {
+    // ... (giữ nguyên logic handleCreate)
     try {
       if (
         !newHotel.name ||
@@ -95,7 +99,7 @@ function Hotels() {
         imageIds: imageIds, // Lưu mảng các ID ảnh
       };
       const response = await axios.post(
-        API_HOTELS,
+        API_HOTEL,
         newHotelData,
         {
           headers: {
@@ -136,21 +140,21 @@ function Hotels() {
     }
   };
 
+
+
   const handleUploadImage = async () => {
     try {
       setIsImageUploading(true);
-      console.log("selectedImages:", selectedImages);
 
       const formData = new FormData();
       selectedImages.forEach((image) => {
-        formData.append('images', image); // Sử dụng 'images'
+        formData.append('images', image);
       });
       const imageResponse = await axios.post(API_UPLOAD, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log(imageResponse);
       const imageIds = imageResponse.data.map((image) => image._id);
       setImageIds(imageIds);
       toast.success("Tải ảnh thành công!", {
@@ -166,7 +170,7 @@ function Hotels() {
         autoClose: 2000,
       });
     }
-  }
+  };
 
   const handleHotelClick = (hotelId) => {
     navigate(`/rooms/${hotelId}`);
@@ -174,22 +178,19 @@ function Hotels() {
 
   const handleUpdate = async (id) => {
     try {
-      console.log('editingHotel ahihi :', editingHotel);
       const response = await axios.put(
-        `${API_HOTELS}/${id}`,
+        `${API_HOTEL}/${id}`,
         {
           ...editingHotel,
-          imageIds: editingHotel.imageIds,
+          imageIds: imageIds,
         },
         {
           headers: {
-            Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+            Authorization: `Bearer ${user?.token}`,
           },
         }
       );
-      // console.log('response after update', response.data);
 
-      // Sau khi update thành công, fetch lại data
       const hotelsWithImage = await fetchHotelImages(response.data);
       setHotels((prevHotels) =>
         prevHotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel))
@@ -209,14 +210,14 @@ function Hotels() {
   };
 
   const handleDelete = async (id) => {
-    console.log("Xác nhận xóa khách sạn với ID:", id);
+    // ... (giữ nguyên logic handleDelete)
     const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa khách sạn này không?");
     if (!confirmDelete) return;
     try {
 
-      await axios.delete(`${API_HOTELS}/${id}`, {
+      await axios.delete(`${API_HOTEL}/${id}`, {
         headers: {
-          Authorization: `Bearer ${user?.token}`, // Sử dụng token từ ngữ cảnh
+          Authorization: `Bearer ${user?.token}`,
         },
       });
       setHotels(hotels.filter((hotel) => hotel._id !== id));
@@ -232,6 +233,35 @@ function Hotels() {
       });
     }
   };
+const handleEditImageUpload = async () => {
+        try {
+            setIsImageUploading(true);
+            const formData = new FormData();
+            editSelectedImages.forEach((image) => {
+                formData.append('images', image);
+            });
+            const imageResponse = await axios.post(API_UPLOAD, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            const newImageIds = imageResponse.data.map((image) => image._id);
+            // Cập nhật imageIds hiện tại bằng cách thêm các ID mới
+            setImageIds(prevImageIds => [...prevImageIds, ...newImageIds]);
+            toast.success("Tải ảnh thành công!", {
+                position: "top-center",
+                autoClose: 2000,
+            });
+            setIsImageUploading(false);
+        } catch (error) {
+            console.error("Lỗi tải ảnh:", error);
+            setIsImageUploading(false);
+            toast.error("Có lỗi xảy ra khi tải ảnh: " + error.message, {
+                position: "top-center",
+                autoClose: 2000,
+            });
+        }
+    };
   useEffect(() => {
     const fetchHotels = async () => {
       try {
@@ -249,10 +279,13 @@ function Hotels() {
     };
     fetchHotels();
   }, []);
-
+  
   const startEditing = (hotel) => {
     setEditingHotel(hotel);
     setIsEditModalOpen(true);
+    setImageIds(hotel.imageIds || []);
+    setSelectedImages([]);
+    setIsImageUploading(false);
   };
 
   const closeEditModal = () => {
@@ -260,24 +293,9 @@ function Hotels() {
     setIsEditModalOpen(false);
   };
 
-  const modalStyles = {
-    overlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      zIndex: 1000,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-  };
-
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className="w-full overflow-x-hidden" id="root">
       <Navbar />
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12" style={{ marginLeft: '220px' }}>
         <div className="flex justify-between items-center mb-12 px-4">
@@ -293,406 +311,43 @@ function Hotels() {
         </div>
 
         {/* Form thêm khách sạn */}
-        {showAddForm && (
-          <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <input
-                  type="text"
-                  placeholder="Tên khách sạn"
-                  value={newHotel.name}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, name: e.target.value })
-                  }
-                  disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Loại khách sạn"
-                  value={newHotel.type}
-                  onChange={(e) => setNewHotel({ ...newHotel, type: e.target.value })}
-                  disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Thành phố"
-                  value={newHotel.city}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, city: e.target.value })
-                  }
-                  disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Địa chỉ"
-                  value={newHotel.address}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, address: e.target.value })
-                  } disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Khoảng cách"
-                  value={newHotel.distance}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, distance: e.target.value })
-                  } disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Tiêu đề"
-                  value={newHotel.title}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, title: e.target.value })
-                  } disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <input
-                  type="number"
-                  placeholder="Đánh giá (1-5)"
-                  value={newHotel.rating}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, rating: e.target.value })
-                  } disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                  min="1"
-                  max="5"
-                />
-                <input
-                  type="number"
-                  placeholder="Giá rẻ nhất"
-                  value={newHotel.cheapestPrice}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, cheapestPrice: e.target.value })
-                  } disabled={isImageUploading}
-                  className="p-2 border rounded-md"
-                />
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleImageChange}
-                  className="p-2 border rounded-md"
-                  disabled={isImageUploading}
-                />
-                {isImageUploading && <p>Đang tải ảnh...</p>}  {/* Hiển thị loading */}
-                <button
-                      onClick={handleUploadImage}
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                      disabled={isImageUploading}
-                  >
-                      Tải ảnh
-                  </button>
-              </div>
-              <div className="md:col-span-2">
-                <textarea
-                  placeholder="Mô tả"
-                  value={newHotel.desc}
-                  onChange={(e) =>
-                    setNewHotel({ ...newHotel, desc: e.target.value })
-                  } disabled={isImageUploading}
-                  className="w-full p-2 border rounded-md"
-                  rows="3"
-                />
-              </div>
-              <div className="md:col-span-2 flex justify-end">
-                
-                <button
-                  onClick={handleCreate}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                  disabled={isImageUploading || selectedImages.length === 0}
-                >
-                  Thêm Khách Sạn
-                </button>
-                {isImageUploading && (
-                  <p>Xin vui lòng chờ ảnh được tải lên trước khi tạo khách sạn!</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <HotelAddForm
+          showAddForm={showAddForm}
+          setShowAddForm={setShowAddForm}
+          newHotel={newHotel}
+          setNewHotel={setNewHotel}
+          handleImageChange={handleImageChange}
+          handleUploadImage={handleUploadImage}
+          isImageUploading={isImageUploading}
+          selectedImages={selectedImages}
+          handleCreate={handleCreate}
+          imageIds={imageIds}
+          setImageIds={setImageIds}
+        />
 
+        {/* Modal chỉnh sửa khách sạn */}
+        <HotelEditModal
+          isEditModalOpen={isEditModalOpen}
+          editingHotel={editingHotel}
+          closeEditModal={closeEditModal}
+          setEditingHotel={setEditingHotel}
+          handleUpdate={handleUpdate}
+          handleImageChange={handleImageChange}
+          handleEditImageUpload={handleEditImageUpload}
+          isImageUploading={isImageUploading}
+          editSelectedImages={editSelectedImages}
+          editImageIds={editImageIds}
+          setImageIds={setImageIds}
+          setEditSelectedImages={setEditSelectedImages} 
+        />
 
-        {/* Form chỉnh sửa khách sạn */}
-        {isEditModalOpen && editingHotel && (
-          <div style={modalStyles.overlay} onClick={closeEditModal}>
-            <div
-              className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Chỉnh sửa khách sạn</h2>
-                <button
-                  onClick={closeEditModal}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    placeholder="Tên khách sạn"
-                    value={editingHotel.name}
-                    onChange={(e) =>
-                      setEditingHotel({ ...editingHotel, name: e.target.value })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Loại"
-                    value={editingHotel.type}
-                    onChange={(e) =>
-                      setEditingHotel({ ...editingHotel, type: e.target.value })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Thành phố"
-                    value={editingHotel.city}
-                    onChange={(e) =>
-                      setEditingHotel({ ...editingHotel, city: e.target.value })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Địa chỉ"
-                    value={editingHotel.address}
-                    onChange={(e) =>
-                      setEditingHotel({
-                        ...editingHotel,
-                        address: e.target.value,
-                      })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Khoảng cách"
-                    value={editingHotel.distance}
-                    onChange={(e) =>
-                      setEditingHotel({
-                        ...editingHotel,
-                        distance: e.target.value,
-                      })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tiêu đề"
-                    value={editingHotel.title}
-                    onChange={(e) =>
-                      setEditingHotel({
-                        ...editingHotel,
-                        title: e.target.value,
-                      })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="number"
-                    placeholder="Đánh giá (1-5)"
-                    value={editingHotel.rating}
-                    onChange={(e) =>
-                      setEditingHotel({
-                        ...editingHotel,
-                        rating: e.target.value,
-                      })
-                    }
-                    className="p-2 border rounded-md"
-                    min="1"
-                    max="5"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Giá rẻ nhất"
-                    value={editingHotel.cheapestPrice}
-                    onChange={(e) =>
-                      setEditingHotel({
-                        ...editingHotel,
-                        cheapestPrice: e.target.value,
-                      })
-                    }
-                    className="p-2 border rounded-md"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files);
-                      console.log('files', files);
-                      if (files && files.length > 0) {
-                        const formData = new FormData();
-                        files.forEach((file) => {
-                          formData.append("images", file);
-                        });
-                        console.log('formData', formData)
-                        try {
-                          const response = await axios.post(
-                            API_UPLOAD,
-                            formData,
-                            {
-                              headers: {
-                                "Content-Type": "multipart/form-data",
-                              },
-                            }
-                          );
-                          const newImageIds = response.data.map(image => image._id);
-
-                          setEditingHotel({
-                            ...editingHotel,
-                            imageIds: editingHotel.imageIds ? [...editingHotel.imageIds, ...newImageIds] : [...newImageIds],
-                          });
-                          console.log("🚀 ~ onChange={ ~ editingHotel:", editingHotel)
-                          // console.log("editingHotel.imageIds (after):", editingHotel.imageIds);
-                        } catch (error) {
-                          console.error("Error uploading image:", error);
-                        }
-                      }
-                    }}
-                    className="p-2 border rounded-md"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <textarea
-                    placeholder="Mô tả"
-                    value={editingHotel.desc}
-                    onChange={(e) =>
-                      setEditingHotel({ ...editingHotel, desc: e.target.value })
-                    }
-                    className="w-full p-2 border rounded-md"
-                    rows="3"
-                  />
-                </div>
-                <div className="md:col-span-2 flex justify-end gap-2">
-                  <button
-                    onClick={closeEditModal}
-                    className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={() => handleUpdate(editingHotel._id)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Cập nhật
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="Room w-full max-w-full mx-auto px-2 flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-8 auto-rows-fr">
-            {hotels.map((hotel) => (
-              <div
-                key={hotel._id}
-                className="Room-1 flex-col justify-start items-start gap-2 flex px-2"
-              >
-                <div className="flex flex-col items-center h-full w-full">
-                  <img
-                    className="Image h-60 relative w-full object-cover rounded-lg"
-                    src={Array.isArray(hotel.images) ? hotel.images[0] : null}
-                    alt={hotel.name}
-                    onClick={() => handleHotelClick(hotel._id)}
-                  />
-                  <div className="Name text-[#1a1a1a] text-xl font-semibold font-['Inter'] leading-loose text-center w-full">
-                    {hotel.name}
-                  </div>
-
-                  {/* Loại khách sạn */}
-                  <div className="Type flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Loại khách sạn:</span>
-                    <span>{hotel.type}</span>
-                  </div>
-
-                  {/* Thành phố */}
-                  <div className="City flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Thành phố:</span>
-                    <span>{hotel.city}</span>
-                  </div>
-
-                  {/* Địa chỉ */}
-                  <div className="Address flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Địa chỉ:</span>
-                    <span>{hotel.address}</span>
-                  </div>
-
-                  {/* Khoảng cách */}
-                  <div className="Distance flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Khoảng cách:</span>
-                    <span>{hotel.distance}</span>
-                  </div>
-
-                  {/* Tiêu đề */}
-                  <div className="Title flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Tiêu đề:</span>
-                    <span>{hotel.title}</span>
-                  </div>
-
-                  {/* Đánh giá */}
-                  <div className="Rating flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Đánh giá:</span>
-                    <span className="text-yellow-500">
-                      {"★".repeat(Math.floor(hotel.rating))}
-                      {"☆".repeat(5 - Math.floor(hotel.rating))}
-                    </span>
-                    <span>({hotel.rating}/5)</span>
-                  </div>
-
-                  {/* Giá rẻ nhất */}
-                  <div className="LowestPrice flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
-                    <span className="font-semibold">Giá từ:</span>
-                    <span className="text-blue-600 font-semibold">
-                      {new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      }).format(hotel.cheapestPrice)}
-                      /đêm
-                    </span>
-                  </div>
-
-                  {/* Mô tả */}
-                  <div className="Mo-ta text-[#667084] text-base font-normal font-['Inter'] leading-relaxed overflow-hidden flex-grow mt-2">
-                    <span className="font-semibold">Mô tả: </span>
-                    <span>{hotel.desc}</span>
-                  </div>
-
-                  <div className="flex gap-6 mt-auto pt-4">
-                    <button
-                      onClick={() => startEditing(hotel)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(hotel._id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors text-sm"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Danh sách khách sạn */}
+        <HotelList
+          hotels={hotels}
+          handleHotelClick={handleHotelClick}
+          startEditing={startEditing}
+          handleDelete={handleDelete}
+        />
       </div>
       <ToastContainer
         position="top-center"

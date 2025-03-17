@@ -1,0 +1,119 @@
+[
+  {
+    "question": "Tôi có thể yêu cầu thay đổi tên khách lưu trú cho đặt phòng này không?",
+    "answer": "Bạn không thể đổi bất cứ thông tin cá nhân nào như tên khách hay địa chỉ email."
+  },
+  {
+    "question": "Làm sao để yêu cầu dịch vụ bổ sung ở chỗ nghỉ?",
+    "answer": "Nếu bạn muốn yêu cầu dịch vụ bổ sung như giường bổ sung, nhận phòng sớm hay phương tiện đến chỗ nghỉ, vui lòng liên hệ trực tiếp chỗ nghỉ 1 - 2 ngày trước khi đến. Các yêu cầu không đảm bảo có thể được đáp ứng, nhưng chỗ nghỉ sẽ có thể hỗ trợ bạn."
+  },
+  {
+    "question": "Tôi có thể sử dụng coupon hoặc đường link khuyến mãi để thực hiện đặt phòng này không?",
+    "answer": "Không, bạn không thể kết hợp đặt phòng này với bất cứ tặng thưởng hay chương trình ưu đãi nào khác. Ngay cả khi bạn dùng đường dẫn duy nhất hoặc mã duy nhất để đặt, bạn cũng không được trao thưởng cho kỳ lưu trú này."
+  },
+  {
+    "question": "Đặt phòng của tôi vẫn chưa được xác nhận. Tôi phải làm gì?",
+    "answer": "Trong vòng vài phút, bạn sẽ nhận được email thông báo nếu đặt phòng của bạn được xác nhận. Vui lòng kiểm tra cả hộp thư rác của bạn. Nếu vẫn không thấy email, vui lòng liên hệ với đội ngũ Dịch vụ Khách hàng của chúng tôi."
+  },
+  {
+    "question": "Tôi có thể dùng tín dụng để thực hiện đặt phòng này không?",
+    "answer": "Không, bạn không thể dùng tín dụng du lịch cho đặt phòng được hỗ trợ bởi các công ty đối tác. Vui lòng chọn phòng hoặc giá khác."
+  },
+  {
+    "question": "Đặt phòng của tôi có bữa ăn không?",
+    "answer": "Email xác nhận của bạn sẽ ghi rõ bữa ăn có bao gồm trong đặt phòng hay không. Tùy thuộc vào chỗ nghỉ, bạn có thể thêm gói bữa ăn khi đến. Vui lòng liên hệ trực tiếp với chỗ nghỉ 1 - 2 ngày trước kỳ lưu trú để tìm hiểu thêm."
+  },
+  {
+    "question": "Tôi có thể hủy đặt phòng không?",
+    "answer": "Nếu là đặt phòng không hoàn tiền, bạn không thể hủy. Nếu là đặt phòng hủy miễn phí hoặc hoàn tiền một phần, vui lòng kiểm tra email xác nhận hoặc trang xác nhận dưới mục \"Đặt phòng\" của tài khoản để xem chi phí hủy."
+  },
+  {
+    "question": "Làm sao để thêm đặt phòng vào tài khoản của tôi?",
+    "answer": "Rất tiếc, bạn không thể thêm đặt phòng này vào tài khoản của mình. Chúng tôi đang tìm cách để hiện thực hóa việc này trong tương lai."
+  },
+  {
+    "question": "Đặt phòng của tôi đã bị hủy, khi nào tôi sẽ được hoàn tiền?",
+    "answer": "Nếu đặt phòng của bạn đã bị hủy, Chúng tôi sẽ hoàn tiền ngay lập tức. Thời gian xử lý có thể mất từ 7 - 12 ngày và tùy thuộc vào ngân hàng của bạn. Nếu bạn có câu hỏi gì khác, hãy liên hệ trực tiếp với ngân hàng của bạn."
+  },
+  {
+    "question": "Tôi có thể yêu cầu gửi lại email xác nhận không?",
+    "answer": "Chúng tôi luôn gửi lại email xác nhận vài ngày trước khi nhận phòng. Nếu bạn có tài khoản, bạn cũng có thể tìm thấy xác nhận trong mục \"Đặt phòng\" trong tài khoản của mình. Nếu bạn vẫn muốn chúng tôi gửi lại email xác nhận, vui lòng liên hệ với đội ngũ Dịch vụ Khách hàng của chúng tôi."
+  },
+  {
+    "question": "Tôi không thể tìm thấy email xác nhận của mình. Tôi phải làm gì?",
+    "answer": "Đầu tiên, hãy kiểm tra hộp thư và hộp thư rác để tìm những email này, vì thư có thể được chuyển nhầm vào hộp thư rác. Nếu bạn có tài khoản , bạn cũng có thể tìm thấy xác nhận trong mục \"Đặt phòng\" trong tài khoản của mình."
+  },
+  {
+    "question": "Vì sao tôi phải đợi xác nhận đặt phòng và tôi phải đợi trong bao lâu?",
+    "answer": "Chúng tôi sẽ cần kiểm tra với công ty đối tác để đảm bảo lựa chọn của bạn vẫn còn phòng trống. Chúng tôi sẽ cố gắng hết sức để thông báo cho bạn trong vòng 2 phút qua email. Vui lòng kiểm tra cả hộp thư rác, trong trường hợp email có thể được chuyển nhầm vào đó."
+  },
+  {
+    "question": "Tôi đã thanh toán cho đặt phòng nhưng chưa nhận được email xác nhận. Tôi phải làm gì?",
+    "answer": "Bạn sẽ nhận được email xác nhận sau khi đặt phòng thành công. Quá trình này chỉ mất khoảng 2 phút nhưng đôi khi có thể lâu hơn. Vui lòng kiểm tra cả hộp thư rác của bạn vì email có thể được chuyển nhầm vào đó. Nếu bạn vẫn chưa nhận được email nào, hãy liên hệ với đội ngũ Dịch vụ Khách hàng của chúng tôi."
+  },
+  {
+    "question": "Đặt phòng của tôi đã bị từ chối hoặc hủy, tôi phải làm gì?",
+    "answer": "Vì đặt phòng này được hỗ trợ xử lý bởi công ty đối tác, chỗ nghỉ có thể bị quá tải đặt phòng. Nếu điều đó xảy ra, đối tác sẽ cho chúng tôi biết. Sau đó, chúng tôi sẽ hoàn tiền cho bạn và hủy đặt phòng.Thời gian xử lý có thể mất 7 - 10 ngày và tùy thuộc vào ngân hàng của bạn. Nếu bạn có câu hỏi, hãy liên hệ trực tiếp với ngân hàng của mình."
+  },
+  {
+    "question": "Tôi bị trừ tiền sai. Tôi phải làm gì?",
+    "answer": "Nếu bạn đã bị trừ tiền sai: Vui lòng vào trang Trung tâm Trợ giúp. Chúng tôi có thể sẽ cần một bản sao sao kê ngân hàng, thể hiện khoản thu không chính xác, mã xác nhận đặt phòng và mã PIN.Nếu bạn đã bị chỗ nghỉ trừ tiền sai: Vui lòng liên hệ trực tiếp với chỗ nghỉ để được trợ giúp."
+  },
+  {
+    "question": "Khi đến nơi, phòng/chỗ nghỉ của tôi không giống với những gì được đăng khi tôi đặt. Tôi phải làm gì trong trường hợp này?",
+    "answer": "Vui lòng vào trang Trung tâm Trợ giúp. Bạn có thể cần gửi cho đội ngũ Dịch vụ Khách hàng của chúng tôi ảnh chụp màn hình thông tin sai lệch và nếu bạn phải thanh toán bất cứ phụ phí nào, hãy đính kèm hóa đơn làm bằng chứng thanh toán."
+  },
+  {
+    "question": "Nếu tôi cần hủy đặt phòng của mình, tôi có phải trả phí không?",
+    "answer": "Nếu là đặt phòng không hoàn tiền, bạn không thể hủy hay chỉnh sửa. Nếu là đặt phòng hủy miễn phí hoặc hoàn tiền một phần ."
+  },
+
+  {
+    "question": "Làm sao tôi biết đặt phòng của mình đã được hủy hay chưa?",
+    "answer": "Sau khi bạn hủy đặt phòng với chúng tôi, bạn sẽ nhận được email xác nhận hủy. Hãy kiểm tra hộp thư và hộp thư rác của bạn.Nếu bạn nhận được email hủy đặt phòng từ chúng tôi , đặt phòng của bạn đã bị hủy và chúng tôi đã hoàn tiền cho bạn. Thời gian xử lý phụ thuộc vào ngân hàng của bạn. Nếu bạn có thắc mắc gì, hãy liên hệ trực tiếp với ngân hàng của bạn."
+  },
+  {
+    "question": "Tôi có thể yêu cầu giường phụ/nôi cho trẻ em không?",
+    "answer": "Điều này tùy thuộc vào chính sách của chỗ nghỉ. Thông thường, phụ phí cho trẻ em (bao gồm giường phụ hoặc nôi/cũi) không bao gồm trong giá. Vui lòng liên hệ trực tiếp với chỗ nghỉ 1 - 2 ngày trước kỳ lưu trú để tìm hiểu thêm."
+  },
+  {
+    "question": "Chỗ nghỉ bị quá tải và/hoặc không tìm thấy đặt phòng của tôi. Tôi nên làm gì?",
+    "answer": "Hãy vào trang Trung tâm Trợ giúp ngay khi có thể."
+  },
+  {
+    "question": "Tôi đã được thu tiền rồi. Tôi có cần làm gì nữa không?",
+    "answer": "Không, bạn không cần phải làm gì cả. Chúng tôi thu tiền đặt phòng của bạn theo giá đặt phòng. Nếu có thêm các thuế phí bổ sung, thông tin này sẽ được hiển thị trong trang chỗ nghỉ."
+  },
+  {
+    "question": "Liệu tôi có phải trả phí phát sinh nào khi đến không?",
+    "answer": "Đôi khi bạn sẽ phải trả tiền thuế và phí khi đến. Trong trường hợp này, khoản tiền cần trả sẽ được cho biết trước khi bạn đặt và ghi trong email xác nhận. Nếu không được cho biết trước, bạn không phải thanh toán bất kỳ khoản nào khi đến.Nếu chỗ nghỉ yêu cầu bạn thanh toán và bạn tin rằng số tiền này là không chính xác, vui lòng vào trang Trung tâm Trợ giúp để được hỗ trợ thêm."
+  },
+  {
+    "question": "Làm sao để yêu cầu nhận hay trả phòng trái giờ?",
+    "answer": "Nếu bạn muốn yêu cầu nhận hay trả phòng trái giờ, vui lòng liên hệ trực tiếp chỗ nghỉ 1 - 2 ngày trước khi đến. Các yêu cầu không đảm bảo có thể được đáp ứng, nhưng chỗ nghỉ sẽ có thể hỗ trợ bạn."
+  },
+  {
+    "question": "Tôi có thể dùng đặt phòng này để lên cấp Genius hay chương trình thành viên không?",
+    "answer": "Không, đặt phòng này sẽ không được tính vào đặt phòng Genius hay cấp độ chương trình thành viên."
+  },
+  {
+    "question": "Tôi có thể tìm chính sách hủy ở đâu?",
+    "answer": "Bạn có thể tìm thấy chính sách hủy trong email xác nhận đặt phòng."
+  },
+  {
+    "question": "Tôi có thể kiểm tra để xác nhận mình đã thanh toán như thế nào?",
+    "answer": "Bạn có thể tìm thấy xác nhận thanh toán trong email xác nhận của mình. Trong email cũng có một lựa chọn để tải xác nhận thanh toán theo định dạng PDF."
+  },
+  {
+    "question": "Tôi có thể thay đổi đặt phòng của mình không?",
+    "answer": "Bạn không thể đổi bất cứ thông tin nào trong đặt phòng của mình, bao gồm các hành động như thay đổi ngày lưu trú, tên khách hay địa chỉ email."
+  },
+  {
+    "question": "Tôi không thể tìm thấy đặt phòng trong tài khoản của mình. Tôi phải làm gì?",
+    "answer": "Nếu bạn đặt phòng khi đã đăng nhập, đặt phòng sẽ tự động hiển thị trong mục Các đặt phòng trong tài khoản của bạn.Nếu bạn không đăng nhập khi đặt phòng, thì đặt phòng có thể sẽ không hiển thị và bạn không thể thêm đặt phòng này vào tài khoản của mình.Nếu bạn không có tài khoản hoặc không đăng nhập khi đặt phòng, vui lòng kiểm tra email để thấy email xác nhận."
+  },
+  {
+    "question": "Làm sao để biết thêm thông tin về các tiện nghi của chỗ nghỉ?",
+    "answer": "Nhấp vào tên chỗ nghỉ ở trang xác nhận để truy cập trang chỗ nghỉ. Bạn sẽ thấy danh sách đầy đủ các tiện nghi của chỗ nghỉ tại đây."
+  }
+]
