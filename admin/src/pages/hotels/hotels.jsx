@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
 import { API_UPLOAD, API_HOTELS,API_HOTEL, API_IMAGES } from '../../utils/apiConfig';
+import { API_UPLOAD, API_HOTEL, API_IMAGES, API_HOTELS } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import HotelList from '../../components/HotelList';
@@ -24,6 +25,7 @@ function Hotels() {
     distance: "",
     title: "",
     photos: null,
+    amenities: [],
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [isImageUploading, setIsImageUploading] = useState(false);
@@ -37,6 +39,52 @@ function Hotels() {
   const navigate = useNavigate();
 
   //fetch images (giữ nguyên hàm này)
+  // Danh sách các tiện ích phổ biến
+  const availableAmenities = [
+    { id: "wifi", name: "WiFi", icon: "📶" },
+    { id: "parking", name: "Chỗ đậu xe", icon: "🅿️" },
+    { id: "pool", name: "Hồ bơi", icon: "🏊" },
+    { id: "gym", name: "Phòng tập thể dục", icon: "🏋️" },
+    { id: "restaurant", name: "Nhà hàng", icon: "🍴" },
+    { id: "ac", name: "Điều hòa", icon: "🌡️" },
+    { id: "spa", name: "Spa", icon: "💆" },
+    { id: "meeting", name: "Phòng họp", icon: "🤝" },
+    { id: "bar", name: "Quầy bar", icon: "🍸" },
+    { id: "laundry", name: "Giặt ủi", icon: "🧺" },
+    { id: "roomService", name: "Dịch vụ phòng", icon: "🛏️" },
+    { id: "childFriendly", name: "Thân thiện với trẻ em", icon: "👶" },
+    { id: "petFriendly", name: "Cho phép thú cưng", icon: "🐾" },
+    { id: "breakfast", name: "Bữa sáng", icon: "🥣" },
+    { id: "tv", name: "TV", icon: "📺" },
+    { id: "shuttle", name: "Đưa đón sân bay", icon: "🛫" },
+  ];
+
+  // Hàm xử lý khi chọn/bỏ chọn tiện ích
+  const handleAmenityChange = (amenityId, isEdit = false) => {
+    if (isEdit) {
+      // Xử lý cho form chỉnh sửa
+      const updatedAmenities = editingHotel.amenities?.includes(amenityId)
+        ? editingHotel.amenities.filter(id => id !== amenityId)
+        : [...(editingHotel.amenities || []), amenityId];
+      
+      setEditingHotel({
+        ...editingHotel,
+        amenities: updatedAmenities
+      });
+    } else {
+      // Xử lý cho form thêm mới
+      const updatedAmenities = newHotel.amenities.includes(amenityId)
+        ? newHotel.amenities.filter(id => id !== amenityId)
+        : [...newHotel.amenities, amenityId];
+      
+      setNewHotel({
+        ...newHotel,
+        amenities: updatedAmenities
+      });
+    }
+  };
+
+  //fetch images
   const fetchHotelImages = async (hotel) => {
     if (hotel.imageIds && hotel.imageIds.length > 0) {
       const images = await Promise.all(
@@ -121,6 +169,7 @@ function Hotels() {
         distance: "",
         title: "",
         photos: null,
+        amenities: [],
       });
       setSelectedImages([]);
       setImageIds([]);
@@ -312,6 +361,7 @@ const handleEditImageUpload = async () => {
 
         {/* Form thêm khách sạn */}
         <HotelAddForm
+          handleAmenityChange={handleAmenityChange}
           showAddForm={showAddForm}
           setShowAddForm={setShowAddForm}
           newHotel={newHotel}

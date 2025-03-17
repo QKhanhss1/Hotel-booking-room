@@ -64,12 +64,28 @@ export const getHotel = async (req, res, next) => {
   }
 };
 export const getHotels = async (req, res, next) => {
-  const { min, max, ...others } = req.query;
+  const { min, max, city, ...others } = req.query;
   try {
-    const hotels = await Hotel.find({
-      ...others,
-      cheapestPrice: { $gte: min || 0, $lte: max || 999 },
-    }).populate('imageIds')
+    // Tạo đối tượng tìm kiếm
+    let query = {};
+    
+    // Xử lý tất cả các tham số khác
+    Object.keys(others).forEach(key => {
+      query[key] = others[key];
+    });
+    
+    // Thêm điều kiện lọc giá
+    query.cheapestPrice = { 
+      $gte: min || 0, 
+      $lte: max || 99999999 
+    };
+    
+    // Xử lý tìm kiếm city không phân biệt hoa thường và dấu
+    if (city) {
+      query.city = { $regex: new RegExp(city, "i") };
+    }
+    
+    const hotels = await Hotel.find(query).populate('imageIds');
     res.status(200).json(hotels);
   } catch (err) {
     next(err);

@@ -50,6 +50,10 @@ const HotelSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  amenities: {
+    type: [String],
+    default: []
+  },
   reviews: [reviewSchema],
   numReviews: {
     type: Number,

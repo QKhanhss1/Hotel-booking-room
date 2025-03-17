@@ -29,6 +29,8 @@ function Rooms() {
     desc: "",
     roomNumbers: [],
     images: [],
+    amenities: [],
+    roomSize: "30",
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
@@ -41,9 +43,27 @@ function Rooms() {
     desc: "",
     roomNumbers: [],
     existingImages: [],
-    newImages: []
+    newImages: [],
+    amenities: [],
+    roomSize: "30",
   });
   const [currentImages, setCurrentImages] = useState([]);
+  
+  // Danh sách các tiện ích có thể chọn
+  const availableAmenities = [
+    { id: 'wifi', label: 'WiFi miễn phí' },
+    { id: 'breakfast', label: 'Bữa sáng' },
+    { id: 'pool', label: 'Hồ bơi' },
+    { id: 'spa', label: 'Spa' },
+    { id: 'parking', label: 'Bãi đậu xe' },
+    { id: 'ac', label: 'Máy điều hòa' },
+    { id: 'tv', label: 'TV' },
+    { id: 'minibar', label: 'Minibar' },
+    { id: 'coffee', label: 'Máy pha cà phê' },
+    { id: 'no-smoking', label: 'Không hút thuốc' },
+    { id: 'balcony', label: 'Ban công' },
+    { id: 'bathtub', label: 'Bồn tắm' },
+  ];
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -69,7 +89,9 @@ function Rooms() {
     setEditRoom({
       ...room,
       roomNumbers: room.roomNumbers.map(r => r.number),
-      existingImages: room.images
+      existingImages: room.images,
+      amenities: room.amenities || [],
+      roomSize: room.roomSize || "30"
     });
     setIsModalOpen(true);
   };
@@ -148,6 +170,16 @@ function Rooms() {
     };
   }, [imagePreview]);
 
+  // Thêm console.log để debug dữ liệu ảnh
+  useEffect(() => {
+    if (rooms.length > 0) {
+      console.log("Room image data sample:", {
+        room: rooms[0].title,
+        imageIds: rooms[0].imageIds
+      });
+    }
+  }, [rooms]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -186,6 +218,7 @@ function Rooms() {
         response.data.map(img => img._id)
       );
 
+      // Sửa endpoint URL để match với parameter trong controller
       const endpoint = `${API_ROOMS}/hotel/${hotelId}`;
       console.log('API Endpoint:', endpoint);
 
@@ -199,8 +232,11 @@ function Rooms() {
           unavailableDates: []
         })),
         imageIds: imageIds,
-        hotelId: hotelId
+        amenities: newRoom.amenities,
+        roomSize: newRoom.roomSize
       };
+
+      console.log('Room data being sent:', roomData);
 
       const res = await axios.post(endpoint, roomData, {
         headers: {
@@ -227,13 +263,26 @@ function Rooms() {
   };
 
   const resetForm = () => {
+    setNewRoom({
+      title: "",
+      price: "",
+      maxPeople: "",
+      desc: "",
+      roomNumbers: [],
+      images: [],
+      amenities: [],
+      roomSize: "30"
+    });
+    
     setEditRoom({
       title: "",
       price: "",
       maxPeople: "",
       desc: "",
       roomNumbers: [],
-      existingImages: []
+      existingImages: [],
+      amenities: [],
+      roomSize: "30"
     });
 
     // Giải phóng URL objects
@@ -255,6 +304,24 @@ function Rooms() {
         ...prev,
         [name]: value,
       }));
+    }
+  };
+
+  const handleAmenityChange = (amenityId) => {
+    if (isEditing) {
+      setEditRoom(prev => {
+        const updatedAmenities = prev.amenities.includes(amenityId)
+          ? prev.amenities.filter(item => item !== amenityId)
+          : [...prev.amenities, amenityId];
+        return { ...prev, amenities: updatedAmenities };
+      });
+    } else {
+      setNewRoom(prev => {
+        const updatedAmenities = prev.amenities.includes(amenityId)
+          ? prev.amenities.filter(item => item !== amenityId)
+          : [...prev.amenities, amenityId];
+        return { ...prev, amenities: updatedAmenities };
+      });
     }
   };
 
@@ -286,7 +353,9 @@ function Rooms() {
           number: parseInt(number),
           unavailableDates: []
         })),
-        imageIds: allImageIds
+        imageIds: allImageIds,
+        amenities: editRoom.amenities,
+        roomSize: editRoom.roomSize
       };
 
       console.log('Update room data:', roomData);
@@ -390,158 +459,17 @@ function Rooms() {
   // Hàm mở modal sửa
   const handleEdit = (room) => {
     console.log("Room data for edit:", room);
-    setEditRoom(room);
+    setEditRoom({
+      ...room,
+      roomNumbers: room.roomNumbers.map(r => r.number), 
+      amenities: room.amenities || [],
+      roomSize: room.roomSize || "30"
+    });
     setEditingRoom(room);
     setCurrentImages(room.imageIds || []);
     setSelectedImages([]);
     setIsEditing(true);
     setIsModalOpen(true);
-  };
-
-  const EditRoomForm = () => {
-    return (
-      <div className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Sửa Phòng</h2>
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Tên phòng"
-            value={editRoom.title}
-            onChange={(e) => setEditRoom({...editRoom, title: e.target.value})}
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="number"
-            placeholder="Giá"
-            value={editRoom.price}
-            onChange={(e) => setEditRoom({...editRoom, price: e.target.value})}
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="number"
-            placeholder="Số người tối đa"
-            value={editRoom.maxPeople}
-            onChange={(e) => setEditRoom({...editRoom, maxPeople: e.target.value})}
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="text"
-            name="roomNumbers"
-            value={editRoom.roomNumbers.map(room => room.number).join(',')}
-            onChange={(e) => {
-              setEditRoom({
-                ...editRoom,
-                roomNumbers: e.target.value.split(',').map(num => ({
-                  number: parseInt(num.trim()),
-                  unavailableDates: []
-                }))
-              });
-            }}
-            placeholder="Số phòng (phân cách bằng dấu phẩy)"
-            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
-          />
-          <textarea
-            placeholder="Mô tả"
-            value={editRoom.desc}
-            onChange={(e) => setEditRoom({...editRoom, desc: e.target.value})}
-            className="w-full p-2 border rounded"
-          />
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ảnh hiện tại
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {currentImages.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={image.url || `${API_IMAGES}/${image}`}
-                    alt={`Room ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                    onError={(e) => {
-                      console.error('Image load error:', e);
-                      e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                      e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
-                    }}
-                  />
-                  <button
-                    onClick={() => handleRemoveImage(image)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Thêm ảnh mới
-            </label>
-            <input
-              type="file"
-              multiple
-              onChange={handleImageChange}
-              className="w-full"
-              accept="image/*"
-            />
-          </div>
-
-          {selectedImages.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ảnh mới đã chọn
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {selectedImages.map((file, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => {
-                        setSelectedImages(selectedImages.filter((_, i) => i !== index));
-                      }}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 flex justify-end space-x-3">
-          <button
-            onClick={() => {
-              setIsModalOpen(false);
-              setIsEditing(false);
-              resetForm();
-            }}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Hủy
-          </button>
-          <button
-            onClick={() => {
-              if (!editingRoom?._id) {
-                console.error("No room id found");
-                return;
-              }
-              updateRoom(editingRoom._id);
-            }}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          >
-            Cập nhật
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -558,7 +486,7 @@ function Rooms() {
         )}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-lg w-full max-w-md">
+            <div className="bg-white p-8 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-semibold mb-4">
                 {isEditing ? "Sửa Phòng" : "Thêm Phòng Mới"}
               </h2>
@@ -606,18 +534,36 @@ function Rooms() {
                   placeholder="Số người tối đa"
                   className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
                 />
+                <div className="flex gap-4">
+                  <input
+                    type="number"
+                    name="roomSize"
+                    value={isEditing ? editRoom.roomSize : newRoom.roomSize}
+                    onChange={(e) => {
+                      if (isEditing) {
+                        setEditRoom({...editRoom, roomSize: e.target.value});
+                      } else {
+                        setNewRoom({...newRoom, roomSize: e.target.value});
+                      }
+                    }}
+                    placeholder="Kích thước phòng (m²)"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
+                  />
+                  <span className="flex items-center text-lg">m²</span>
+                </div>
                 <input
                   type="text"
                   name="roomNumbers"
-                  value={isEditing ? editRoom.roomNumbers.map(room => room.number).join(',') : newRoom.roomNumbers}
+                  value={isEditing 
+                    ? (Array.isArray(editRoom.roomNumbers) 
+                        ? editRoom.roomNumbers.join(',') 
+                        : editRoom.roomNumbers.map(r => r.number).join(','))
+                    : newRoom.roomNumbers.join(',')}
                   onChange={(e) => {
                     if (isEditing) {
                       setEditRoom({
                         ...editRoom,
-                        roomNumbers: e.target.value.split(',').map(num => ({
-                          number: parseInt(num.trim()),
-                          unavailableDates: []
-                        }))
+                        roomNumbers: e.target.value.split(',').map(num => num.trim())
                       });
                     } else {
                       handleInputChange(e);
@@ -640,32 +586,69 @@ function Rooms() {
                   className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-lg"
                 />
 
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tiện nghi phòng
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableAmenities.map((amenity) => (
+                      <div key={amenity.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`amenity-${amenity.id}`}
+                          checked={isEditing 
+                            ? editRoom.amenities.includes(amenity.id)
+                            : newRoom.amenities.includes(amenity.id)
+                          }
+                          onChange={() => handleAmenityChange(amenity.id)}
+                          className="mr-2 h-4 w-4"
+                        />
+                        <label htmlFor={`amenity-${amenity.id}`}>{amenity.label}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {isEditing && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Ảnh hiện tại
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {currentImages.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image.url || `${API_IMAGES}/${image}`}
-                            alt={`Room ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                            onError={(e) => {
-                              console.error('Image load error:', e);
-                              e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                              e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
-                            }}
-                          />
-                          <button
-                            onClick={() => handleRemoveImage(image)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+                      {currentImages.map((image, index) => {
+                        // Xác định ID ảnh dựa trên loại dữ liệu
+                        let imageId;
+                        if (typeof image === 'object' && image._id) {
+                          imageId = image._id;
+                        } else {
+                          imageId = image;
+                        }
+                        
+                        const imageUrl = `${API_IMAGES}/${imageId}`;
+                        console.log('Modal image rendering:', { imageId, imageUrl });
+                        
+                        return (
+                          <div key={index} className="relative">
+                            <img
+                              src={imageUrl}
+                              alt={`Room ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                              onError={(e) => {
+                                console.error('Modal image load error. Image ID:', imageId, 'URL:', imageUrl);
+                                e.target.onerror = null;
+                                e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                                e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
+                              }}
+                            />
+                            <button
+                              onClick={() => handleRemoveImage(image)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -760,21 +743,38 @@ function Rooms() {
                 <div className="flex flex-col items-center h-full w-full p-6 border rounded-lg shadow-sm">
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     {room.imageIds && room.imageIds.length > 0 ? (
-                      room.imageIds.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image.url || `${API_IMAGES}/${image}`}
-                          alt={`Room ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg"
-                          onError={(e) => {
-                            console.error('Image load error:', e);
-                            e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
-                          }}
-                        />
-                      ))
+                      room.imageIds.map((image, index) => {
+                        // Xác định ID ảnh dựa trên loại dữ liệu
+                        let imageId;
+                        if (typeof image === 'object' && image._id) {
+                          imageId = image._id;
+                        } else {
+                          imageId = image;
+                        }
+                        
+                        const imageUrl = `${API_IMAGES}/${imageId}`;
+                        console.log('Room image rendering:', { roomTitle: room.title, imageId, imageUrl });
+                        
+                        return (
+                          <div key={index} className="relative">
+                            <img
+                              key={index}
+                              src={imageUrl}
+                              alt={`Room ${index + 1}`}
+                              className="w-full h-48 object-cover rounded-lg"
+                              onError={(e) => {
+                                console.error('Image load error for room:', room.title, 'Image ID:', imageId, 'URL:', imageUrl);
+                                e.target.onerror = null; // Tránh lặp vô hạn
+                                e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                                e.target.className = "w-full h-48 object-cover rounded-lg bg-gray-200";
+                              }}
+                            />
+                          </div>
+                        );
+                      })
                     ) : (
-                      <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span className="text-gray-500">No images</span>
+                      <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center col-span-2">
+                        <span className="text-gray-500">Không có ảnh</span>
                       </div>
                     )}
                   </div>
@@ -800,6 +800,11 @@ function Rooms() {
                   </div>
 
                   <div className="flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
+                    <span className="font-semibold">Kích thước:</span>
+                    <span>{room.roomSize || "30"} m²</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[#1a1a1a] font-['Inter'] w-full">
                     <span className="font-semibold">Số phòng:</span>
                     <span>
                       {" "}
@@ -807,6 +812,19 @@ function Rooms() {
                         "Không có"}
                     </span>
                   </div>
+
+                  {room.amenities && room.amenities.length > 0 && (
+                    <div className="mt-2 w-full">
+                      <span className="font-semibold">Tiện nghi: </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {room.amenities.map((amenity, index) => (
+                          <span key={index} className="bg-gray-100 text-xs px-2 py-1 rounded">
+                            {availableAmenities.find(a => a.id === amenity)?.label || amenity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="text-[#667084] text-base font-normal font-['Inter'] leading-relaxed overflow-hidden flex-grow mt-2 w-full">
                     <span className="font-semibold">Mô tả: </span>
