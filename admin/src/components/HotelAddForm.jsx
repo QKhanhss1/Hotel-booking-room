@@ -2,7 +2,7 @@ import React from 'react';
 
 function HotelAddForm({
     showAddForm,
-    setShowAddForm,
+   
     newHotel,
     setNewHotel,
     handleImageChange,
@@ -10,7 +10,8 @@ function HotelAddForm({
     isImageUploading,
     selectedImages,
     handleCreate,
-    imageIds,
+    availableAmenities,
+    handleAmenityChange
 }) {
     return (
         <>

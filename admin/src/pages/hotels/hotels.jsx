@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
 import { API_UPLOAD, API_HOTELS,API_HOTEL, API_IMAGES } from '../../utils/apiConfig';
-import { API_UPLOAD, API_HOTEL, API_IMAGES, API_HOTELS } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import HotelList from '../../components/HotelList';
@@ -40,7 +39,7 @@ function Hotels() {
 
   //fetch images (giữ nguyên hàm này)
   // Danh sách các tiện ích phổ biến
-  const availableAmenities = [
+  const availableAmenities  = [
     { id: "wifi", name: "WiFi", icon: "📶" },
     { id: "parking", name: "Chỗ đậu xe", icon: "🅿️" },
     { id: "pool", name: "Hồ bơi", icon: "🏊" },
@@ -61,7 +60,9 @@ function Hotels() {
 
   // Hàm xử lý khi chọn/bỏ chọn tiện ích
   const handleAmenityChange = (amenityId, isEdit = false) => {
+    console.log("handleAmenityChange được gọi với amenityId:", amenityId, "isEdit:", isEdit); 
     if (isEdit) {
+      console.log("Trước khi cập nhật, editingHotel.amenities:", editingHotel.amenities);
       // Xử lý cho form chỉnh sửa
       const updatedAmenities = editingHotel.amenities?.includes(amenityId)
         ? editingHotel.amenities.filter(id => id !== amenityId)
@@ -71,6 +72,8 @@ function Hotels() {
         ...editingHotel,
         amenities: updatedAmenities
       });
+      console.log("Sau khi cập nhật, editingHotel.amenities:", updatedAmenities); // Log state sau khi cập nhật
+      console.log("State editingHotel sau setEditingHotel:", editingHotel); 
     } else {
       // Xử lý cho form thêm mới
       const updatedAmenities = newHotel.amenities.includes(amenityId)
@@ -227,6 +230,7 @@ function Hotels() {
 
   const handleUpdate = async (id) => {
     try {
+      console.log("editingHotel before axios.put:", editingHotel.amenities);
       const response = await axios.put(
         `${API_HOTEL}/${id}`,
         {
@@ -238,8 +242,9 @@ function Hotels() {
             Authorization: `Bearer ${user?.token}`,
           },
         }
+        
       );
-
+      console.log("Response from backend after axios.put:", response.data);
       const hotelsWithImage = await fetchHotelImages(response.data);
       setHotels((prevHotels) =>
         prevHotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel))
@@ -256,6 +261,7 @@ function Hotels() {
         autoClose: 2000,
       });
     }
+    
   };
 
   const handleDelete = async (id) => {
@@ -361,6 +367,7 @@ const handleEditImageUpload = async () => {
 
         {/* Form thêm khách sạn */}
         <HotelAddForm
+          availableAmenities={availableAmenities}
           handleAmenityChange={handleAmenityChange}
           showAddForm={showAddForm}
           setShowAddForm={setShowAddForm}
@@ -377,6 +384,7 @@ const handleEditImageUpload = async () => {
 
         {/* Modal chỉnh sửa khách sạn */}
         <HotelEditModal
+          availableAmenities={availableAmenities}
           handleAmenityChange={handleAmenityChange}
           isEditModalOpen={isEditModalOpen}
           editingHotel={editingHotel}
@@ -398,6 +406,7 @@ const handleEditImageUpload = async () => {
           handleHotelClick={handleHotelClick}
           startEditing={startEditing}
           handleDelete={handleDelete}
+          availableAmenities={availableAmenities}
         />
       </div>
       <ToastContainer

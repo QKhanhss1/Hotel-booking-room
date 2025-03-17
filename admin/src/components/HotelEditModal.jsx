@@ -5,6 +5,7 @@ Modal.setAppElement('#root'); // hoặc phần tử gốc của ứng dụng c�
 
 function HotelEditModal({
     isEditModalOpen,
+    availableAmenities,
     editingHotel,
     closeEditModal,
     setEditingHotel,
@@ -12,7 +13,7 @@ function HotelEditModal({
     handleEditImageUpload,
     isImageUploading,
     setEditSelectedImages,
-
+    handleAmenityChange
 }) {
     const modalStyles = {
         overlay: {
@@ -38,6 +39,8 @@ function HotelEditModal({
             padding: '1rem',
             borderRadius: '0.5rem',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            overflowY: 'auto', // Thêm thuộc tính này để cho phép scroll dọc
+            maxHeight: '90vh',
         }
     };
 
@@ -191,6 +194,7 @@ function HotelEditModal({
                                             }`}
                                         onClick={() => handleAmenityChange(amenity.id, true)}
                                     >
+                                    
                                         <span className="text-gray-600 mr-2">{amenity.icon}</span>
                                         <span>{amenity.name}</span>
                                         {editingHotel.amenities?.includes(amenity.id) && (

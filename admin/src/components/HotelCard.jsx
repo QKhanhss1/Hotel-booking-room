@@ -1,6 +1,6 @@
 import React from 'react';
 
-function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete }) {
+function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete ,availableAmenities}) {
     return (
         <div className="Room-1 flex-col justify-start items-start gap-2 flex px-2">
             <div className="flex flex-col items-center h-full w-full">
