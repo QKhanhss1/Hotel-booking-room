@@ -17,7 +17,7 @@ export const createHotel = async (req, res, next) => {
 
 export const updateHotel = async (req, res, next) => {
   console.log('req.body updateHotel', req.body);
-  const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds, rating } = req.body;
+  const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds, rating, amenities } = req.body;
   const updatedHotel = await Hotel.findByIdAndUpdate(
     req.params.id,
     {
@@ -30,7 +30,8 @@ export const updateHotel = async (req, res, next) => {
       distance,
       title,
       imageIds: imageIds,
-      rating
+      rating,
+      amenities
     },
     { new: true }
   );

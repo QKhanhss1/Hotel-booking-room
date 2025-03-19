@@ -392,34 +392,34 @@ const Hotel = () => {
       <Navbar />
       <Header type="list" />
       
-      <div className="hotelContainer">
+        <div className="hotelContainer">
         {/* Image gallery slider modal */}
-        {open && hotel && hotel.images && (
-          <div className="slider">
-            <FontAwesomeIcon
-              icon={faCircleXmark}
-              className="close"
-              onClick={() => setOpen(false)}
-            />
-            <FontAwesomeIcon
-              icon={faCircleArrowLeft}
-              className="arrow"
-              onClick={() => handleMove("l")}
-            />
-            <div className="sliderWrapper">
-              <img
-                src={hotel.images[selectedImageIndex]}
-                alt=""
-                className="sliderImg"
+          {open && hotel && hotel.images && (
+            <div className="slider">
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                className="close"
+                onClick={() => setOpen(false)}
+              />
+              <FontAwesomeIcon
+                icon={faCircleArrowLeft}
+                className="arrow"
+                onClick={() => handleMove("l")}
+              />
+              <div className="sliderWrapper">
+                <img
+                  src={hotel.images[selectedImageIndex]}
+                  alt=""
+                  className="sliderImg"
+                />
+              </div>
+              <FontAwesomeIcon
+                icon={faCircleArrowRight}
+                className="arrow"
+                onClick={() => handleMove("r")}
               />
             </div>
-            <FontAwesomeIcon
-              icon={faCircleArrowRight}
-              className="arrow"
-              onClick={() => handleMove("r")}
-            />
-          </div>
-        )}
+          )}
 
         {/* Top navigation bar */}
         <div className="hotel-nav-bar">
@@ -485,7 +485,7 @@ const Hotel = () => {
                     <h1>Hoàn hảo cho {days}-kỳ nghỉ đêm!</h1>
                     <span>
                       Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc!
-                    </span>
+            </span>
                     <h2>
                       <b>{totalprice.toLocaleString('vi-VN')} VND</b> ({days} đêm)
                     </h2>
@@ -706,23 +706,23 @@ const Hotel = () => {
           </div>
         </div>
         
-        <ToastContainer
-          position="top-center"
-          autoClose={1500}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick={false}
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          transition={Bounce}
-        />
+          <ToastContainer
+                  position="top-center"
+                  autoClose={1500}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick={false}
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="light"
+                  transition={Bounce}
+                />
         
-        <MailList />
-        <Footer />
-      </div>
+          <MailList />
+          <Footer />
+        </div>
       {openModal && <Reserve setOpen={setOpenModal} hotelId={id} />}
     </div>
   );

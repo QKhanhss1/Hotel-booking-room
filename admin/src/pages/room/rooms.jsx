@@ -48,6 +48,7 @@ function Rooms() {
     roomSize: "30",
   });
   const [currentImages, setCurrentImages] = useState([]);
+  const [imageUrls, setImageUrls] = useState({});
   
   // Danh sách các tiện ích có thể chọn
   const availableAmenities = [
@@ -76,6 +77,30 @@ function Rooms() {
         });
         console.log("Fetch rooms response:", response.data);
         setRooms(response.data);
+        
+        // Fetch image URLs for all room images
+        if (response.data && response.data.length > 0) {
+          const fetchImagePromises = response.data.flatMap(room => 
+            room.imageIds?.map(async (imageId) => {
+              try {
+                // Extract the ID properly whether it's an object or string
+                const id = typeof imageId === 'object' ? imageId._id : imageId;
+                
+                const imageResponse = await axios.get(`${API_IMAGES}/${id}`);
+                if (imageResponse.data && imageResponse.data.imageUrl) {
+                  setImageUrls(prev => ({
+                    ...prev,
+                    [id]: imageResponse.data.imageUrl
+                  }));
+                }
+              } catch (error) {
+                console.error(`Error fetching image ${imageId}:`, error);
+              }
+            }) || []
+          );
+          
+          await Promise.all(fetchImagePromises.filter(Boolean));
+        }
       } catch (error) {
         console.error("Fetch rooms error:", error);
       }
@@ -191,6 +216,28 @@ function Rooms() {
     try {
       const response = await axios.get(`${API_ROOMS}/hotel/${hotelId}`);
       setRooms(response.data);
+
+      // Fetch image URLs for all room images
+      if (response.data && response.data.length > 0) {
+        const fetchImagePromises = response.data.flatMap(room => 
+          room.imageIds?.map(async (imageId) => {
+            try {
+              const id = typeof imageId === 'object' ? imageId._id : imageId;
+              const imageResponse = await axios.get(`${API_IMAGES}/${id}`);
+              if (imageResponse.data && imageResponse.data.imageUrl) {
+                setImageUrls(prev => ({
+                  ...prev,
+                  [id]: imageResponse.data.imageUrl
+                }));
+              }
+            } catch (error) {
+              console.error(`Error fetching image ${imageId}:`, error);
+            }
+          }) || []
+        );
+        
+        await Promise.all(fetchImagePromises.filter(Boolean));
+      }
     } catch (error) {
       console.error("Error fetching rooms:", error);
     }
@@ -467,6 +514,27 @@ function Rooms() {
     });
     setEditingRoom(room);
     setCurrentImages(room.imageIds || []);
+    
+    // Fetch images if not already in the imageUrls state
+    if (room.imageIds && room.imageIds.length > 0) {
+      room.imageIds.forEach(async (image) => {
+        const imageId = typeof image === 'object' ? image._id : image;
+        if (!imageUrls[imageId]) {
+          try {
+            const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
+            if (imageResponse.data && imageResponse.data.imageUrl) {
+              setImageUrls(prev => ({
+                ...prev,
+                [imageId]: imageResponse.data.imageUrl
+              }));
+            }
+          } catch (error) {
+            console.error(`Error fetching image ${imageId}:`, error);
+          }
+        }
+      });
+    }
+    
     setSelectedImages([]);
     setIsEditing(true);
     setIsModalOpen(true);
@@ -624,17 +692,14 @@ function Rooms() {
                           imageId = image;
                         }
                         
-                        const imageUrl = `${API_IMAGES}/${imageId}`;
-                        console.log('Modal image rendering:', { imageId, imageUrl });
-                        
                         return (
                           <div key={index} className="relative">
                             <img
-                              src={imageUrl}
+                              src={imageUrls[imageId] || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}
                               alt={`Room ${index + 1}`}
                               className="w-full h-32 object-cover rounded-lg"
                               onError={(e) => {
-                                console.error('Modal image load error. Image ID:', imageId, 'URL:', imageUrl);
+                                console.error('Modal image load error. Image ID:', imageId);
                                 e.target.onerror = null;
                                 e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                                 e.target.className = "w-full h-32 object-cover rounded-lg bg-gray-200";
@@ -752,18 +817,15 @@ function Rooms() {
                           imageId = image;
                         }
                         
-                        const imageUrl = `${API_IMAGES}/${imageId}`;
-                        console.log('Room image rendering:', { roomTitle: room.title, imageId, imageUrl });
-                        
                         return (
                           <div key={index} className="relative">
                             <img
                               key={index}
-                              src={imageUrl}
+                              src={imageUrls[imageId] || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}
                               alt={`Room ${index + 1}`}
                               className="w-full h-48 object-cover rounded-lg"
                               onError={(e) => {
-                                console.error('Image load error for room:', room.title, 'Image ID:', imageId, 'URL:', imageUrl);
+                                console.error('Image load error for room:', room.title, 'Image ID:', imageId);
                                 e.target.onerror = null; // Tránh lặp vô hạn
                                 e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                                 e.target.className = "w-full h-48 object-cover rounded-lg bg-gray-200";

@@ -22,30 +22,36 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/upload', upload.array('images'), async (req, res) => {
+router.post('/', upload.array('images'), async (req, res) => {
     try {
+        console.log('Starting image upload process');
         console.log('req.files:', req.files);
         if (!req.files || req.files.length === 0) {
             console.log('No file received from client');
             return res.status(400).json({ error: 'No file uploaded' });
         }
         const uploadPromises = req.files.map(async (file) => {
-            // console.log('File path:', file.path);
-            // console.log('File name:', file.filename);
+            console.log('Processing file:', file.filename);
             const cloudinaryResult = await uploadToCloudinary(file).catch(error => {
                 console.error('Error uploading to cloudinary', error);
                 throw new Error('Cloudinary upload failed');
             });
+            
+            console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
+            
             const newImage = new Image({
                 name: file.filename,
                 url: cloudinaryResult.secure_url,
             });
+            
             const savedImage = await newImage.save().catch(error => {
                 console.error("MongoDB Error:", error);
                throw error;
-             });
-             console.log('savedImage', savedImage);
-             // Xóa file tạm thời sau khi upload thành công
+            });
+             
+            console.log('Image saved to database:', savedImage._id);
+            
+            // Xóa file tạm thời sau khi upload thành công
             fs.unlink(file.path, (err) => {
                 if (err) {
                     console.error("Error deleting temporary file:", err);
@@ -56,6 +62,7 @@ router.post('/upload', upload.array('images'), async (req, res) => {
             return savedImage
         })
         const savedImages = await Promise.all(uploadPromises);
+        console.log('All images saved successfully:', savedImages.length);
         res.json(savedImages);
     } catch (error) {
         console.error('Overall Error:', error.message);
@@ -66,7 +73,7 @@ router.post('/upload', upload.array('images'), async (req, res) => {
 
 
 // Route GET
-router.get('/images/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const image = await Image.findById(req.params.id);
         if (!image) {
@@ -74,7 +81,8 @@ router.get('/images/:id', async (req, res) => {
         }
         res.json({ imageUrl: image.url }); 
     } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve image' });
+        console.error('Error retrieving image:', error);
+        res.status(500).json({ error: 'Failed to retrieve image', details: error.message });
     }
 });
 

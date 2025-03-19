@@ -312,11 +312,11 @@ const handleEditImageUpload = async () => {
             console.error("Lỗi tải ảnh:", error);
             setIsImageUploading(false);
             toast.error("Có lỗi xảy ra khi tải ảnh: " + error.message, {
-                position: "top-center",
-                autoClose: 2000,
-            });
-        }
-    };
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
+  };
   useEffect(() => {
     const fetchHotels = async () => {
       try {
@@ -334,7 +334,7 @@ const handleEditImageUpload = async () => {
     };
     fetchHotels();
   }, []);
-  
+
   const startEditing = (hotel) => {
     setEditingHotel(hotel);
     setIsEditModalOpen(true);
