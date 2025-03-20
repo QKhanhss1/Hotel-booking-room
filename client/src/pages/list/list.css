@@ -1,83 +1,437 @@
+/* Main Container */
 .listContainer {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 150px);
+  padding: 20px 0;
 }
 
 .listWrapper {
   width: 100%;
-  max-width: 1024px;
+  max-width: 1200px;
   display: flex;
   gap: 20px;
+  padding: 0 20px;
 }
 
+/* Filters Section */
 .listSearch {
-  flex: 1;
-  background-color: #febb02;
-  padding: 10px;
-  border-radius: 10px;
-  position: sticky;
-  top: 10px;
-  height: max-content;
+  flex: 0 0 280px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  height: fit-content;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  scrollbar-width: thin;
+  scrollbar-color: #0071c2 #f5f5f5;
 }
 
-.lsTitle{
-  font-size: 20px;
-  color: #555;
-  margin-bottom: 10px;
+/* Tùy chỉnh thanh cuộn cho Chrome, Edge, và Safari */
+.listSearch::-webkit-scrollbar {
+  width: 6px;
 }
 
-.lsItem{
+.listSearch::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.listSearch::-webkit-scrollbar-thumb {
+  background-color: #0071c2;
+  border-radius: 3px;
+}
+
+.listSearch::-webkit-scrollbar-thumb:hover {
+  background-color: #005ea6;
+}
+
+.lsTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.lsItem {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: relative;
 }
 
-.lsItem>label{
-  font-size: 12px;
+.lsItem > label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
 }
 
-.lsItem>input{
-  height: 30px;
-  border: none;
-  padding: 5px;
+.lsItem > input {
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 14px;
 }
-.lsItem>span{
-  height: 30px;
-  padding: 5px;
+
+.lsItem > input:focus {
+  border-color: #0071c2;
+  outline: none;
+}
+
+.lsItem > span {
+  height: 40px;
+  padding: 0 12px;
   background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.lsItem > span:hover {
+  border-color: #0071c2;
+}
+
+.filterSection {
+  margin-bottom: 20px;
+}
+
+.filterTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   cursor: pointer;
 }
 
-.lsOptions{
-  padding: 10px;
+.filterTitle .icon {
+  font-size: 18px;
+  transition: transform 0.2s;
 }
 
-.lsOptionItem{
+.filterTitle.open .icon {
+  transform: rotate(180deg);
+}
+
+.filterContent {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+
+.filterContent.open {
+  max-height: 500px;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.filterCheckbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.filterItemLabel {
+  font-size: 14px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.filterItemCount {
+  font-size: 12px;
+  color: #888;
+}
+
+.starRating {
+  display: flex;
+  align-items: center;
+}
+
+.starIcon {
+  color: #febb02;
+  font-size: 16px;
+  margin-right: 2px;
+}
+
+.recentFilters {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.recentFilter {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e6f2ff;
+  color: #0071c2;
+  padding: 6px 12px;
+  border-radius: 16px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.removeFilter {
+  margin-left: 8px;
+  color: #0071c2;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.clearAllFilters {
+  font-size: 14px;
+  color: #0071c2;
+  margin-top: 8px;
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline-block;
+}
+
+/* Search Options */
+.lsOptions {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.lsOptionItem {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  color: #555;
-  font-size: 12px;
+  margin-bottom: 12px;
+  color: #444;
+  font-size: 14px;
+  align-items: center;
 }
 
-.lsOptionInput{
-  width: 50px;
+.lsOptionText {
+  display: flex;
+  flex-direction: column;
 }
 
-.listSearch>button{
-  padding: 10px;
+.lsOptionText small {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.lsOptionInput {
+  width: 80px;
+  height: 30px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+
+.lsOptionInput:focus {
+  border-color: #0071c2;
+  outline: none;
+}
+
+.sortOptions {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sortLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  margin-right: 10px;
+}
+
+.sortOption {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sortOption:hover {
+  border-color: #0071c2;
+  color: #0071c2;
+}
+
+.sortOption.active {
+  background-color: #e6f2ff;
+  border-color: #0071c2;
+  color: #0071c2;
+}
+
+/* Search Button */
+.listSearch > button {
+  padding: 12px;
   background-color: #0071c2;
   color: white;
   border: none;
   width: 100%;
   font-weight: 500;
   cursor: pointer;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: background-color 0.2s;
+  margin-top: 16px;
 }
 
+.listSearch > button:hover {
+  background-color: #005ea6;
+}
+
+/* Results Section */
 .listResult {
-  flex: 3;
+  flex: 1;
+}
+
+.searchItemsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.resultsCount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.noResults {
+  background-color: white;
+  padding: 30px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.noResults p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.noResults p:first-child {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  width: 100%;
+}
+
+.loadingSpinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #0071c2;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .listWrapper {
+    flex-direction: column;
+  }
+
+  .listSearch {
+    position: static;
+    width: 100%;
+    flex: none;
+    margin-bottom: 20px;
+  }
+
+  .filterToggles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .filterToggle {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .filterToggle.active {
+    background-color: #e6f2ff;
+    border-color: #0071c2;
+    color: #0071c2;
+  }
+}
+
+@media (max-width: 768px) {
+  .sortOptions {
+    justify-content: space-between;
+  }
+
+  .sortOption {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .filterToggles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .filterToggles {
+    grid-template-columns: 1fr;
+  }
+}
+
+.showMoreLess {
+  color: #0071c2;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: left;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.showMoreLess:hover {
+  color: #005ea6;
+  text-decoration: underline;
 }

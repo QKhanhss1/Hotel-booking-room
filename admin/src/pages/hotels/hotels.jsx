@@ -40,22 +40,17 @@ function Hotels() {
   //fetch images (giữ nguyên hàm này)
   // Danh sách các tiện ích phổ biến
   const availableAmenities  = [
-    { id: "wifi", name: "WiFi", icon: "📶" },
-    { id: "parking", name: "Chỗ đậu xe", icon: "🅿️" },
+    { id: "laundry", name: "Dịch vụ giặt ủi", icon: "🧺" },
     { id: "pool", name: "Hồ bơi", icon: "🏊" },
-    { id: "gym", name: "Phòng tập thể dục", icon: "🏋️" },
     { id: "restaurant", name: "Nhà hàng", icon: "🍴" },
-    { id: "ac", name: "Điều hòa", icon: "🌡️" },
+    { id: "parking", name: "Bãi gửi xe", icon: "🅿️" },
     { id: "spa", name: "Spa", icon: "💆" },
-    { id: "meeting", name: "Phòng họp", icon: "🤝" },
-    { id: "bar", name: "Quầy bar", icon: "🍸" },
-    { id: "laundry", name: "Giặt ủi", icon: "🧺" },
-    { id: "roomService", name: "Dịch vụ phòng", icon: "🛏️" },
-    { id: "childFriendly", name: "Thân thiện với trẻ em", icon: "👶" },
-    { id: "petFriendly", name: "Cho phép thú cưng", icon: "🐾" },
-    { id: "breakfast", name: "Bữa sáng", icon: "🥣" },
-    { id: "tv", name: "TV", icon: "📺" },
-    { id: "shuttle", name: "Đưa đón sân bay", icon: "🛫" },
+    { id: "gym", name: "Phòng tập gym", icon: "🏋️" },
+    { id: "meeting", name: "Phòng hội nghị", icon: "🤝" },
+    { id: "earlyCheckin", name: "Nhận phòng sớm", icon: "⏰" },
+    { id: "nearBeach", name: "Gần biển", icon: "🏖️" },
+    { id: "childFriendly", name: "Tiện nghi cho trẻ", icon: "👶" },
+    { id: "petFriendly", name: "Cho phép vật nuôi", icon: "🐾" }
   ];
 
   // Hàm xử lý khi chọn/bỏ chọn tiện ích

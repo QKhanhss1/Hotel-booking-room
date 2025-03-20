@@ -83,12 +83,20 @@ export const getHotels = async (req, res, next) => {
     
     // Xử lý tìm kiếm city không phân biệt hoa thường và dấu
     if (city) {
-      query.city = { $regex: new RegExp(city, "i") };
+      query.city = { $regex: city, $options: "i" };
     }
     
-    const hotels = await Hotel.find(query).populate('imageIds');
+    const hotels = await Hotel.find(query)
+      .populate('imageIds')
+      .populate({
+        path: 'rooms',
+        model: 'Room',
+        select: 'amenities'
+      });
+    
     res.status(200).json(hotels);
   } catch (err) {
+    console.error("Error in getHotels:", err);
     next(err);
   }
 };
@@ -365,70 +373,92 @@ export const deleteReview = async (req, res) => {
 export const getCitiesByQuery = async (req, res, next) => {
   try {
     const { query } = req.query;
-    
-    // Find unique cities that match the query (case-insensitive) with counts
+
+    // Hàm chuẩn hóa chuỗi (bỏ dấu và chuyển thành chữ thường)
+    const normalizeString = (str) => {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .trim();
+    };
+
+    // Chuẩn hóa query
+    const normalizedQuery = normalizeString(query);
+
+    // Tìm kiếm cities và types với query (nếu có)
     const cities = await Hotel.aggregate([
-      { 
-        $match: { 
-          city: query ? { $regex: query, $options: "i" } : { $exists: true }
-        } 
+      {
+        $match: query
+          ? {
+              $or: [
+                { city: { $regex: query, $options: 'i' } }, // Tìm kiếm thông thường
+                { city: { $regex: normalizedQuery, $options: 'i' } }, // Tìm kiếm không dấu
+              ],
+            }
+          : { city: { $exists: true } },
       },
-      { 
-        $group: { 
-          _id: "$city",
-          count: { $sum: 1 }
-        } 
+      {
+        $group: {
+          _id: '$city',
+          count: { $sum: 1 },
+        },
       },
-      { 
-        $project: { 
-          _id: 0, 
-          name: "$_id",
+      {
+        $project: {
+          _id: 0,
+          name: '$_id',
           count: 1,
-          category: "city"
-        } 
+          category: 'city',
+        },
       },
       {
-        $sort: { count: -1 }
+        $sort: { count: -1 },
       },
       {
-        $limit: query ? 5 : 10
-      }
+        $limit: query ? 5 : 10,
+      },
     ]);
-    
-    // Find unique types that match the query (case-insensitive) with counts
+
     let types = [];
     if (query) {
       types = await Hotel.aggregate([
-        { 
-          $match: { 
-            type: { $regex: query, $options: "i" } 
-          } 
-        },
-        { 
-          $group: { 
-            _id: "$type",
-            count: { $sum: 1 }
-          } 
-        },
-        { 
-          $project: { 
-            _id: 0, 
-            name: "$_id",
-            count: 1,
-            category: "type"
-          } 
+        {
+          $match: {
+            $or: [
+              { type: { $regex: query, $options: 'i' } }, // Tìm kiếm thông thường
+              { type: { $regex: normalizedQuery, $options: 'i' } }, // Tìm kiếm không dấu
+            ],
+          },
         },
         {
-          $limit: 3
-        }
+          $group: {
+            _id: '$type',
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            name: '$_id',
+            count: 1,
+            category: 'type',
+          },
+        },
+        {
+          $limit: 3,
+        },
       ]);
     }
-    
-    // Combine results
+
+    // Kết hợp kết quả
     const results = query ? [...cities, ...types] : cities;
-    
+
     res.status(200).json(results);
   } catch (err) {
+    console.error('Error in getCitiesByQuery:', err);
     next(err);
   }
 };

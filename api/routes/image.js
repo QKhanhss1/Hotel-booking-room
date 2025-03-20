@@ -24,7 +24,6 @@ const upload = multer({ storage: storage });
 
 router.post('/', upload.array('images'), async (req, res) => {
     try {
-        console.log('Starting image upload process');
         console.log('req.files:', req.files);
         if (!req.files || req.files.length === 0) {
             console.log('No file received from client');
@@ -81,7 +80,6 @@ router.get('/:id', async (req, res) => {
         }
         res.json({ imageUrl: image.url }); 
     } catch (error) {
-        console.error('Error retrieving image:', error);
         res.status(500).json({ error: 'Failed to retrieve image', details: error.message });
     }
 });

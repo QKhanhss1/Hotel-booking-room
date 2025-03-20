@@ -52,18 +52,15 @@ function Rooms() {
   
   // Danh sách các tiện ích có thể chọn
   const availableAmenities = [
-    { id: 'wifi', label: 'WiFi miễn phí' },
-    { id: 'breakfast', label: 'Bữa sáng' },
-    { id: 'pool', label: 'Hồ bơi' },
-    { id: 'spa', label: 'Spa' },
-    { id: 'parking', label: 'Bãi đậu xe' },
-    { id: 'ac', label: 'Máy điều hòa' },
-    { id: 'tv', label: 'TV' },
-    { id: 'minibar', label: 'Minibar' },
-    { id: 'coffee', label: 'Máy pha cà phê' },
-    { id: 'no-smoking', label: 'Không hút thuốc' },
-    { id: 'balcony', label: 'Ban công' },
+    { id: 'ac', label: 'Máy lạnh' },
+    { id: 'family', label: 'Phòng gia đình' },
+    { id: 'no-smoking', label: 'Phòng cấm hút thuốc' },
+    { id: 'hairdryer', label: 'Máy sấy tóc' },
+    { id: 'fridge', label: 'Tủ lạnh' },
     { id: 'bathtub', label: 'Bồn tắm' },
+    { id: 'connecting', label: 'Phòng liên thông' },
+    { id: 'kitchen', label: 'Nhà bếp' },
+    { id: 'heater', label: 'Máy sưởi' }
   ];
 
   useEffect(() => {
@@ -279,6 +276,7 @@ function Rooms() {
           unavailableDates: []
         })),
         imageIds: imageIds,
+        images: imageIds,
         amenities: newRoom.amenities,
         roomSize: newRoom.roomSize
       };
@@ -290,8 +288,28 @@ function Rooms() {
           Authorization: `Bearer ${user.token}`
         }
       });
+
+      // Fetch image URLs for the new room
+      const newImageUrls = {};
+      await Promise.all(imageIds.map(async (imageId) => {
+        try {
+          const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
+          if (imageResponse.data && imageResponse.data.imageUrl) {
+            newImageUrls[imageId] = imageResponse.data.imageUrl;
+          }
+        } catch (error) {
+          console.error(`Error fetching image ${imageId}:`, error);
+        }
+      }));
+
+      // Update state with new room and image URLs
+      setRooms(prevRooms => [...prevRooms, res.data]);
+      setImageUrls(prev => ({
+        ...prev,
+        ...newImageUrls
+      }));
+
       console.log("Room creation response:", res.data);
-      setRooms([...rooms, res.data]);
       resetForm();
       setIsModalOpen(false);
       toast.success("Tạo phòng thành công!", {

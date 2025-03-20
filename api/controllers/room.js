@@ -28,7 +28,8 @@ export const createRoom = async (req, res, next) => {
       desc,
       roomNumbers,
       imageIds,
-      hotelId, // Đảm bảo hotelId được gán đúng
+      images: imageIds,
+      hotelId,
       amenities: amenities || [],
       roomSize: roomSize || "30"
     });

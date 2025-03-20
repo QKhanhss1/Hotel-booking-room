@@ -2,48 +2,346 @@ import "./list.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
 import { SearchContext } from "../../context/SearchContext";
-import { useState, useContext ,useEffect} from "react";
+import { useState, useContext, useEffect } from "react";
 import { format } from "date-fns";
 import { DateRange } from "react-date-range";
 import SearchItem from "../../components/searchItem/SearchItem";
 import useFetch from "../../hooks/useFetch";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { 
+  faChevronDown, 
+  faChevronUp, 
+  faStar, 
+  faTimesCircle,
+  faSpinner
+} from "@fortawesome/free-solid-svg-icons";
 
 const List = () => {
   const { destination, dates, options, dispatch } = useContext(SearchContext);
   const [openDate, setOpenDate] = useState(false);
   const [min, setMin] = useState(0);
   const [max, setMax] = useState(999999999);
+  const [sortOption, setSortOption] = useState("recommended");
+  const [filteredData, setFilteredData] = useState([]);
+  const [recentFilters, setRecentFilters] = useState([]);
+  const [openFilters, setOpenFilters] = useState({
+    ratings: true,
+    propertyType: true,
+    amenities: true,
+    roomAmenities: true
+  });
 
+  // Filter options
+  const [selectedFilters, setSelectedFilters] = useState({
+    ratings: [],
+    propertyTypes: [],
+    amenities: [],
+    roomAmenities: []
+  });
 
+  // Thêm state để lưu số lượng cho mỗi bộ lọc
+  const [filterCounts, setFilterCounts] = useState({
+    ratings: {},
+    propertyTypes: {},
+    amenities: {},
+    roomAmenities: {}
+  });
+
+  // Thêm state để kiểm soát việc hiển thị tiện nghi
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+  const [showAllRoomAmenities, setShowAllRoomAmenities] = useState(false);
+
+  // Property types
+  const propertyTypes = [
+    { id: "hotel", name: "Khách sạn" },
+    { id: "apartment", name: "Căn hộ" },
+    { id: "resort", name: "Khu nghỉ dưỡng" },
+    { id: "villa", name: "Biệt thự" },
+    { id: "cabin", name: "Nhà gỗ" }
+  ];
+
+  // Hotel amenities - Cập nhật theo dữ liệu từ admin
+  const hotelAmenities = [
+    { id: "laundry", name: "Dịch vụ giặt ủi" },
+    { id: "pool", name: "Hồ bơi" },
+    { id: "restaurant", name: "Nhà hàng" },
+    { id: "parking", name: "Bãi gửi xe" },
+    { id: "spa", name: "Spa" },
+    { id: "gym", name: "Phòng tập gym" },
+    { id: "meeting", name: "Phòng hội nghị" },
+    { id: "earlyCheckin", name: "Nhận phòng sớm" },
+    { id: "nearBeach", name: "Gần biển" },
+    { id: "childFriendly", name: "Tiện nghi cho trẻ" },
+    { id: "petFriendly", name: "Cho phép vật nuôi" }
+  ];
+
+  // Room amenities - Cập nhật theo dữ liệu từ admin
+  const roomAmenities = [
+    { id: "ac", name: "Máy lạnh" },
+    { id: "family", name: "Phòng gia đình" },
+    { id: "no-smoking", name: "Phòng cấm hút thuốc" },
+    { id: "hairdryer", name: "Máy sấy tóc" },
+    { id: "fridge", name: "Tủ lạnh" },
+    { id: "bathtub", name: "Bồn tắm" },
+    { id: "connecting", name: "Phòng liên thông" },
+    { id: "kitchen", name: "Nhà bếp" },
+    { id: "heater", name: "Máy sưởi" }
+  ];
+
+  // Star ratings
+  const ratings = [
+    { value: 5, label: "5 sao" },
+    { value: 4, label: "4 sao" },
+    { value: 3, label: "3 sao" },
+    { value: 2, label: "2 sao" },
+    { value: 1, label: "1 sao" }
+  ];
+
+  // Fetch data from API
   const { data, loading, error, reFetch } = useFetch(
     `/hotels?city=${destination}&min=${min}&max=${max}`
   );
 
+  // Tính toán số lượng cho mỗi bộ lọc
+  const calculateFilterCounts = (items) => {
+    if (!items || !Array.isArray(items)) return;
+
+    const counts = {
+      ratings: {},
+      propertyTypes: {},
+      amenities: {},
+      roomAmenities: {}
+    };
+
+    // Khởi tạo số lượng ban đầu là 0 cho tất cả tiện nghi phòng
+    roomAmenities.forEach(amenity => {
+      counts.roomAmenities[amenity.id] = 0;
+    });
+
+    items.forEach(hotel => {
+      // Log để debug cấu trúc dữ liệu
+      console.log("Hotel data:", hotel);
+
+      // Đếm số lượng theo rating
+      if (hotel.rating) {
+        const rating = Math.floor(hotel.rating);
+        counts.ratings[rating] = (counts.ratings[rating] || 0) + 1;
+      }
+
+      // Đếm số lượng theo loại hình lưu trú
+      if (hotel.type) {
+        counts.propertyTypes[hotel.type] = (counts.propertyTypes[hotel.type] || 0) + 1;
+      }
+
+      // Đếm số lượng theo tiện nghi khách sạn
+      if (hotel.amenities && Array.isArray(hotel.amenities)) {
+        hotel.amenities.forEach(amenity => {
+          counts.amenities[amenity] = (counts.amenities[amenity] || 0) + 1;
+        });
+      }
+
+      // Đếm số lượng theo tiện nghi phòng
+      if (hotel.rooms && Array.isArray(hotel.rooms)) {
+        // Tạo Set để theo dõi tiện nghi đã được đếm cho khách sạn này
+        const hotelAmenities = new Set();
+
+        // Duyệt qua từng phòng của khách sạn
+        hotel.rooms.forEach(room => {
+          if (room && room.amenities && Array.isArray(room.amenities)) {
+            room.amenities.forEach(amenity => {
+              // Nếu tiện nghi này chưa được đếm cho khách sạn này
+              if (!hotelAmenities.has(amenity)) {
+                hotelAmenities.add(amenity);
+                counts.roomAmenities[amenity] = (counts.roomAmenities[amenity] || 0) + 1;
+                console.log(`Counting amenity ${amenity} for hotel ${hotel._id}`);
+              }
+            });
+          }
+        });
+      }
+    });
+
+    console.log("Final room amenities counts:", counts.roomAmenities);
+    setFilterCounts(counts);
+  };
+
+  // Cập nhật useEffect để tính toán số lượng khi data thay đổi
   useEffect(() => {
     console.log("Search data:", data);
     console.log("Search error:", error);
     console.log("Search params:", { destination, min, max });
-  }, [data, error, destination, min, max]);
+    
+    if (data) {
+      calculateFilterCounts(data);
+      applyFilters();
+    }
+  }, [data, error, destination, min, max, selectedFilters, sortOption]);
 
+  // Apply all filters and sorting
+  const applyFilters = () => {
+    if (!data || !Array.isArray(data)) return;
+
+    let result = [...data];
+
+    // Apply rating filter
+    if (selectedFilters.ratings.length > 0) {
+      result = result.filter(item => 
+        item.rating && selectedFilters.ratings.includes(Math.floor(item.rating))
+      );
+    }
+
+    // Apply property type filter
+    if (selectedFilters.propertyTypes.length > 0) {
+      result = result.filter(item => 
+        selectedFilters.propertyTypes.includes(item.type)
+      );
+    }
+
+    // Apply hotel amenities filter
+    if (selectedFilters.amenities.length > 0) {
+      result = result.filter(item => 
+        item.amenities && selectedFilters.amenities.every(amenity => 
+          item.amenities.includes(amenity)
+        )
+      );
+    }
+
+    // Apply room amenities filter
+    if (selectedFilters.roomAmenities.length > 0) {
+      result = result.filter(item => {
+        // Check if hotel has rooms with these amenities
+        if (!item.rooms || !Array.isArray(item.rooms)) return false;
+        
+        return item.rooms.some(room => 
+          room.amenities && selectedFilters.roomAmenities.every(amenity => 
+            room.amenities.includes(amenity)
+          )
+        );
+      });
+    }
+
+    // Apply sorting
+    if (sortOption === "rating") {
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortOption === "price-asc") {
+      result.sort((a, b) => (a.cheapestPrice || 0) - (b.cheapestPrice || 0));
+    } else if (sortOption === "price-desc") {
+      result.sort((a, b) => (b.cheapestPrice || 0) - (a.cheapestPrice || 0));
+    }
+
+    setFilteredData(result);
+  };
+
+  // Handle destination input change
   const handleDestinationChange = (e) => {
     dispatch({ type: "UPDATE_DESTINATION", payload: e.target.value });
   };
 
+  // Handle date range selection
   const handleDateChange = (item) => {
     dispatch({ type: "UPDATE_DATES", payload: [item.selection] });
   };
 
+  // Handle search button click
   const handleClick = () => {
     console.log("Searching with params:", { destination, min, max });
-    //kiểm tra giá
-    console.log("Min Price:", min);
-    console.log("Max Price:", max);
-    // Tùy chọn kiểm tra giá min và max
+    // Check price range
     if (min > max) {
       alert("Giá tối thiểu không thể lớn hơn Giá tối đa");
       return;
     }
     reFetch();
+  };
+
+  // Toggle filter sections
+  const toggleFilter = (section) => {
+    setOpenFilters({
+      ...openFilters,
+      [section]: !openFilters[section]
+    });
+  };
+
+  // Handle filter selection
+  const handleFilterChange = (type, value) => {
+    let updatedFilters = { ...selectedFilters };
+    
+    if (type === 'ratings') {
+      if (updatedFilters.ratings.includes(value)) {
+        updatedFilters.ratings = updatedFilters.ratings.filter(r => r !== value);
+      } else {
+        updatedFilters.ratings = [...updatedFilters.ratings, value];
+      }
+    } else if (type === 'propertyTypes') {
+      if (updatedFilters.propertyTypes.includes(value)) {
+        updatedFilters.propertyTypes = updatedFilters.propertyTypes.filter(pt => pt !== value);
+      } else {
+        updatedFilters.propertyTypes = [...updatedFilters.propertyTypes, value];
+      }
+    } else if (type === 'amenities') {
+      if (updatedFilters.amenities.includes(value)) {
+        updatedFilters.amenities = updatedFilters.amenities.filter(a => a !== value);
+      } else {
+        updatedFilters.amenities = [...updatedFilters.amenities, value];
+      }
+    } else if (type === 'roomAmenities') {
+      if (updatedFilters.roomAmenities.includes(value)) {
+        updatedFilters.roomAmenities = updatedFilters.roomAmenities.filter(ra => ra !== value);
+      } else {
+        updatedFilters.roomAmenities = [...updatedFilters.roomAmenities, value];
+      }
+    }
+
+    setSelectedFilters(updatedFilters);
+    
+    // Add to recent filters if not already there
+    if (!recentFilters.some(filter => filter.type === type && filter.value === value)) {
+      let filterName = "";
+      
+      if (type === 'ratings') {
+        filterName = `${value} sao`;
+      } else if (type === 'propertyTypes') {
+        filterName = propertyTypes.find(pt => pt.id === value)?.name || value;
+      } else if (type === 'amenities') {
+        filterName = hotelAmenities.find(a => a.id === value)?.name || value;
+      } else if (type === 'roomAmenities') {
+        filterName = roomAmenities.find(ra => ra.id === value)?.name || value;
+      }
+      
+      if (updatedFilters[type].includes(value)) {
+        setRecentFilters([...recentFilters, { type, value, name: filterName }]);
+      }
+    }
+  };
+
+  // Remove a filter
+  const removeFilter = (type, value) => {
+    let updatedFilters = { ...selectedFilters };
+    
+    if (type === 'ratings') {
+      updatedFilters.ratings = updatedFilters.ratings.filter(r => r !== value);
+    } else if (type === 'propertyTypes') {
+      updatedFilters.propertyTypes = updatedFilters.propertyTypes.filter(pt => pt !== value);
+    } else if (type === 'amenities') {
+      updatedFilters.amenities = updatedFilters.amenities.filter(a => a !== value);
+    } else if (type === 'roomAmenities') {
+      updatedFilters.roomAmenities = updatedFilters.roomAmenities.filter(ra => ra !== value);
+    }
+    
+    setSelectedFilters(updatedFilters);
+    
+    // Remove from recent filters
+    setRecentFilters(recentFilters.filter(filter => !(filter.type === type && filter.value === value)));
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedFilters({
+      ratings: [],
+      propertyTypes: [],
+      amenities: [],
+      roomAmenities: []
+    });
+    setRecentFilters([]);
   };
 
   return (
@@ -54,45 +352,60 @@ const List = () => {
         <div className="listWrapper">
           <div className="listSearch">
             <h1 className="lsTitle">Tìm kiếm</h1>
+            
+            {/* Destination input */}
             <div className="lsItem">
               <label>Nơi đến</label>
               <input
                 value={destination}
                 onChange={handleDestinationChange}
                 type="text"
+                placeholder="Nhập điểm đến của bạn"
               />
             </div>
+            
+            {/* Date selection */}
             <div className="lsItem">
               <label>Ngày nhận phòng</label>
-              <span onClick={() => setOpenDate(!openDate)}>{`${format(
-                dates[0].startDate,
-                "MM/dd/yyyy"
-              )} to ${format(dates[0].endDate, "MM/dd/yyyy")}`}</span>
+              <span onClick={() => setOpenDate(!openDate)}>
+                {`${format(dates[0].startDate, "dd/MM/yyyy")} → ${format(dates[0].endDate, "dd/MM/yyyy")}`}
+              </span>
               {openDate && (
                 <DateRange
                   onChange={handleDateChange}
                   minDate={new Date()}
                   ranges={dates}
+                  className="date"
                 />
               )}
             </div>
+            
+            {/* Options */}
             <div className="lsItem">
               <label>Tùy chọn</label>
               <div className="lsOptions">
                 <div className="lsOptionItem">
-                  <span className="lsOptionText">Giá tối thiểu <small>mỗi đêm</small></span>
+                  <span className="lsOptionText">
+                    Giá tối thiểu
+                    <small>mỗi đêm</small>
+                  </span>
                   <input
                     type="number"
                     onChange={(e) => setMin(e.target.value)}
                     className="lsOptionInput"
+                    min={0}
                   />
                 </div>
                 <div className="lsOptionItem">
-                  <span className="lsOptionText">Giá tối đa <small>mỗi đêm</small></span>
+                  <span className="lsOptionText">
+                    Giá tối đa
+                    <small>mỗi đêm</small>
+                  </span>
                   <input
                     type="number"
                     onChange={(e) => setMax(e.target.value)}
                     className="lsOptionInput"
+                    min={0}
                   />
                 </div>
                 <div className="lsOptionItem">
@@ -124,21 +437,225 @@ const List = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Search button */}
             <button onClick={handleClick}>Tìm kiếm</button>
+            
+            {/* Recent filters */}
+            {recentFilters.length > 0 && (
+              <div className="recentFilters">
+                <h2 className="lsTitle">Bộ lọc gần đây</h2>
+                <div>
+                  {recentFilters.map((filter, index) => (
+                    <div key={index} className="recentFilter">
+                      {filter.name}
+                      <span className="removeFilter" onClick={() => removeFilter(filter.type, filter.value)}>
+                        <FontAwesomeIcon icon={faTimesCircle} />
+                      </span>
+                    </div>
+                  ))}
+                  <div className="clearAllFilters" onClick={clearAllFilters}>
+                    Xóa tất cả bộ lọc
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Star rating filter */}
+            <div className="filterSection">
+              <div 
+                className={`filterTitle ${openFilters.ratings ? 'open' : ''}`}
+                onClick={() => toggleFilter('ratings')}
+              >
+                Xếp hạng sao
+                <FontAwesomeIcon icon={openFilters.ratings ? faChevronUp : faChevronDown} className="icon" />
+              </div>
+              <div className={`filterContent ${openFilters.ratings ? 'open' : ''}`}>
+                {ratings.map((rating) => (
+                  <div key={rating.value} className="filterItem">
+                    <input
+                      type="checkbox"
+                      id={`rating-${rating.value}`}
+                      checked={selectedFilters.ratings.includes(rating.value)}
+                      onChange={() => handleFilterChange('ratings', rating.value)}
+                      className="filterCheckbox"
+                    />
+                    <label htmlFor={`rating-${rating.value}`} className="filterItemLabel">
+                      <div className="starRating">
+                        {[...Array(rating.value)].map((_, i) => (
+                          <FontAwesomeIcon key={i} icon={faStar} className="starIcon" />
+                        ))}
+                      </div>
+                      {filterCounts.ratings[rating.value] > 0 && (
+                        <span className="filterItemCount">({filterCounts.ratings[rating.value]})</span>
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Property type filter */}
+            <div className="filterSection">
+              <div 
+                className={`filterTitle ${openFilters.propertyType ? 'open' : ''}`}
+                onClick={() => toggleFilter('propertyType')}
+              >
+                Loại hình lưu trú
+                <FontAwesomeIcon icon={openFilters.propertyType ? faChevronUp : faChevronDown} className="icon" />
+              </div>
+              <div className={`filterContent ${openFilters.propertyType ? 'open' : ''}`}>
+                {propertyTypes.map((type) => (
+                  <div key={type.id} className="filterItem">
+                    <input
+                      type="checkbox"
+                      id={`type-${type.id}`}
+                      checked={selectedFilters.propertyTypes.includes(type.id)}
+                      onChange={() => handleFilterChange('propertyTypes', type.id)}
+                      className="filterCheckbox"
+                    />
+                    <label htmlFor={`type-${type.id}`} className="filterItemLabel">
+                      {type.name}
+                      {filterCounts.propertyTypes[type.id] > 0 && (
+                        <span className="filterItemCount">({filterCounts.propertyTypes[type.id]})</span>
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Hotel amenities filter */}
+            <div className="filterSection">
+              <div 
+                className={`filterTitle ${openFilters.amenities ? 'open' : ''}`}
+                onClick={() => toggleFilter('amenities')}
+              >
+                Tiện nghi phổ biến
+                <FontAwesomeIcon icon={openFilters.amenities ? faChevronUp : faChevronDown} className="icon" />
+              </div>
+              <div className={`filterContent ${openFilters.amenities ? 'open' : ''}`}>
+                {hotelAmenities.slice(0, showAllAmenities ? hotelAmenities.length : 5).map((amenity) => (
+                  <div key={amenity.id} className="filterItem">
+                    <input
+                      type="checkbox"
+                      id={`amenity-${amenity.id}`}
+                      checked={selectedFilters.amenities.includes(amenity.id)}
+                      onChange={() => handleFilterChange('amenities', amenity.id)}
+                      className="filterCheckbox"
+                    />
+                    <label htmlFor={`amenity-${amenity.id}`} className="filterItemLabel">
+                      {amenity.name}
+                      {filterCounts.amenities[amenity.id] > 0 && (
+                        <span className="filterItemCount">({filterCounts.amenities[amenity.id]})</span>
+                      )}
+                    </label>
+                  </div>
+                ))}
+                <div 
+                  className="showMoreLess"
+                  onClick={() => setShowAllAmenities(!showAllAmenities)}
+                >
+                  {showAllAmenities ? "Ẩn bớt" : "Xem tất cả"}
+                </div>
+              </div>
+            </div>
+            
+            {/* Room amenities filter */}
+            <div className="filterSection">
+              <div 
+                className={`filterTitle ${openFilters.roomAmenities ? 'open' : ''}`}
+                onClick={() => toggleFilter('roomAmenities')}
+              >
+                Tiện nghi phòng
+                <FontAwesomeIcon icon={openFilters.roomAmenities ? faChevronUp : faChevronDown} className="icon" />
+              </div>
+              <div className={`filterContent ${openFilters.roomAmenities ? 'open' : ''}`}>
+                {roomAmenities.slice(0, showAllRoomAmenities ? roomAmenities.length : 5).map((amenity) => (
+                  <div key={amenity.id} className="filterItem">
+                    <input
+                      type="checkbox"
+                      id={`room-amenity-${amenity.id}`}
+                      checked={selectedFilters.roomAmenities.includes(amenity.id)}
+                      onChange={() => handleFilterChange('roomAmenities', amenity.id)}
+                      className="filterCheckbox"
+                    />
+                    <label htmlFor={`room-amenity-${amenity.id}`} className="filterItemLabel">
+                      {amenity.name}
+                      <span className="filterItemCount">
+                        {filterCounts.roomAmenities[amenity.id] > 0 && `(${filterCounts.roomAmenities[amenity.id]})`}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+                <div 
+                  className="showMoreLess"
+                  onClick={() => setShowAllRoomAmenities(!showAllRoomAmenities)}
+                >
+                  {showAllRoomAmenities ? "Ẩn bớt" : "Xem tất cả"}
+                </div>
+              </div>
+            </div>
           </div>
+          
           <div className="listResult">
+            {/* Sorting options */}
+            <div className="sortOptions">
+              <span className="sortLabel">Sắp xếp theo:</span>
+              <button
+                className={`sortOption ${sortOption === 'recommended' ? 'active' : ''}`}
+                onClick={() => setSortOption('recommended')}
+              >
+                Đề xuất
+              </button>
+              <button
+                className={`sortOption ${sortOption === 'rating' ? 'active' : ''}`}
+                onClick={() => setSortOption('rating')}
+              >
+                Đánh giá
+              </button>
+              <button
+                className={`sortOption ${sortOption === 'price-asc' ? 'active' : ''}`}
+                onClick={() => setSortOption('price-asc')}
+              >
+                Giá thấp - cao
+              </button>
+              <button
+                className={`sortOption ${sortOption === 'price-desc' ? 'active' : ''}`}
+                onClick={() => setSortOption('price-desc')}
+              >
+                Giá cao - thấp
+              </button>
+            </div>
+            
+            {/* Results count */}
+            {!loading && filteredData && (
+              <div className="searchItemsHeader">
+                <div className="resultsCount">
+                  {filteredData.length} chỗ nghỉ được tìm thấy {destination && `ở ${destination}`}
+                </div>
+              </div>
+            )}
+            
+            {/* Loading state */}
             {loading ? (
-              "loading"
+              <div className="loading">
+                <div className="loadingSpinner"></div>
+              </div>
             ) : (
               <>
-                {console.log("Data in render:", data)}
-                {data && data.length > 0 ? (
-                  data.map((item) => <SearchItem item={item} key={item._id} />)
-                ) : (
-                  <div>
+                {/* No results */}
+                {filteredData && filteredData.length === 0 ? (
+                  <div className="noResults">
                     <p>Không tìm thấy kết quả</p>
-                    <p>Đã thử tìm: {destination} (giá từ {min} đến {max})</p>
+                    <p>Đã thử tìm: {destination} (giá từ {min || 0} đến {max || 'không giới hạn'})</p>
+                    <p>Hãy thử điều chỉnh các bộ lọc hoặc tìm kiếm địa điểm khác</p>
                   </div>
+                ) : (
+                  // Results list
+                  filteredData.map((item) => (
+                    <SearchItem item={item} key={item._id} />
+                  ))
                 )}
               </>
             )}
