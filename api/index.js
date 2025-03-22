@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import mongoose from "mongoose";
-import authRoute from "./routes/auth.js";
 import favoriteRoute from "./routes/favorite.js";
 import usersRoute from "./routes/users.js";
 import hotelsRoute from "./routes/hotels.js";
@@ -77,11 +76,9 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 
 app.use("/api/images", imageRoutes);
-app.use("/api/auth", authRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
-// app.use("/api/rooms", roomsRoute);
-// app.use("/api/hotels", roomsRoute);
+
 app.use("/api/rooms", roomsRoute);
 app.use("/api/booking", bookingRoute);
 app.use("/api/vnpay", vnpayRoute);
