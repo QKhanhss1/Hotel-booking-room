@@ -187,7 +187,7 @@ const Login = () => {
 
             <div className="khung-dang-ky">
               Chưa có tài khoản?
-              <Link to="/singUp" className="lien-ket-dang-ky">
+              <Link to="/signUp" className="lien-ket-dang-ky">
                 Đăng ký ngay
               </Link>
             </div>

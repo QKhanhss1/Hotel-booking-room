@@ -154,10 +154,17 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const login = async (req, res, next) => {
+  console.log("Request body login:", req.body); // Đã có, giữ lại
+  console.log("Username from request body:", req.body.username); // Thêm dòng này
+
   try {
     const user = await User.findOne({ username: req.body.username });
-    if (!user) return next(createError(404, "User not found!"));
+    console.log("User found from database:", user); // Thêm dòng này
 
+    if (!user) {
+      console.log("User NOT found!"); // Thêm dòng này để chắc chắn log khi user không tìm thấy
+      return next(createError(404, "User not found!"));
+    }
     const isPasswordCorrect = await bcrypt.compare(
       req.body.password,
       user.password
