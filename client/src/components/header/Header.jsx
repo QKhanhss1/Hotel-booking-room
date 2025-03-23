@@ -15,7 +15,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./header.css";
 import { DateRange } from "react-date-range";
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef, useCallback } from "react";
 import "react-date-range/dist/styles.css"; // main css file
 import "react-date-range/dist/theme/default.css"; // theme css file
 import { format } from "date-fns";
@@ -23,6 +23,19 @@ import { useNavigate } from "react-router-dom";
 import { SearchContext } from "../../context/SearchContext";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
+
+// Debounce function to limit API calls
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
 
 const Header = ({ type }) => {
   const [destination, setDestination] = useState("");
@@ -56,9 +69,20 @@ const Header = ({ type }) => {
 
   // Load recent searches from localStorage on component mount
   useEffect(() => {
+    // Load recent searches from localStorage
     const savedSearches = localStorage.getItem("recentSearches");
     if (savedSearches) {
-      setRecentSearches(JSON.parse(savedSearches));
+      try {
+        const parsedSearches = JSON.parse(savedSearches);
+        // Chuyển đổi các chuỗi đơn giản sang định dạng đối tượng nếu cần
+        const formattedSearches = parsedSearches.map(item => 
+          typeof item === 'string' ? { term: item } : item
+        );
+        setRecentSearches(formattedSearches);
+      } catch (error) {
+        console.error("Error loading recent searches:", error);
+        setRecentSearches([]);
+      }
     }
   }, []);
 
@@ -81,10 +105,26 @@ const Header = ({ type }) => {
     };
   }, []);
 
+  // Using useCallback to create a memoized version of fetchSuggestions with debounce
+  const debouncedFetchSuggestions = useCallback(
+    debounce((query) => {
+      if (query.length > 0) {
+        fetchSuggestions(query);
+      }
+    }, 300),
+    []
+  );
+
   // Fetch city suggestions when user types in the search input
   const fetchSuggestions = async (query) => {
     try {
-      const response = await axios.get(`/hotels/cities?query=${query}`);
+      // Trim spaces and make sure we don't send empty requests
+      const trimmedQuery = query.trim();
+      
+      // We want to send the original query with accents to the backend
+      // so that we preserve the original user's input in suggestions
+      const response = await axios.get(`/hotels/cities?query=${encodeURIComponent(trimmedQuery)}`);
+      
       setSuggestions(response.data);
       setShowSuggestions(true);
     } catch (error) {
@@ -109,8 +149,9 @@ const Header = ({ type }) => {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setDestination(value);
+    
     if (value.length > 0) {
-      fetchSuggestions(value);
+      debouncedFetchSuggestions(value);
       setShowSuggestions(true);
       setShowRecentSearches(false);
     } else {
@@ -126,20 +167,61 @@ const Header = ({ type }) => {
       setShowRecentSearches(true);
       setShowSuggestions(false);
     } else {
-      fetchSuggestions(destination);
-      setShowSuggestions(true);
-      setShowRecentSearches(false);
+      // Don't wait for fetchSuggestions to complete if we already have suggestions
+      if (suggestions.length > 0 && destination.trim() !== '') {
+        setShowSuggestions(true);
+        setShowRecentSearches(false);
+      } else {
+        fetchSuggestions(destination);
+        setShowSuggestions(true);
+        setShowRecentSearches(false);
+      }
     }
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setDestination(suggestion.name);
+    if (suggestion.category === 'hotel') {
+      setDestination(suggestion.name);
+      
+      // Save suggestion info to sessionStorage
+      const suggestionInfo = {
+        category: suggestion.category,
+        id: suggestion._id,
+        type: suggestion.type  // Add type to the suggestion info
+      };
+      sessionStorage.setItem('selectedSuggestion', JSON.stringify(suggestionInfo));
+      
+      // If it's a hotel, save the ID for navigation
+      sessionStorage.setItem('selectedHotelId', suggestion._id);
+      
+      // Lưu vào lịch sử tìm kiếm với loại khách sạn
+      saveRecentSearch(suggestion.name, suggestion.type);
+    } else {
+      setDestination(suggestion.name);
+      
+      // Save suggestion info to sessionStorage
+      const suggestionInfo = {
+        category: suggestion.category,
+        id: suggestion._id
+      };
+      sessionStorage.setItem('selectedSuggestion', JSON.stringify(suggestionInfo));
+      
+      // If not a hotel, remove any previously stored hotel ID
+      sessionStorage.removeItem('selectedHotelId');
+      
+      // Lưu vào lịch sử tìm kiếm không có loại
+      saveRecentSearch(suggestion.name);
+    }
+    
     setShowDropdown(false);
+    setShowSuggestions(false);
   };
 
   const handleRecentSearchClick = (search) => {
-    setDestination(search);
+    const searchTerm = typeof search === 'string' ? search : search.term;
+    setDestination(searchTerm);
     setShowDropdown(false);
+    setShowRecentSearches(false);
   };
 
   const handleOption = (name, operation) => {
@@ -151,13 +233,24 @@ const Header = ({ type }) => {
     });
   };
 
-  const saveRecentSearch = (searchTerm) => {
+  const saveRecentSearch = (searchTerm, type = null) => {
     if (searchTerm.trim() === "") return;
+    
+    // Lưu thông tin tìm kiếm cùng với loại (nếu có)
+    const searchInfo = { 
+      term: searchTerm,
+      type: type 
+    };
+    
+    // Lấy các tìm kiếm trước đó
+    const existingSearches = recentSearches.map(item => 
+      typeof item === 'string' ? { term: item } : item
+    );
     
     // Add to recent searches, avoiding duplicates and keeping only the last 5
     const updatedSearches = [
-      searchTerm,
-      ...recentSearches.filter(search => search !== searchTerm)
+      searchInfo,
+      ...existingSearches.filter(search => search.term !== searchTerm)
     ].slice(0, 5);
     
     setRecentSearches(updatedSearches);
@@ -165,9 +258,34 @@ const Header = ({ type }) => {
   };
 
   const handleSearch = () => {
-    saveRecentSearch(destination);
-    dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } });
-    navigate("/hotels", { state: { destination, dates, options } });
+    // Check if a specific hotel was selected
+    const selectedHotelId = sessionStorage.getItem('selectedHotelId');
+    const selectedSuggestion = sessionStorage.getItem('selectedSuggestion');
+    
+    let hotelType = null;
+    if (selectedSuggestion) {
+      try {
+        const suggestionData = JSON.parse(selectedSuggestion);
+        if (suggestionData.category === 'hotel') {
+          hotelType = suggestionData.type;
+        }
+      } catch (error) {
+        console.error("Error parsing selectedSuggestion:", error);
+      }
+    }
+    
+    saveRecentSearch(destination, hotelType);
+    
+    if (selectedHotelId) {
+      // Navigate directly to the hotel page
+      navigate(`/hotels/${selectedHotelId}`);
+      // Clear the selected hotel ID after navigating
+      sessionStorage.removeItem('selectedHotelId');
+    } else {
+      // Standard search by destination
+      dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } });
+      navigate("/hotels", { state: { destination, dates, options } });
+    }
   };
 
   const handleRegister = () => {
@@ -180,10 +298,35 @@ const Header = ({ type }) => {
       case 'city':
         return faLocationDot;
       case 'type':
-        return faHotel;
+        return faBuilding;
+      case 'hotel':
+        return faBed;
       default:
         return faBed;
     }
+  };
+
+  // Helper function to get additional text for the suggestion
+  const getSuggestionAddition = (suggestion) => {
+    if (suggestion.category === 'hotel' && suggestion.city) {
+      return ` (${suggestion.city})`;
+    }
+    return '';
+  };
+
+  // Helper function to format hotel type for display
+  const formatHotelType = (type) => {
+    if (!type) return "Khách sạn";
+    
+    const typeMap = {
+      'hotel': 'Khách sạn',
+      'apartment': 'Căn hộ',
+      'resort': 'Resort',
+      'villa': 'Biệt thự',
+      'cabin': 'Nhà gỗ nhỏ'
+    };
+    
+    return typeMap[type.toLowerCase()] || type;
   };
 
   return (
@@ -251,23 +394,35 @@ const Header = ({ type }) => {
                       </div>
                       
                       {/* Recent searches section */}
-                      {showRecentSearches && recentSearches.length > 0 && (
+                      {showRecentSearches && (
                         <div className="recentSearchesContainer">
-                          {recentSearches.map((search, index) => (
-                            <div 
-                              key={index} 
-                              className="searchResultItem"
-                              onClick={() => handleRecentSearchClick(search)}
-                            >
-                              <div className="searchResultItemLeft">
-                                <FontAwesomeIcon icon={faSearch} className="searchResultIcon" />
-                                <span className="searchResultText">{search}</span>
+                          <div className="recentSearches">
+                            {recentSearches.length > 0 && (
+                              <div className="recentSearchesList">
+                                {recentSearches.map((search, index) => (
+                                  <div
+                                    key={index}
+                                    className="searchResultItem"
+                                    onClick={() => handleRecentSearchClick(search)}
+                                  >
+                                    <div className="searchResultItemLeft">
+                                      <FontAwesomeIcon icon={faSearch} className="searchResultIcon" />
+                                      <span className="searchResultText">
+                                        {typeof search === 'string' ? search : search.term}
+                                      </span>
+                                    </div>
+                                    <div className="searchResultItemRight">
+                                      <span className="searchResultType">
+                                        {typeof search === 'object' && search.type 
+                                          ? formatHotelType(search.type) 
+                                          : "Khách sạn"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                              <div className="searchResultItemRight">
-                                <span className="searchResultType">Khách sạn</span>
-                              </div>
-                            </div>
-                          ))}
+                            )}
+                          </div>
                         </div>
                       )}
                       
@@ -285,12 +440,20 @@ const Header = ({ type }) => {
                                   icon={getSuggestionIcon(suggestion.category)} 
                                   className="searchResultIcon" 
                                 />
-                                <span className="searchResultText">{suggestion.name}</span>
+                                <span className="searchResultText">
+                                  {suggestion.name}{getSuggestionAddition(suggestion)}
+                                </span>
                               </div>
                               <div className="searchResultItemRight">
-                                <span className="searchResultCount">
-                                  {suggestion.count} khách sạn
-                                </span>
+                                {suggestion.category !== 'hotel' ? (
+                                  <span className="searchResultCount">
+                                    {suggestion.count} khách sạn
+                                  </span>
+                                ) : (
+                                  <span className="searchResultType">
+                                    {formatHotelType(suggestion.type)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           ))}

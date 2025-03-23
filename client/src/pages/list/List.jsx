@@ -51,6 +51,18 @@ const List = () => {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllRoomAmenities, setShowAllRoomAmenities] = useState(false);
 
+  // Load recent filters from localStorage
+  useEffect(() => {
+    const savedRecentFilters = localStorage.getItem("recentFilters");
+    if (savedRecentFilters) {
+      try {
+        setRecentFilters(JSON.parse(savedRecentFilters));
+      } catch (error) {
+        console.error("Error loading recent filters:", error);
+      }
+    }
+  }, []);
+
   // Property types
   const propertyTypes = [
     { id: "hotel", name: "Khách sạn" },
@@ -97,10 +109,65 @@ const List = () => {
     { value: 1, label: "1 sao" }
   ];
 
-  // Fetch data from API
+  // Url parameters to be used for API query
+  const [queryParams, setQueryParams] = useState({
+    min: min,
+    max: max,
+    city: destination || "",
+    name: ""
+  });
+
+  useEffect(() => {
+    // Check if the search is for a hotel name instead of a city
+    const selectedSuggestion = sessionStorage.getItem('selectedSuggestion');
+    if (selectedSuggestion) {
+      try {
+        const suggestionData = JSON.parse(selectedSuggestion);
+        if (suggestionData.category === 'hotel') {
+          // Set name parameter instead of city for hotel name search
+          setQueryParams(prev => ({
+            ...prev,
+            city: "",
+            name: destination || ""
+          }));
+        } else {
+          // For city or type searches, use city parameter
+          setQueryParams(prev => ({
+            ...prev,
+            city: destination || "",
+            name: ""
+          }));
+        }
+        // Clear the suggestion data after using it
+        sessionStorage.removeItem('selectedSuggestion');
+      } catch (error) {
+        console.error("Error parsing selected suggestion:", error);
+        // Fallback to standard city search
+        setQueryParams(prev => ({
+          ...prev,
+          city: destination || "",
+          name: ""
+        }));
+      }
+    } else {
+      // Standard search, assume it's a city
+      setQueryParams(prev => ({
+        ...prev,
+        city: destination || "",
+        name: ""
+      }));
+    }
+  }, [destination]);
+
+  // Use the useFetch hook with queryParams
   const { data, loading, error, reFetch } = useFetch(
-    `/hotels?city=${destination}&min=${min}&max=${max}`
+    `/hotels?min=${queryParams.min}&max=${queryParams.max}${queryParams.city ? `&city=${queryParams.city}` : ''}${queryParams.name ? `&name=${queryParams.name}` : ''}`
   );
+
+  // Update the fetch when queryParams change
+  useEffect(() => {
+    reFetch();
+  }, [queryParams]);
 
   // Tính toán số lượng cho mỗi bộ lọc
   const calculateFilterCounts = (items) => {
@@ -169,13 +236,12 @@ const List = () => {
   useEffect(() => {
     console.log("Search data:", data);
     console.log("Search error:", error);
-    console.log("Search params:", { destination, min, max });
     
     if (data) {
       calculateFilterCounts(data);
       applyFilters();
     }
-  }, [data, error, destination, min, max, selectedFilters, sortOption]);
+  }, [data, error, selectedFilters, sortOption]);
 
   // Apply all filters and sorting
   const applyFilters = () => {
@@ -235,6 +301,22 @@ const List = () => {
   // Handle destination input change
   const handleDestinationChange = (e) => {
     dispatch({ type: "UPDATE_DESTINATION", payload: e.target.value });
+    
+    // Update search parameters based on input
+    if (e.target.value) {
+      // Since we're typing manually, assume we're searching by both name and city
+      setQueryParams(prev => ({
+        ...prev,
+        city: e.target.value,
+        name: e.target.value
+      }));
+    } else {
+      setQueryParams(prev => ({
+        ...prev,
+        city: "",
+        name: ""
+      }));
+    }
   };
 
   // Handle date range selection
@@ -243,14 +325,19 @@ const List = () => {
   };
 
   // Handle search button click
-  const handleClick = () => {
-    console.log("Searching with params:", { destination, min, max });
+  const handleSearch = () => {
     // Check price range
     if (min > max) {
       alert("Giá tối thiểu không thể lớn hơn Giá tối đa");
       return;
     }
-    reFetch();
+    
+    setQueryParams({
+      min: min,
+      max: max,
+      city: destination,
+      name: destination // Also search by name
+    });
   };
 
   // Toggle filter sections
@@ -294,22 +381,25 @@ const List = () => {
     setSelectedFilters(updatedFilters);
     
     // Add to recent filters if not already there
+    let filterName = "";
+    
+    if (type === 'ratings') {
+      filterName = `${value} sao`;
+    } else if (type === 'propertyTypes') {
+      filterName = propertyTypes.find(pt => pt.id === value)?.name || value;
+    } else if (type === 'amenities') {
+      filterName = hotelAmenities.find(a => a.id === value)?.name || value;
+    } else if (type === 'roomAmenities') {
+      filterName = roomAmenities.find(ra => ra.id === value)?.name || value;
+    }
+    
     if (!recentFilters.some(filter => filter.type === type && filter.value === value)) {
-      let filterName = "";
-      
-      if (type === 'ratings') {
-        filterName = `${value} sao`;
-      } else if (type === 'propertyTypes') {
-        filterName = propertyTypes.find(pt => pt.id === value)?.name || value;
-      } else if (type === 'amenities') {
-        filterName = hotelAmenities.find(a => a.id === value)?.name || value;
-      } else if (type === 'roomAmenities') {
-        filterName = roomAmenities.find(ra => ra.id === value)?.name || value;
-      }
-      
-      if (updatedFilters[type].includes(value)) {
-        setRecentFilters([...recentFilters, { type, value, name: filterName }]);
-      }
+      const newRecentFilters = [
+        { type, value, name: filterName },
+        ...recentFilters
+      ];
+      setRecentFilters(newRecentFilters);
+      localStorage.setItem("recentFilters", JSON.stringify(newRecentFilters));
     }
   };
 
@@ -328,9 +418,6 @@ const List = () => {
     }
     
     setSelectedFilters(updatedFilters);
-    
-    // Remove from recent filters
-    setRecentFilters(recentFilters.filter(filter => !(filter.type === type && filter.value === value)));
   };
 
   // Clear all filters
@@ -341,7 +428,6 @@ const List = () => {
       amenities: [],
       roomAmenities: []
     });
-    setRecentFilters([]);
   };
 
   return (
@@ -439,7 +525,7 @@ const List = () => {
             </div>
             
             {/* Search button */}
-            <button onClick={handleClick}>Tìm kiếm</button>
+            <button onClick={handleSearch}>Tìm kiếm</button>
             
             {/* Recent filters */}
             {recentFilters.length > 0 && (
@@ -447,16 +533,27 @@ const List = () => {
                 <h2 className="lsTitle">Bộ lọc gần đây</h2>
                 <div>
                   {recentFilters.map((filter, index) => (
-                    <div key={index} className="recentFilter">
+                    <div 
+                      key={index} 
+                      className={`recentFilter ${
+                        (filter.type === 'ratings' && selectedFilters.ratings.includes(filter.value)) ||
+                        (filter.type === 'propertyTypes' && selectedFilters.propertyTypes.includes(filter.value)) ||
+                        (filter.type === 'amenities' && selectedFilters.amenities.includes(filter.value)) ||
+                        (filter.type === 'roomAmenities' && selectedFilters.roomAmenities.includes(filter.value))
+                          ? 'active' 
+                          : ''
+                      }`}
+                      onClick={() => handleFilterChange(filter.type, filter.value)}
+                    >
                       {filter.name}
-                      <span className="removeFilter" onClick={() => removeFilter(filter.type, filter.value)}>
+                      <span className="removeFilter" onClick={(e) => {
+                        e.stopPropagation();
+                        removeFilter(filter.type, filter.value);
+                      }}>
                         <FontAwesomeIcon icon={faTimesCircle} />
                       </span>
                     </div>
                   ))}
-                  <div className="clearAllFilters" onClick={clearAllFilters}>
-                    Xóa tất cả bộ lọc
-                  </div>
                 </div>
               </div>
             )}

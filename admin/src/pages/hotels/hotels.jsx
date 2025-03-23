@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../navbar/Navbar";
 import { AuthContext } from "../../context/AuthContext";
@@ -37,7 +37,6 @@ function Hotels() {
 
   const navigate = useNavigate();
 
-  //fetch images (giữ nguyên hàm này)
   // Danh sách các tiện ích phổ biến
   const availableAmenities  = [
     { id: "laundry", name: "Dịch vụ giặt ủi", icon: "🧺" },
@@ -83,32 +82,55 @@ function Hotels() {
   };
 
   //fetch images
-  const fetchHotelImages = async (hotel) => {
-    if (hotel.imageIds && hotel.imageIds.length > 0) {
-      const images = await Promise.all(
-        hotel.imageIds.map(async (image) => {
-          const imageId = typeof image === 'string' ? image : image._id
-          const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
-          return imageResponse.data.imageUrl;
-        })
-      );
+  const fetchHotelImages = useCallback(async (hotel) => {
+    try {
+      if (!hotel) {
+        console.error("Invalid hotel object passed to fetchHotelImages");
+        return { ...hotel, images: [] };
+      }
+
+      if (hotel.imageIds && hotel.imageIds.length > 0) {
+        // Process image IDs in parallel
+        const images = await Promise.all(
+          hotel.imageIds.map(async (image) => {
+            try {
+              // Handle both string IDs and object IDs
+              const imageId = typeof image === 'string' ? image : image._id;
+              if (!imageId) {
+                console.warn("Invalid image ID found:", image);
+                return null;
+              }
+              
+              const imageResponse = await axios.get(`${API_IMAGES}/${imageId}`);
+              return imageResponse.data.imageUrl;
+            } catch (error) {
+              console.error("Error fetching image:", error);
+              return null;
+            }
+          })
+        );
+        
+        // Filter out null values and return the result
+        return {
+          ...hotel,
+          images: images.filter(img => img !== null),
+        };
+      }
       return {
         ...hotel,
-        images: images,
-      }
+        images: []
+      };
+    } catch (error) {
+      console.error("Error in fetchHotelImages:", error);
+      return { ...hotel, images: [] };
     }
-    return {
-      ...hotel,
-      images: []
-    }
-  }
+  }, []);
 
   const handleImageChange = (e) => {
     setSelectedImages(Array.from(e.target.files));
   };
 
   const handleCreate = async () => {
-    // ... (giữ nguyên logic handleCreate)
     try {
       if (
         !newHotel.name ||
@@ -144,6 +166,7 @@ function Hotels() {
         ...newHotel,
         imageIds: imageIds, // Lưu mảng các ID ảnh
       };
+      
       const response = await axios.post(
         API_HOTEL,
         newHotelData,
@@ -154,7 +177,20 @@ function Hotels() {
         }
       );
 
-      setHotels([...hotels, response.data]);
+      // Xử lý response để bao gồm đường dẫn ảnh
+      let createdHotelWithImages;
+      try {
+        createdHotelWithImages = await fetchHotelImages(response.data);
+      } catch (imageError) {
+        console.error("Error fetching hotel images:", imageError);
+        // Nếu không fetch được ảnh, thêm hotel không có ảnh vào state
+        createdHotelWithImages = {
+          ...response.data,
+          images: [] // Khởi tạo mảng ảnh rỗng để tránh lỗi
+        };
+      }
+      
+      setHotels(prevHotels => [...prevHotels, createdHotelWithImages]);
 
       setNewHotel({
         name: "",
@@ -240,10 +276,25 @@ function Hotels() {
         
       );
       console.log("Response from backend after axios.put:", response.data);
-      const hotelsWithImage = await fetchHotelImages(response.data);
+      
+      // Fetch the updated hotel with images
+      let hotelsWithImage;
+      try {
+        hotelsWithImage = await fetchHotelImages(response.data);
+      } catch (imageError) {
+        console.error("Error fetching updated hotel images:", imageError);
+        // Nếu không fetch được ảnh, cập nhật hotel không có ảnh vào state
+        hotelsWithImage = {
+          ...response.data,
+          images: []  // Khởi tạo mảng ảnh rỗng để tránh lỗi
+        };
+      }
+      
+      // Update the hotels array with the updated hotel
       setHotels((prevHotels) =>
         prevHotels.map((hotel) => (hotel._id === id ? hotelsWithImage : hotel))
       );
+      
       closeEditModal();
       toast.success("Cập nhật khách sạn thành công!", {
         position: "top-center",
@@ -316,19 +367,31 @@ const handleEditImageUpload = async () => {
     const fetchHotels = async () => {
       try {
         const response = await axios.get(API_HOTELS);
+        
+        // Process each hotel one by one to prevent all hotels from failing if one has image issues
         const hotelsWithImage = await Promise.all(
           response.data.map(async (hotel) => {
-            return await fetchHotelImages(hotel)
+            try {
+              return await fetchHotelImages(hotel);
+            } catch (error) {
+              console.error(`Error fetching images for hotel ${hotel._id}:`, error);
+              return { ...hotel, images: [] };
+            }
           })
         );
+        
         setHotels(hotelsWithImage);
       }
       catch (error) {
         console.error("Error fetch hotel:", error);
+        toast.error("Có lỗi xảy ra khi tải danh sách khách sạn", {
+          position: "top-center",
+          autoClose: 2000,
+        });
       }
     };
     fetchHotels();
-  }, []);
+  }, [fetchHotelImages]);
 
   const startEditing = (hotel) => {
     setEditingHotel(hotel);

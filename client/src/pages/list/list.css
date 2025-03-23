@@ -188,6 +188,21 @@
   margin-right: 8px;
   margin-bottom: 8px;
   font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recentFilter:hover {
+  background-color: #d1e7ff;
+}
+
+.recentFilter.active {
+  background-color: #0071c2;
+  color: white;
+}
+
+.recentFilter.active .removeFilter {
+  color: white;
 }
 
 .removeFilter {
@@ -195,6 +210,14 @@
   color: #0071c2;
   cursor: pointer;
   font-size: 14px;
+}
+
+.recentFilter.active .removeFilter:hover {
+  color: #e6f2ff;
+}
+
+.removeFilter:hover {
+  color: #005ea6;
 }
 
 .clearAllFilters {

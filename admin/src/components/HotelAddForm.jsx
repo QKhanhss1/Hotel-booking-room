@@ -40,6 +40,7 @@ function HotelAddForm({
                                 <option value="apartment">Căn hộ</option>
                                 <option value="resort">Khu nghỉ dưỡng</option>
                                 <option value="villa">Biệt thự</option>
+                                <option value="cabin">Nhà gỗ nhỏ</option>
                             </select>
                             <input
                                 type="text"

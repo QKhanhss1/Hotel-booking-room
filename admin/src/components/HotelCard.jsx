@@ -1,14 +1,31 @@
 import React from 'react';
 
-function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete ,availableAmenities}) {
+// Fallback image URL (replace with your actual fallback image)
+const FALLBACK_IMAGE = "https://via.placeholder.com/300x200?text=No+Image+Available";
+
+function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete, availableAmenities }) {
+    // Function to get the first valid image or fallback
+    const getDisplayImage = () => {
+        if (hotel?.images && Array.isArray(hotel.images) && hotel.images.length > 0) {
+            // Find first non-null, non-undefined image
+            const validImage = hotel.images.find(img => img);
+            return validImage || FALLBACK_IMAGE;
+        }
+        return FALLBACK_IMAGE;
+    };
+
     return (
         <div className="Room-1 flex-col justify-start items-start gap-2 flex px-2">
             <div className="flex flex-col items-center h-full w-full">
                 <img
                     className="Image h-60 relative w-full object-cover rounded-lg cursor-pointer"
-                    src={Array.isArray(hotel.images) ? hotel.images[0] : null}
+                    src={getDisplayImage()}
                     alt={hotel.name}
                     onClick={() => handleHotelClick(hotel._id)}
+                    onError={(e) => {
+                        e.target.src = FALLBACK_IMAGE;
+                        e.target.onerror = null; // Prevent infinite loop
+                    }}
                 />
                 <div className="Name text-[#1a1a1a] text-xl font-semibold font-['Inter'] leading-loose text-center w-full">
                     {hotel.name}
