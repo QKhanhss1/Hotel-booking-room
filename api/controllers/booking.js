@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js"; 
-import { sendBookingConfirmation, sendPaymentReminder, sendPaymentTimeout } from "../utils/emailService.js";
+import { sendBookingConfirmation, sendPaymentReminder, sendPaymentTimeout, sendPaymentSuccess, sendBookingCancellation } from "../utils/emailService.js";
 
 //create
 export const createBooking = async (req, res) => {
@@ -96,10 +96,16 @@ export const updateBookingStatus = async (req, res) => {
       return res.status(400).json({ error: "Dữ liệu không đầy đủ!" });
     }
 
+    // Tìm booking trước khi cập nhật
+    const existingBooking = await Booking.findById(bookingId);
+    if (!existingBooking) {
+      return res.status(404).json({ error: "Không tìm thấy đơn đặt phòng!" });
+    }
+
     const updateData = {
       paymentStatus: paymentStatus,
-      paymentDate: paymentStatus === 'success' ? Date.now() : undefined,
-      expiryTime: paymentStatus === 'success' ? null : undefined
+      paymentDate: paymentStatus === 'success' ? Date.now() : existingBooking.paymentDate,
+      expiryTime: paymentStatus === 'success' ? null : existingBooking.expiryTime
     };
 
     const booking = await Booking.findByIdAndUpdate(
@@ -108,14 +114,19 @@ export const updateBookingStatus = async (req, res) => {
       { new: true, runValidators: false }  // tắt validation khi update
     );
 
-    if (!booking) {
-      return res.status(404).json({ error: "Không tìm thấy đơn đặt phòng!" });
-    }
-
     // Hủy timeout nếu có
-    if (paymentStatus === 'success' && global.bookingTimeouts?.[bookingId]) {
+    if ((paymentStatus === 'success' || paymentStatus === 'cancelled') && global.bookingTimeouts?.[bookingId]) {
       clearTimeout(global.bookingTimeouts[bookingId]);
       delete global.bookingTimeouts[bookingId];
+    }
+    
+    // Gửi email thông báo tương ứng
+    if (paymentStatus === 'success') {
+      // Gửi email xác nhận thanh toán thành công
+      await sendPaymentSuccess(booking, booking.email);
+    } else if (paymentStatus === 'cancelled') {
+      // Gửi email thông báo hủy đặt phòng
+      await sendBookingCancellation(booking, booking.email);
     }
 
     res.status(200).json({

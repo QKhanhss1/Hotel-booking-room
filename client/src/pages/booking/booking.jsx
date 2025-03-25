@@ -45,8 +45,10 @@ const BookingPage = () => {
 
           console.log("Received bookings:", res.data);
 
-          // Lấy tất cả booking, không chỉ những booking thành công
-          setBookings(res.data);
+          // Xử lý và lọc bỏ các đơn trùng lặp
+          // (giữ lại đơn gần nhất theo khách sạn, phòng và thời gian)
+          const processedBookings = processBookings(res.data);
+          setBookings(processedBookings);
           setError(null);
         } catch (error) {
           console.error("Error fetching bookings:", error);
@@ -58,6 +60,35 @@ const BookingPage = () => {
       fetchBookings();
     }
   }, [user, navigate]);
+
+  // Hàm xử lý và loại bỏ đơn trùng lặp
+  const processBookings = (bookingsData) => {
+    // Sắp xếp bookings theo thời gian cập nhật gần nhất
+    const sortedBookings = [...bookingsData].sort((a, b) => {
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+
+    // Tạo map để lưu trữ booking theo khóa duy nhất (hotelId + phòng + check-in/out)
+    const uniqueBookings = new Map();
+
+    sortedBookings.forEach(booking => {
+      // Tạo khóa duy nhất dựa trên thông tin đặt phòng
+      const hotelId = booking.hotelId?._id || booking.hotelId;
+      const checkin = booking.paymentInfo?.checkinDate;
+      const checkout = booking.paymentInfo?.checkoutDate;
+      
+      // Tạo khóa duy nhất
+      const key = `${hotelId}-${checkin}-${checkout}`;
+      
+      // Chỉ giữ lại booking gần nhất nếu chưa có trong map
+      if (!uniqueBookings.has(key)) {
+        uniqueBookings.set(key, booking);
+      }
+    });
+
+    // Chuyển đổi map thành mảng và trả về
+    return Array.from(uniqueBookings.values());
+  };
 
   return (
     <>
@@ -78,7 +109,7 @@ const BookingPage = () => {
                 key={booking._id}
                 booking={booking}
                 formatDate={formatDate}
-                user={user}  // Thêm user prop
+                user={user}
               />
             ))
           )}
@@ -88,7 +119,7 @@ const BookingPage = () => {
   );
 };
 
-const BookingCard = ({ booking, formatDate, user }) => {  // Thêm user vào props
+const BookingCard = ({ booking, formatDate, user }) => {
   const getStatusText = (status) => {
     switch (status) {
       case "pending":
@@ -98,6 +129,8 @@ const BookingCard = ({ booking, formatDate, user }) => {  // Thêm user vào pro
       case "failed":
         return "Thanh toán thất bại";
       case "expired":
+        return "Đã hủy";
+      case "cancelled":
         return "Đã hủy";
       default:
         return status;
@@ -112,6 +145,7 @@ const BookingCard = ({ booking, formatDate, user }) => {  // Thêm user vào pro
         return "text-green-500";
       case "failed":
       case "expired":
+      case "cancelled":
         return "text-red-500";
       default:
         return "text-gray-500";

@@ -169,10 +169,15 @@ router.get('/vnpay_return', async function (req, res, next) {
             const paymentStatus = responseCode === '00' ? 'success' : 'failed';
             
             try {
+                // Lấy booking để biết email
+                const bookingResponse = await axios.get(`http://localhost:8800/api/booking/${bookingId}`);
+                const booking = bookingResponse.data;
+                
+                // Cập nhật trạng thái booking
                 await axios.put('http://localhost:8800/api/booking/update/status', {
                     bookingId,
                     paymentStatus,
-                    amount // Thêm amount vào request
+                    amount
                 });
                 
                 // Thêm amount vào URL redirect
