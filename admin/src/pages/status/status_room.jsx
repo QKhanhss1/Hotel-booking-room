@@ -82,27 +82,13 @@ const StatusRoom = () => {
   //hủy phòng
   const cancelBooking = async (roomId, roomIdNumber, checkinDate, checkoutDate, bookingId) => {
     try {
-      // 1. Đầu tiên, cập nhật trạng thái booking thành "cancelled"
-      const updateResponse = await axios.put(
-        `http://localhost:8800/api/booking/update/status`,
-        { 
-          bookingId, 
-          paymentStatus: "cancelled" 
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      );
-      
-      // 2. Cập nhật lại phòng thành available
       const dates = [
         new Date(checkinDate).toISOString().split("T")[0],
         new Date(checkoutDate).toISOString().split("T")[0],
       ];
   
-      const updateRoomResponse = await axios.put(
+      // Sử dụng roomIdNumber thay vì roomId
+      const response = await axios.put(
         `http://localhost:8800/api/rooms/availability/${roomIdNumber}`,
         { dates },
         {
@@ -111,20 +97,26 @@ const StatusRoom = () => {
           },
         }
       );
+      // Xóa booking
+      const deleteResponse = await axios.delete(
+        `http://localhost:8800/api/booking/${bookingId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      );
       
-      console.log("Hủy phòng thành công:", updateRoomResponse.data);
+      console.log("Hủy phòng thành công:", response.data);
+      console.log("Đặt phòng đã bị hủy:", deleteResponse.data);
       toast.success("Hủy phòng thành công!", {
         position: "top-center",
         autoClose: 2000,
       });
   
-      // Cập nhật state bookedRoomDetails để hiển thị trạng thái đã hủy
+      // Cập nhật state bookedRoomDetails để loại bỏ phòng đã hủy
       setBookedRoomDetails(prevDetails => 
-        prevDetails.map(room => 
-          room.bookingId === bookingId && room.idRoomNumber === roomIdNumber 
-            ? { ...room, status: 'cancelled' } 
-            : room
-        )
+        prevDetails.filter(room => !(room.bookingId === bookingId && room.idRoomNumber === roomIdNumber))
       );
   
     } catch (error) {
@@ -150,8 +142,6 @@ const StatusRoom = () => {
       case "success": return "Đang sử dụng";
       case "pending": return "Chờ thanh toán";
       case "expired": return "Đã hết hạn";
-      case "failed": return "Thanh toán thất bại";
-      case "cancelled": return "Đã hủy";
       default: return status;
     }
   };
@@ -161,8 +151,6 @@ const StatusRoom = () => {
       case "success": return "text-green-500";
       case "pending": return "text-yellow-500";
       case "expired": return "text-red-500";
-      case "failed": return "text-red-500";
-      case "cancelled": return "text-gray-500";
       default: return "text-gray-500";
     }
   };

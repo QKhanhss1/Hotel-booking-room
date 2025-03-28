@@ -43,7 +43,6 @@ const PaymentStatus = () => {
         // Đợi một chút trước khi xóa dữ liệu để đảm bảo hiển thị đúng
         setTimeout(() => {
           localStorage.removeItem("bookingId");
-          localStorage.removeItem("totalprice");
           localStorage.removeItem("reservationData");
           localStorage.removeItem("dates");
         }, 1000);

@@ -74,6 +74,7 @@ function HotelCard({ hotel, handleHotelClick, startEditing, handleDelete, availa
                         }).format(hotel.cheapestPrice)}
                         /đêm
                     </span>
+                    <span className="text-xs text-gray-500">(tự động từ giá phòng)</span>
                 </div>
                 {/* Tiện ích */}
                 {hotel.amenities && hotel.amenities.length > 0 && (

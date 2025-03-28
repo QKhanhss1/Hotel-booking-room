@@ -41,6 +41,9 @@ export const createRoom = async (req, res, next) => {
       $push: { rooms: savedRoom._id },
     });
 
+    // Cập nhật giá rẻ nhất của khách sạn nếu cần
+    await updateHotelCheapestPrice(hotelId);
+
     res.status(201).json(savedRoom);
   } catch (err) {
     console.error("Error creating room:", err);
@@ -60,6 +63,12 @@ export const updateRoom = async (req, res, next) => {
       { $set: req.body },
       { new: true }
     );
+
+    // Cập nhật giá rẻ nhất của khách sạn nếu cần
+    if (updatedRoom && req.body.price) {
+      await updateHotelCheapestPrice(updatedRoom.hotelId);
+    }
+
     res.status(200).json(updatedRoom);
   } catch (err) {
     next(err);
@@ -140,6 +149,9 @@ export const deleteRoom = async (req, res, next) => {
       $pull: { rooms: roomId }
     });
 
+    // Cập nhật giá rẻ nhất của khách sạn
+    await updateHotelCheapestPrice(hotelId);
+
     console.log("Room deleted successfully");
     res.status(200).json({ message: "Xóa phòng thành công!" });
   } catch (err) {
@@ -217,5 +229,38 @@ export const getRoomNumber = async (req, res, next) => {
     res.status(200).json(room.roomNumbers[0]);
   } catch (err) {
     next(err); // Chuyển lỗi cho middleware xử lý lỗi
+  }
+};
+
+// Hàm cập nhật giá rẻ nhất của khách sạn
+const updateHotelCheapestPrice = async (hotelId) => {
+  try {
+    // Tìm tất cả các phòng của khách sạn
+    const rooms = await Room.find({ hotelId: hotelId });
+    
+    if (!rooms || rooms.length === 0) {
+      console.log(`Không tìm thấy phòng nào cho khách sạn ${hotelId}`);
+      return;
+    }
+    
+    // Tìm giá phòng thấp nhất
+    const prices = rooms.map(room => room.price).filter(price => price > 0);
+    
+    if (prices.length === 0) {
+      console.log(`Không tìm thấy giá phòng hợp lệ cho khách sạn ${hotelId}`);
+      return;
+    }
+    
+    const cheapestPrice = Math.min(...prices);
+    
+    // Cập nhật giá rẻ nhất của khách sạn
+    const hotel = await Hotel.findById(hotelId);
+    
+    if (hotel.cheapestPrice !== cheapestPrice) {
+      console.log(`Cập nhật giá rẻ nhất của khách sạn ${hotelId} từ ${hotel.cheapestPrice} thành ${cheapestPrice}`);
+      await Hotel.findByIdAndUpdate(hotelId, { cheapestPrice: cheapestPrice });
+    }
+  } catch (err) {
+    console.error(`Lỗi khi cập nhật giá rẻ nhất cho khách sạn ${hotelId}:`, err);
   }
 };

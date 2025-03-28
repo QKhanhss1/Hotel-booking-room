@@ -155,6 +155,13 @@ function HotelEditModal({
                                 min="1"
                                 max="5"
                             />
+                            <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+                                <p>Giá khách sạn sẽ được tự động cập nhật dựa trên giá phòng thấp nhất.</p>
+                                <p>Hiện tại: {editingHotel.cheapestPrice ? new Intl.NumberFormat("vi-VN", {
+                                    style: "currency",
+                                    currency: "VND",
+                                }).format(editingHotel.cheapestPrice) : "0 VND"}/đêm</p>
+                            </div>
                             <input
                                 type="file"
                                 multiple

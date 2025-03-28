@@ -93,6 +93,11 @@
   font-size: 24px;
 }
 
+.siPricePerNight{
+  font-size: 14px;
+  color: gray;
+}
+
 .siTaxOp{
   font-size: 12px;
   color: gray;

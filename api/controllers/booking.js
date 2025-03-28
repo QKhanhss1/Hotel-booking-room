@@ -102,6 +102,15 @@ export const updateBookingStatus = async (req, res) => {
       return res.status(404).json({ error: "Không tìm thấy đơn đặt phòng!" });
     }
 
+    // Nếu trạng thái hiện tại đã là 'success' và yêu cầu cũng là 'success', không cần cập nhật nữa
+    if (existingBooking.paymentStatus === 'success' && paymentStatus === 'success') {
+      console.log(`Booking ${bookingId} đã ở trạng thái thanh toán thành công, bỏ qua`);
+      return res.status(200).json({
+        message: "Đơn hàng đã ở trạng thái thanh toán thành công!",
+        booking: existingBooking
+      });
+    }
+
     const updateData = {
       paymentStatus: paymentStatus,
       paymentDate: paymentStatus === 'success' ? Date.now() : existingBooking.paymentDate,
@@ -120,12 +129,14 @@ export const updateBookingStatus = async (req, res) => {
       delete global.bookingTimeouts[bookingId];
     }
     
-    // Gửi email thông báo tương ứng
-    if (paymentStatus === 'success') {
+    // Gửi email thông báo tương ứng - chỉ gửi khi trạng thái thực sự thay đổi
+    if (paymentStatus === 'success' && existingBooking.paymentStatus !== 'success') {
       // Gửi email xác nhận thanh toán thành công
+      console.log(`Gửi email xác nhận thanh toán thành công cho booking ${bookingId}`);
       await sendPaymentSuccess(booking, booking.email);
-    } else if (paymentStatus === 'cancelled') {
+    } else if (paymentStatus === 'cancelled' && existingBooking.paymentStatus !== 'cancelled') {
       // Gửi email thông báo hủy đặt phòng
+      console.log(`Gửi email thông báo hủy đặt phòng cho booking ${bookingId}`);
       await sendBookingCancellation(booking, booking.email);
     }
 

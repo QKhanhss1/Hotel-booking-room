@@ -19,7 +19,6 @@ function Hotels() {
     address: "",
     desc: "",
     rating: "",
-    cheapestPrice: "",
     type: "",
     distance: "",
     title: "",
@@ -137,8 +136,7 @@ function Hotels() {
         !newHotel.type ||
         !newHotel.city ||
         !newHotel.address ||
-        !newHotel.desc ||
-        !newHotel.cheapestPrice
+        !newHotel.desc
       ) {
         toast.warn("Vui lòng điền đầy đủ thông tin!", {
           position: "top-center",
@@ -164,6 +162,7 @@ function Hotels() {
       // Tạo khách sạn với mảng ID ảnh
       const newHotelData = {
         ...newHotel,
+        cheapestPrice: 0, // Mặc định là 0, sẽ được cập nhật khi thêm phòng
         imageIds: imageIds, // Lưu mảng các ID ảnh
       };
       
@@ -198,7 +197,6 @@ function Hotels() {
         address: "",
         desc: "",
         rating: "",
-        cheapestPrice: "",
         type: "",
         distance: "",
         title: "",

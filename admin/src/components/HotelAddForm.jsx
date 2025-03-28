@@ -93,15 +93,6 @@ function HotelAddForm({
                                 max="5"
                             />
                             <input
-                                type="number"
-                                placeholder="Giá rẻ nhất"
-                                value={newHotel.cheapestPrice}
-                                onChange={(e) =>
-                                    setNewHotel({ ...newHotel, cheapestPrice: e.target.value })
-                                } disabled={isImageUploading}
-                                className="p-2 border rounded-md"
-                            />
-                            <input
                                 type="file"
                                 multiple
                                 onChange={handleImageChange}

@@ -18,16 +18,15 @@ const Payment = ({ onClose }) => {
   useEffect(() => {
     const data = localStorage.getItem("reservationData");
     const datesData = localStorage.getItem("dates");
-    const storedPrice = localStorage.getItem("totalprice");
+
+    console.log("Loaded reservationData from localStorage:", data);
 
     if (data) {
       const parsedData = JSON.parse(data);
-      setReservationData({
-        ...parsedData,
-        totalPrice: parseFloat(storedPrice)
-      });
-
+      console.log("Parsed reservationData:", parsedData);
+      setReservationData(parsedData);
     }
+
     if (datesData) {
       const parsedDates = JSON.parse(datesData);
       if (Array.isArray(parsedDates) && parsedDates[0]) {
@@ -62,6 +61,14 @@ const Payment = ({ onClose }) => {
         });
         return null;  
       }
+
+      console.log("Creating booking with data:", {
+        hotelId: hotelId,
+        selectedRooms: selectedRooms,
+        totalPrice: totalPrice,
+        customer: user.details._id,
+        dates: reservationDates
+      });
 
       const bookingData = {
         hotelId: hotelId,
@@ -117,9 +124,8 @@ const Payment = ({ onClose }) => {
       const booking = await createBooking(email);
       if (!booking) return;
 
-      // Lưu ID booking và totalPrice vào localStorage
+      // Lưu ID booking vào localStorage
       localStorage.setItem("bookingId", booking._id);
-      localStorage.setItem("totalprice", booking.totalPrice.toString());
 
       // Tạo URL thanh toán VNPay
       const response = await axios.post(

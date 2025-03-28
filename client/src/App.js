@@ -16,28 +16,35 @@ import { AuthContext, AuthContextProvider } from "./context/AuthContext";
 import Payment from "./pages/payment/payment";
 import PaymentStatus from "./pages/payment/paymentStatus";
 import BookingPage from "./pages/booking/booking";
+import { SearchContextProvider } from "./context/SearchContext";
+import { ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+
 function App() {
   const { user } = useContext(AuthContext);
 
   return (
-    <AuthContextProvider>
-      <FavoriteContextProvider user={user}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/hotels" element={<List />} />
-            <Route path="/hotel-types" element={<HotelTypes />} />
-            <Route path="/hotels/:id" element={<Hotel />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signUp" element={<SingUp />} />
-            <Route path="/favorites" element={<FavoritePage />} />
-            <Route path="/payment/:status" element={<PaymentStatus />} />
-            <Route path="/booking" element={<BookingPage />} />
-            <Route path="/verify/:token" element={<VerifyEmail />} />
-          </Routes>
-        </BrowserRouter>
-      </FavoriteContextProvider>
-    </AuthContextProvider>
+    <FavoriteContextProvider>
+      <AuthContextProvider>
+        <SearchContextProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/hotels" element={<List />} />
+              <Route path="/hotel-types" element={<HotelTypes />} />
+              <Route path="/hotels/:id" element={<Hotel />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signUp" element={<SingUp />} />
+              <Route path="/favorites" element={<FavoritePage />} />
+              <Route path="/payment/:status" element={<PaymentStatus />} />
+              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/verify/:token" element={<VerifyEmail />} />
+            </Routes>
+            <ToastContainer />
+          </BrowserRouter>
+        </SearchContextProvider>
+      </AuthContextProvider>
+    </FavoriteContextProvider>
   );
 }
 

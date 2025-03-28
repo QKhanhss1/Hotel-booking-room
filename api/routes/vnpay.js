@@ -147,12 +147,16 @@ router.get('/create_payment_url', function (req, res, next) {
     res.redirect(vnpUrl);
 });
 
+// Route xử lý phản hồi từ VNPay chỉ nên xuất hiện một lần
 router.get('/vnpay_return', async function (req, res, next) {
     try {
+        console.log("VNPay callback received", new Date().toISOString());
         let vnp_Params = req.query;
         let secureHash = vnp_Params['vnp_SecureHash'];
         const bookingId = vnp_Params['vnp_OrderInfo'].split(': ')[1];
         const amount = vnp_Params['vnp_Amount'] / 100; // Chuyển về đơn vị gốc
+        
+        console.log("Processing payment for booking:", bookingId, "with amount:", amount);
         
         delete vnp_Params['vnp_SecureHash'];
         delete vnp_Params['vnp_SecureHashType'];
@@ -168,18 +172,17 @@ router.get('/vnpay_return', async function (req, res, next) {
             const responseCode = vnp_Params['vnp_ResponseCode'];
             const paymentStatus = responseCode === '00' ? 'success' : 'failed';
             
+            console.log("Signature verified. Payment status:", paymentStatus);
+            
             try {
-                // Lấy booking để biết email
-                const bookingResponse = await axios.get(`http://localhost:8800/api/booking/${bookingId}`);
-                const booking = bookingResponse.data;
-                
                 // Cập nhật trạng thái booking
+                console.log("Updating booking status to:", paymentStatus);
                 await axios.put('http://localhost:8800/api/booking/update/status', {
                     bookingId,
-                    paymentStatus,
-                    amount
+                    paymentStatus
                 });
                 
+                console.log("Redirecting to frontend:", `${config.get('frontend_url')}/payment/${paymentStatus}?amount=${amount}`);
                 // Thêm amount vào URL redirect
                 res.redirect(`${config.get('frontend_url')}/payment/${paymentStatus}?amount=${amount}`);
             } catch (updateError) {
@@ -187,6 +190,7 @@ router.get('/vnpay_return', async function (req, res, next) {
                 res.redirect(`${config.get('frontend_url')}/payment/failed`);
             }
         } else {
+            console.error("Signature verification failed");
             res.redirect(`${config.get('frontend_url')}/payment/failed`);
         }
     } catch (error) {
@@ -211,57 +215,4 @@ function sortObject(obj) {
     return sorted;
 }
 
-// Route xử lý phản hồi từ VNPay
-router.get('/vnpay_return', function (req, res, next) {
-    let vnp_Params = req.query;
-    let secureHash = vnp_Params['vnp_SecureHash'];
-    
-    // Xóa các tham số chữ ký để xác thực
-    delete vnp_Params['vnp_SecureHash'];
-    delete vnp_Params['vnp_SecureHashType'];
-    
-    // Sắp xếp các tham số để chuẩn bị ký
-    vnp_Params = sortObject(vnp_Params);
-
-    let tmnCode = config.get('vnp_TmnCode');
-    let secretKey = config.get('vnp_HashSecret');
-
-    // Log ra vnp_Params và vnp_ResponseCode để kiểm tra
-    console.log("vnp_Params:", vnp_Params);
-    console.log("vnp_ResponseCode:", vnp_Params['vnp_ResponseCode']);
-
-    // Tạo chữ ký dữ liệu
-    let signData = querystring.stringify(vnp_Params, { encode: false });
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
-
-    // Log ra secureHash và signed để so sánh
-    console.log("secureHash from VNPAY:", secureHash);
-    console.log("Signed hash calculated:", signed);
-
-    // Kiểm tra chữ ký nếu hợp lệ
-    if (secureHash === signed) {
-        // Xác định trạng thái giao dịch
-        let orderStatus = vnp_Params['vnp_ResponseCode'] === '00' ? 'success' : 'error';
-        let total = vnp_Params['vnp_Amount'] ? parseInt(vnp_Params['vnp_Amount'], 10) / 100 : 0; 
-    
-        // Trả về trang thành công hoặc lỗi tương ứng
-        const redirectToPaymentSuccessPage = (status) => `
-        <html>
-        <head>
-            <meta http-equiv="refresh" content="0; url=http://localhost:3000/payment/${status}?amount=${total}" />
-        </head>
-        <body>
-            <p>Redirecting to payment ${status} page...</p>
-        </body>
-        </html>
-        `;
-
-        // Trả về trang sau khi kiểm tra thành công
-        res.status(200).send(redirectToPaymentSuccessPage(orderStatus,total));
-    } else {
-        console.error("Signature validation failed");
-        res.status(400).send("Invalid signature");
-    }
-});
 export default router;

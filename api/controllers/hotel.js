@@ -17,37 +17,53 @@ export const createHotel = async (req, res, next) => {
 
 export const updateHotel = async (req, res, next) => {
   console.log('req.body updateHotel', req.body);
-  const { name, type, city, address, desc, cheapestPrice, distance, title, imageIds, rating, amenities } = req.body;
-  const updatedHotel = await Hotel.findByIdAndUpdate(
-    req.params.id,
-    {
-      name,
-      type,
-      city,
-      address,
-      desc,
-      cheapestPrice,
-      distance,
-      title,
-      imageIds: imageIds,
-      rating,
-      amenities
-    },
-    { new: true }
-  );
-  console.log('updatedHotel', updatedHotel);
-  if (!updatedHotel) {
-    return res.status(404).json({ message: 'Hotel not found' });
+  const { name, type, city, address, desc, distance, title, imageIds, rating, amenities } = req.body;
+  
+  try {
+    // Lấy thông tin khách sạn hiện tại để giữ nguyên giá trị cheapestPrice
+    const existingHotel = await Hotel.findById(req.params.id);
+    if (!existingHotel) {
+      return res.status(404).json({ message: 'Hotel not found' });
+    }
+    
+    const updatedHotel = await Hotel.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        type,
+        city,
+        address,
+        desc,
+        distance,
+        title,
+        imageIds: imageIds,
+        rating,
+        amenities,
+        // Giữ nguyên giá trị cheapestPrice
+        cheapestPrice: existingHotel.cheapestPrice 
+      },
+      { new: true }
+    );
+    
+    console.log('updatedHotel', updatedHotel);
+    if (!updatedHotel) {
+      return res.status(404).json({ message: 'Hotel not found' });
+    }
+    
+    const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
+    // console.log('populatedHotel', populatedHotel);
+    // console.log('populatedHotel.imageIds', populatedHotel.imageIds);
+    const modifiedHotel = {
+      ...populatedHotel.toObject(),
+      imageIds: populatedHotel.imageIds ? populatedHotel.imageIds.map((image) => image._id.toString()) : [],
+    };
+    res.status(200).json(modifiedHotel);
+  } catch (err) {
+    console.error("Error updating hotel:", err);
+    next(err);
   }
-  const populatedHotel = await Hotel.findById(updatedHotel._id).populate('imageIds');
-  // console.log('populatedHotel', populatedHotel);
-  // console.log('populatedHotel.imageIds', populatedHotel.imageIds);
-  const modifiedHotel = {
-    ...populatedHotel.toObject(),
-    imageIds: populatedHotel.imageIds ? populatedHotel.imageIds.map((image) => image._id.toString()) : [],
-  };
-  res.status(200).json(modifiedHotel);
 };
+
 export const deleteHotel = async (req, res, next) => {
   try {
     await Hotel.findByIdAndDelete(req.params.id);
@@ -56,6 +72,7 @@ export const deleteHotel = async (req, res, next) => {
     next(err);
   }
 };
+
 export const getHotel = async (req, res, next) => {
   try {
     const hotel = await Hotel.findById(req.params.id);
@@ -64,6 +81,7 @@ export const getHotel = async (req, res, next) => {
     next(err);
   }
 };
+
 export const getHotels = async (req, res, next) => {
   const { min, max, city, name, ...others } = req.query;
   try {
@@ -122,6 +140,7 @@ export const getHotels = async (req, res, next) => {
     next(err);
   }
 };
+
 export const getAllHotel= async (req, res, next) => {
   try {
     const hotels = await Hotel.find({
@@ -132,6 +151,7 @@ export const getAllHotel= async (req, res, next) => {
     next(err);
   }
 };
+
 export const getFeaturedHotels = async (req, res, next) => {
   try {
 
@@ -143,6 +163,7 @@ export const getFeaturedHotels = async (req, res, next) => {
     next(err);
   }
 };
+
 export const countByCity = async (req, res, next) => {
   const cities = req.query.cities.split(",");
   try {
@@ -156,6 +177,7 @@ export const countByCity = async (req, res, next) => {
     next(err);
   }
 };
+
 export const countByType = async (req, res, next) => {
   try {
     const hotelCount = await Hotel.countDocuments({ type: "hotel" });
@@ -343,6 +365,7 @@ export const getHotelsByType = async (req, res, next) => {
     next(err);
   }
 };
+
 export const deleteReview = async (req, res) => {
   const { hotelId, reviewId } = req.params;
 

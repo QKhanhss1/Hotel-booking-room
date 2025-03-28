@@ -20,7 +20,18 @@ import {
   faDumbbell, 
   faLink,
   faSave,
-  faCheck
+  faCheck,
+  faRulerCombined,
+  faUserFriends,
+  faSnowflake,
+  faWineGlass,
+  faCoffee,
+  faSmoking,
+  faDoorOpen,
+  faBed,
+  faChevronLeft,
+  faChevronRight,
+  faExpandArrowsAlt
 } from "@fortawesome/free-solid-svg-icons";
 import { useContext, useState, useEffect, useRef } from "react";
 import useFetch from "../../hooks/useFetch";
@@ -29,10 +40,10 @@ import { AuthContext } from "../../context/AuthContext";
 import { SearchContext } from "../../context/SearchContext";
 import { FavoriteContext } from "../../context/FavoriteContext";
 import axios from "axios";
-import Reserve from "../../components/reserve/Reserve";
 import { API_UPLOAD, API_HOTELS, API_IMAGES } from '../../utils/apiConfig';
 import { ToastContainer, toast, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Payment from "../payment/payment";
 
 const Hotel = () => {
   const location = useLocation();
@@ -42,16 +53,24 @@ const Hotel = () => {
   const [showAllImages, setShowAllImages] = useState(false);
   const [open, setOpen] = useState(false);
   const [hotel, setHotel] = useState(null);
-  const [openModal, setOpenModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [comments, setComments] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRooms, setSelectedRooms] = useState([]);
+  const [roomsData, setRoomsData] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [roomsError, setRoomsError] = useState(null);
+  const [bookedRooms, setBookedRooms] = useState([]);
   const [commentFormData, setCommentFormData] = useState({
     userId: "",
     rating: 0,
     comment: "",
   });
   const [loading, setLoading] = useState(true);
+  const [currentRoomImages, setCurrentRoomImages] = useState({});
+  const [currentImageIndexes, setCurrentImageIndexes] = useState({});
+  const [showRoomDetail, setShowRoomDetail] = useState(null);
   
   // Refs for scroll navigation
   const overviewRef = useRef(null);
@@ -129,15 +148,15 @@ const Hotel = () => {
     fetchHotelData();
   }, [data, user]);
 
-  // Calculate total price
+  // Calculate total price for hotel (not selected rooms)
   useEffect(() => {
-    if (data && options.room && days) {
-      const calculatedPrice = days * data.cheapestPrice * options.room;
+    if (data && days) {
+      const calculatedPrice = days * data.cheapestPrice;
       const roundedPrice = Math.round(calculatedPrice);
       setTotalPrice(roundedPrice);
-      localStorage.setItem("totalprice", roundedPrice.toString());
+      // Không cần lưu vào localStorage nữa vì chúng ta sẽ sử dụng totalRoomsPrice cho việc thanh toán
     }
-  }, [days, data, options]);
+  }, [days, data]);
 
   // Fetch comments/reviews
   useEffect(() => {
@@ -155,11 +174,245 @@ const Hotel = () => {
     }
   }, [id]);
 
+  // Fetch room data
+  useEffect(() => {
+    const fetchRooms = async () => {
+      if (id && dates?.[0]?.startDate && dates?.[0]?.endDate) {
+        try {
+          setLoadingRooms(true);
+          const response = await axios.get(
+            `/hotels/rooms/${id}?startDate=${dates[0].startDate}&endDate=${dates[0].endDate}`
+          );
+          setRoomsData(response.data);
+          setLoadingRooms(false);
+        } catch (error) {
+          console.error("Error fetching rooms:", error);
+          setRoomsError("Không thể tải thông tin phòng. Vui lòng thử lại sau.");
+          setLoadingRooms(false);
+        }
+      }
+    };
+    fetchRooms();
+  }, [id, dates]);
+
+  // Fetch booked rooms
+  useEffect(() => {
+    const fetchBookedRooms = async () => {
+      try {
+        const response = await axios.get(`/booking/hotel/${id}`);
+        const bookings = response.data;
+        
+        // Chỉ lấy các booking đã thanh toán thành công
+        const successfulBookings = bookings.filter(
+          booking => booking.paymentStatus === "success"
+        );
+
+        // Map dữ liệu booking để dễ sử dụng
+        const booked = successfulBookings.map(booking => ({
+          roomId: booking.selectedRooms.map(room => ({ 
+            _id: room.roomId._id || room.roomId,
+            number: room.roomNumber
+          })),
+          checkinDate: booking.paymentInfo.checkinDate,
+          checkoutDate: booking.paymentInfo.checkoutDate
+        }));
+
+        setBookedRooms(booked);
+      } catch (error) {
+        console.error("Error fetching booked rooms:", error);
+      }
+    };
+
+    if (id && dates?.[0]?.startDate && dates?.[0]?.endDate) {
+      fetchBookedRooms();
+    }
+  }, [id, dates]);
+
+  // Fetch room images
+  useEffect(() => {
+    const fetchRoomImages = async () => {
+      if (roomsData && roomsData.length > 0) {
+        const imageMap = {};
+        const indexMap = {};
+
+        await Promise.all(
+          roomsData.map(async (room) => {
+            if (room.imageIds && room.imageIds.length > 0) {
+              try {
+                const images = await Promise.all(
+                  room.imageIds.map(async (imageId) => {
+                    const id = typeof imageId === 'object' ? imageId._id : imageId;
+                    try {
+                      const response = await axios.get(`${API_IMAGES}/${id}`);
+                      return response.data.imageUrl;
+                    } catch (error) {
+                      console.error("Error fetching room image:", error);
+                      return null;
+                    }
+                  })
+                );
+                imageMap[room._id] = images.filter(Boolean);
+                indexMap[room._id] = 0;
+              } catch (error) {
+                console.error(`Error fetching images for room ${room._id}:`, error);
+                imageMap[room._id] = [];
+              }
+            } else {
+              imageMap[room._id] = [];
+            }
+          })
+        );
+
+        setCurrentRoomImages(imageMap);
+        setCurrentImageIndexes(indexMap);
+      }
+    };
+
+    if (!loadingRooms && roomsData) {
+      fetchRoomImages();
+    }
+  }, [roomsData, loadingRooms]);
+
+  // Helper function to check if room is available
+  const isAvailable = (roomNumber) => {
+    try {
+      if (!dates || !dates[0] || !roomNumber) return false;
+
+      // Convert dates to timestamps for easier comparison
+      const requestStart = new Date(dates[0].startDate).getTime();
+      const requestEnd = new Date(dates[0].endDate).getTime();
+
+      // Check if room is booked in the requested period
+      const isBooked = bookedRooms.some(booking => {
+        const bookedRoomIds = booking.roomId.map(id => id._id || id);
+        
+        if (bookedRoomIds.includes(roomNumber._id)) {
+          const bookedStart = new Date(booking.checkinDate).getTime();
+          const bookedEnd = new Date(booking.checkoutDate).getTime();
+
+          // Room is unavailable if there's any overlap between periods
+          return (
+            (requestStart < bookedEnd && requestEnd > bookedStart)
+          );
+        }
+        return false;
+      });
+
+      return !isBooked;
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      return false;
+    }
+  };
+
+  // Handle room selection
+  const handleSelectRoom = (e, roomId) => {
+    const { checked } = e.target;
+    
+    if (checked) {
+      setSelectedRooms(prev => [...prev, roomId]);
+    } else {
+      setSelectedRooms(prev => prev.filter(item => item !== roomId));
+    }
+  };
+
+  // Tính tổng giá phòng khi chọn phòng và lưu vào state
+  const [totalRoomsPrice, setTotalRoomsPrice] = useState(0);
+
+  useEffect(() => {
+    if (selectedRooms.length > 0 && days > 0 && roomsData.length > 0) {
+      const calculatedTotal = selectedRooms.reduce((total, roomId) => {
+        const roomData = roomsData.find((room) => 
+          room.roomNumbers.some(roomNumber => roomNumber._id === roomId)
+        );
+        return total + (roomData?.price || 0) * days;
+      }, 0);
+      setTotalRoomsPrice(calculatedTotal);
+    } else {
+      setTotalRoomsPrice(0);
+    }
+  }, [selectedRooms, days, roomsData]);
+
+  // Handle booking button
+  const handleBookRooms = () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để đặt phòng!");
+      navigate("/login");
+      return;
+    }
+
+    if (selectedRooms.length === 0 || !days || days <= 0) {
+      toast.error("Vui lòng chọn phòng và kiểm tra lại ngày đặt!");
+      return;
+    }
+
+    // Tính toán lại tổng giá phòng để đảm bảo dữ liệu cập nhật nhất
+    const currentTotalPrice = selectedRooms.reduce((total, roomId) => {
+      const roomData = roomsData.find((room) => 
+        room.roomNumbers.some(roomNumber => roomNumber._id === roomId)
+      );
+      return total + (roomData?.price || 0) * days;
+    }, 0);
+
+    const selectedRoomDetails = selectedRooms.map((roomId) => {
+      // Tìm thông tin phòng
+      const roomData = roomsData.find((room) => 
+        room.roomNumbers.some(roomNumber => roomNumber._id === roomId)
+      );
+      
+      // Tìm thông tin số phòng
+      const roomNumberData = roomsData
+        .flatMap((room) => room.roomNumbers)
+        .find((roomNumber) => roomNumber._id === roomId);
+
+      if (!roomNumberData || !roomData) {
+        console.error("Không tìm thấy thông tin phòng:", roomId);
+        return null;
+      }
+
+      return {
+        id: roomId,
+        roomId: roomData._id,
+        number: roomNumberData.number || "Không xác định",
+        title: roomData.title || "Không xác định",
+        price: roomData.price || 0,
+      };
+    }).filter(Boolean);
+
+    // Xóa dữ liệu cũ trong localStorage để tránh sử dụng lại
+    localStorage.removeItem("reservationData");
+    
+    // Lưu vào localStorage với giá tính đúng mới nhất
+    localStorage.setItem(
+      "reservationData",
+      JSON.stringify({
+        totalPrice: currentTotalPrice,
+        selectedRooms: selectedRoomDetails,
+        hotelId: id,
+      })
+    );
+    
+    // Cập nhật state totalRoomsPrice
+    setTotalRoomsPrice(currentTotalPrice);
+    
+    // Lưu thông tin ngày
+    localStorage.setItem("dates", JSON.stringify(dates));
+    
+    // Hiển thị modal thanh toán
+    setShowPaymentModal(true);
+  };
+
+  // Format price
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN').format(price);
+  };
+  
   // Handle tab click and scroll to section
   const handleTabClick = (tab) => {
     setActiveTab(tab);
     const refs = {
       overview: overviewRef,
+      rooms: roomsRef,
       location: locationRef,
       amenities: amenitiesRef,
       reviews: reviewsRef,
@@ -200,12 +453,11 @@ const Hotel = () => {
     }
   };
 
-  // Handle booking button click
+  // Handle booking button
   const handleBookingClick = () => {
-    if (user) {
-      setOpenModal(true);
-    } else {
-      navigate("/login");
+    setActiveTab('rooms');
+    if (roomsRef && roomsRef.current) {
+      roomsRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -331,16 +583,29 @@ const Hotel = () => {
       "pool": faSwimmingPool,
       "spa": faSpa,
       "gym": faDumbbell,
-      "ac": faCheck,
+      "ac": faSnowflake,
       "meeting": faCheck,
-      "bar": faCheck,
+      "bar": faWineGlass,
       "laundry": faCheck,
       "roomService": faCheck,
       "childFriendly": faCheck,
       "petFriendly": faCheck,
-      "breakfast": faCheck,
-      "tv": faCheck,
+      "breakfast": faUtensils,
+      "tv": faStar,
       "shuttle": faCheck,
+      "minibar": faWineGlass,
+      "coffee": faCoffee,
+      "no-smoking": faSmoking,
+      "balcony": faDoorOpen,
+      "bathtub": faBed,
+      "hairdryer": faCheck,
+      "kitchen": faUtensils,
+      "fridge": faCheck,
+      "connecting": faCheck,
+      "heater": faCheck,
+      "family": faUserFriends,
+      "earlyCheckin": faCheck,
+      "nearBeach": faCheck,
       "default": faCheck
     };
     
@@ -358,16 +623,53 @@ const Hotel = () => {
       "ac": "Điều hòa",
       "meeting": "Phòng họp",
       "bar": "Quầy bar",
-      "laundry": "Giặt ủi",
+      "laundry": "Dịch vụ giặt ủi",
       "roomService": "Dịch vụ phòng",
-      "childFriendly": "Thân thiện với trẻ em",
+      "childFriendly": "Tiện nghi cho trẻ",
       "petFriendly": "Cho phép thú cưng",
       "breakfast": "Bữa sáng",
       "tv": "TV",
-      "shuttle": "Đưa đón sân bay"
+      "shuttle": "Đưa đón sân bay",
+      "minibar": "Minibar",
+      "coffee": "Máy pha cà phê",
+      "no-smoking": "Không hút thuốc",
+      "balcony": "Ban công",
+      "bathtub": "Bồn tắm",
+      "hairdryer": "Máy sấy tóc",
+      "kitchen": "Nhà bếp",
+      "fridge": "Tủ lạnh",
+      "connecting": "Phòng liên thông",
+      "heater": "Máy sưởi",
+      "family": "Phòng gia đình",
+      "earlyCheckin": "Nhận phòng sớm",
+      "nearBeach": "Gần biển"
     };
     
     return labelMap[amenityId] || amenityId;
+  };
+
+  // Chuyển đổi hình ảnh phòng
+  const handleImageNav = (roomId, direction) => {
+    const images = currentRoomImages[roomId] || [];
+    if (images.length <= 1) return;
+
+    setCurrentImageIndexes(prev => {
+      const currentIndex = prev[roomId] || 0;
+      let newIndex;
+      
+      if (direction === "prev") {
+        newIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+      } else {
+        newIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
+      }
+      
+      return { ...prev, [roomId]: newIndex };
+    });
+  };
+
+  // Hiển thị chi tiết phòng
+  const showRoomDetails = (room) => {
+    setShowRoomDetail(room);
   };
 
   if (loading) {
@@ -392,34 +694,34 @@ const Hotel = () => {
       <Navbar />
       <Header type="list" />
       
-        <div className="hotelContainer">
+      <div className="hotelContainer">
         {/* Image gallery slider modal */}
-          {open && hotel && hotel.images && (
-            <div className="slider">
-              <FontAwesomeIcon
-                icon={faCircleXmark}
-                className="close"
-                onClick={() => setOpen(false)}
-              />
-              <FontAwesomeIcon
-                icon={faCircleArrowLeft}
-                className="arrow"
-                onClick={() => handleMove("l")}
-              />
-              <div className="sliderWrapper">
-                <img
-                  src={hotel.images[selectedImageIndex]}
-                  alt=""
-                  className="sliderImg"
-                />
-              </div>
-              <FontAwesomeIcon
-                icon={faCircleArrowRight}
-                className="arrow"
-                onClick={() => handleMove("r")}
+        {open && hotel && hotel.images && (
+          <div className="slider">
+            <FontAwesomeIcon
+              icon={faCircleXmark}
+              className="close"
+              onClick={() => setOpen(false)}
+            />
+            <FontAwesomeIcon
+              icon={faCircleArrowLeft}
+              className="arrow"
+              onClick={() => handleMove("l")}
+            />
+            <div className="sliderWrapper">
+              <img
+                src={hotel.images[selectedImageIndex]}
+                alt=""
+                className="sliderImg"
               />
             </div>
-          )}
+            <FontAwesomeIcon
+              icon={faCircleArrowRight}
+              className="arrow"
+              onClick={() => handleMove("r")}
+            />
+          </div>
+        )}
 
         {/* Top navigation bar */}
         <div className="hotel-nav-bar">
@@ -430,6 +732,12 @@ const Hotel = () => {
                 onClick={() => handleTabClick('overview')}
               >
                 Tổng quan
+              </button>
+              <button 
+                className={`hotel-nav-tab ${activeTab === 'rooms' ? 'active' : ''}`}
+                onClick={() => handleTabClick('rooms')}
+              >
+                Phòng
               </button>
               <button 
                 className={`hotel-nav-tab ${activeTab === 'location' ? 'active' : ''}`}
@@ -485,9 +793,9 @@ const Hotel = () => {
                     <h1>Hoàn hảo cho {days}-kỳ nghỉ đêm!</h1>
                     <span>
                       Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc!
-            </span>
+                    </span>
                     <h2>
-                      <b>{totalprice.toLocaleString('vi-VN')} VND</b> ({days} đêm)
+                      <b>{data && data.cheapestPrice ? data.cheapestPrice.toLocaleString('vi-VN') : 0} VND</b> /đêm
                     </h2>
                     <button onClick={handleBookingClick}>Đặt chỗ hoặc Đặt ngay!</button>
                   </div>
@@ -536,6 +844,181 @@ const Hotel = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Rooms Section */}
+          <div ref={roomsRef} className="hotel-section" id="rooms">
+            <div className="section-header">
+              <h2>Danh sách phòng</h2>
+              <p>Chọn phòng phù hợp với nhu cầu của bạn</p>
+            </div>
+
+            <div className="hotel-rooms">
+              {loadingRooms ? (
+                <div className="rooms-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Đang tải thông tin phòng...</p>
+                </div>
+              ) : roomsError ? (
+                <div className="rooms-error">
+                  <p>{roomsError}</p>
+                </div>
+              ) : roomsData && roomsData.length > 0 ? (
+                <div className="rooms-list">
+                  {roomsData.map((room) => {
+                    // Lọc ra các phòng còn trống
+                    const availableRooms = room.roomNumbers.filter(roomNumber => isAvailable(roomNumber));
+                    
+                    // Nếu không có phòng trống thì bỏ qua
+                    if (availableRooms.length === 0) return null;
+                    
+                    // Lấy hình ảnh và index hiện tại
+                    const roomImages = currentRoomImages[room._id] || [];
+                    const currentImageIndex = currentImageIndexes[room._id] || 0;
+                    
+                    return (
+                      <div className="room-card" key={room._id}>
+                        <div className="room-image-container">
+                          {roomImages.length > 0 ? (
+                            <div className="room-image-slider">
+                              <img 
+                                src={roomImages[currentImageIndex]} 
+                                alt={room.title} 
+                                className="room-image"
+                              />
+                              {roomImages.length > 1 && (
+                                <>
+                                  <button 
+                                    className="image-nav prev"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleImageNav(room._id, "prev");
+                                    }}
+                                  >
+                                    <FontAwesomeIcon icon={faChevronLeft} />
+                                  </button>
+                                  <button 
+                                    className="image-nav next"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleImageNav(room._id, "next");
+                                    }}
+                                  >
+                                    <FontAwesomeIcon icon={faChevronRight} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="room-no-image">
+                              <FontAwesomeIcon icon={faBed} />
+                              <span>Không có ảnh</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="room-info">
+                          <h3 className="room-title">{room.title}</h3>
+                          <div className="room-specs">
+                            <div className="room-spec">
+                              <FontAwesomeIcon icon={faRulerCombined} />
+                              <span>{room.roomSize || "30 m²"}</span>
+                            </div>
+                            <div className="room-spec">
+                              <FontAwesomeIcon icon={faUserFriends} />
+                              <span>{room.maxPeople} khách</span>
+                            </div>
+                          </div>
+                          
+                          <div className="room-amenities">
+                            {room.amenities && room.amenities.length > 0 ? (
+                              room.amenities.slice(0, 3).map((amenity, index) => (
+                                <div className="room-amenity" key={index}>
+                                  <FontAwesomeIcon icon={getAmenityIcon(amenity)} />
+                                  <span>{getAmenityLabel(amenity)}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="room-amenity">
+                                <FontAwesomeIcon icon={faWifi} />
+                                <span>WiFi miễn phí</span>
+                              </div>
+                            )}
+                            {room.amenities && room.amenities.length > 3 && (
+                              <div className="room-amenity">
+                                <span>+{room.amenities.length - 3} tiện nghi khác</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="room-desc">
+                            <p>{room.desc || "Phòng với đầy đủ tiện nghi, thoáng mát và thoải mái."}</p>
+                          </div>
+                          
+                          <button 
+                            className="room-detail-btn"
+                            onClick={() => showRoomDetails(room)}
+                          >
+                            Xem chi tiết phòng
+                          </button>
+                        </div>
+                        
+                        <div className="room-booking">
+                          <div className="room-price">
+                            <div className="price-value">{formatPrice(room.price)} VND</div>
+                            <div className="price-night">/đêm</div>
+                            <div className="price-taxes">Đã bao gồm thuế và phí</div>
+                          </div>
+                          
+                          <div className="room-selection">
+                            <div className="room-select-header">
+                              <span>Phòng còn trống: {availableRooms.length}</span>
+                            </div>
+                            
+                            <div className="room-numbers">
+                              {availableRooms.map((roomNumber) => (
+                                <div className="room-number-item" key={roomNumber._id}>
+                                  <label className="room-number-label">
+                                    <input
+                                      type="checkbox"
+                                      value={roomNumber._id}
+                                      onChange={(e) => handleSelectRoom(e, roomNumber._id)}
+                                      checked={selectedRooms.includes(roomNumber._id)}
+                                      className="room-number-checkbox"
+                                    />
+                                    <span className="room-number-text">Phòng {roomNumber.number}</span>
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Booking button */}
+                  {selectedRooms.length > 0 && (
+                    <div className="room-booking-action">
+                      <div className="selected-rooms-info">
+                        <span>Đã chọn {selectedRooms.length} phòng</span>
+                        <span>Tổng tiền: {formatPrice(totalRoomsPrice)} VND ({days} đêm)</span>
+                      </div>
+                      <button 
+                        className="book-rooms-button"
+                        onClick={handleBookRooms}
+                      >
+                        Đặt phòng ngay
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="no-rooms">
+                  <p>Không tìm thấy phòng trống cho ngày đã chọn</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -706,24 +1189,161 @@ const Hotel = () => {
           </div>
         </div>
         
-          <ToastContainer
-                  position="top-center"
-                  autoClose={1500}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick={false}
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="light"
-                  transition={Bounce}
-                />
+        <ToastContainer
+          position="top-center"
+          autoClose={1500}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick={false}
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Bounce}
+        />
         
-          <MailList />
-          <Footer />
+        <MailList />
+        <Footer />
+      </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="modal-overlay">
+          <Payment onClose={() => setShowPaymentModal(false)} />
         </div>
-      {openModal && <Reserve setOpen={setOpenModal} hotelId={id} />}
+      )}
+
+      {/* Room Detail Modal */}
+      {showRoomDetail && (
+        <div className="room-detail-modal" onClick={() => setShowRoomDetail(null)}>
+          <div className="room-detail-content" onClick={(e) => e.stopPropagation()}>
+            <button className="room-detail-close" onClick={() => setShowRoomDetail(null)}>
+              <FontAwesomeIcon icon={faCircleXmark} />
+            </button>
+            
+            <div className="room-detail-header">
+              <h3>{showRoomDetail.title}</h3>
+            </div>
+            
+            {/* Thêm hiển thị ảnh trong modal chi tiết phòng */}
+            {currentRoomImages[showRoomDetail._id] && currentRoomImages[showRoomDetail._id].length > 0 && (
+              <div className="room-detail-images">
+                <div className="room-detail-image-slider">
+                  <img 
+                    src={currentRoomImages[showRoomDetail._id][currentImageIndexes[showRoomDetail._id] || 0]} 
+                    alt={showRoomDetail.title}
+                    className="room-detail-image"
+                  />
+                  {currentRoomImages[showRoomDetail._id].length > 1 && (
+                    <>
+                      <button 
+                        className="image-nav prev"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleImageNav(showRoomDetail._id, "prev");
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} />
+                      </button>
+                      <button 
+                        className="image-nav next"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleImageNav(showRoomDetail._id, "next");
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="room-detail-image-thumbnails">
+                  {currentRoomImages[showRoomDetail._id].slice(0, 6).map((img, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`room-detail-thumbnail ${currentImageIndexes[showRoomDetail._id] === idx ? 'active' : ''}`}
+                      onClick={() => setCurrentImageIndexes(prev => ({...prev, [showRoomDetail._id]: idx}))}
+                    >
+                      <img src={img} alt={`thumbnail ${idx}`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="room-detail-body">
+              <div className="room-detail-info">
+                <div className="room-detail-info-item">
+                  <FontAwesomeIcon icon={faRulerCombined} />
+                  <span>{showRoomDetail.roomSize || "30 m²"}</span>
+                </div>
+                <div className="room-detail-info-item">
+                  <FontAwesomeIcon icon={faUserFriends} />
+                  <span>{showRoomDetail.maxPeople} khách</span>
+                </div>
+              </div>
+              
+              <div className="room-detail-section">
+                <h4>Tính năng phòng bạn thích</h4>
+                <div className="room-detail-features">
+                  {showRoomDetail.amenities && showRoomDetail.amenities.length > 0 ? (
+                    showRoomDetail.amenities.map((amenity, index) => (
+                      <div className="room-detail-feature" key={index}>
+                        <FontAwesomeIcon icon={getAmenityIcon(amenity)} />
+                        <span>{getAmenityLabel(amenity)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="room-detail-feature">
+                        <FontAwesomeIcon icon={faDoorOpen} />
+                        <span>Bồn tắm</span>
+                      </div>
+                      <div className="room-detail-feature">
+                        <FontAwesomeIcon icon={faExpandArrowsAlt} />
+                        <span>Ban công / Sân hiên</span>
+                      </div>
+                      <div className="room-detail-feature">
+                        <FontAwesomeIcon icon={faUserFriends} />
+                        <span>Khu vực chờ</span>
+                      </div>
+                      <div className="room-detail-feature">
+                        <FontAwesomeIcon icon={faSnowflake} />
+                        <span>Máy lạnh</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="room-detail-desc">
+                <h4>Mô tả phòng</h4>
+                <p>{showRoomDetail.desc || "Phòng với đầy đủ tiện nghi, thoáng mát và thoải mái."}</p>
+              </div>
+            </div>
+            
+            <div className="room-detail-footer">
+              <div className="room-detail-price">
+                <div className="room-detail-price-label">Khởi điểm từ:</div>
+                <div className="room-detail-price-value">
+                  {formatPrice(showRoomDetail.price)} VND
+                  <span>/ phòng / đêm</span>
+                </div>
+              </div>
+              <button 
+                className="room-detail-button"
+                onClick={() => {
+                  setShowRoomDetail(null);
+                  handleTabClick('rooms');
+                }}
+              >
+                Đặt phòng ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

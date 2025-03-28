@@ -172,7 +172,24 @@ const BookingCard = ({ booking, formatDate, user }) => {
       </div>
       <p>Ngày check-in: {formatDate(booking.paymentInfo?.checkinDate)}</p>
       <p>Ngày check-out: {formatDate(booking.paymentInfo?.checkoutDate)}</p>
-      <p>Số tiền: {booking.totalPrice?.toLocaleString("vi-VN")} VND</p>
+      
+      {/* Tính số ngày lưu trú */}
+      {booking.paymentInfo?.checkinDate && booking.paymentInfo?.checkoutDate && (
+        <p>
+          Số đêm: {Math.ceil(
+            (new Date(booking.paymentInfo.checkoutDate) - new Date(booking.paymentInfo.checkinDate)) /
+            (1000 * 60 * 60 * 24)
+          )}
+        </p>
+      )}
+      
+      {booking.totalPrice && booking.paymentInfo?.checkinDate && booking.paymentInfo?.checkoutDate && (
+        <p>Giá: {(booking.totalPrice / Math.ceil(
+            (new Date(booking.paymentInfo.checkoutDate) - new Date(booking.paymentInfo.checkinDate)) /
+            (1000 * 60 * 60 * 24)
+          )).toLocaleString("vi-VN")} VND/đêm</p>
+      )}
+      <p>Tổng tiền: {booking.totalPrice ? booking.totalPrice.toLocaleString("vi-VN") : 0} VND</p>
       <div className={`booking-status ${getStatusColor(booking.paymentStatus)}`}>
         <p>Trạng thái: {getStatusText(booking.paymentStatus)}</p>
       </div>

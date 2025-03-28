@@ -168,6 +168,13 @@ export const sendPaymentTimeout = async (booking, email) => {
 
 export const sendPaymentSuccess = async (booking, email) => {
   try {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      console.error('Invalid email for payment success notification:', email);
+      return;
+    }
+
+    console.log(`Sending payment success email to ${email} for booking ${booking._id}`);
+
     // Populate thông tin khách sạn và phòng
     const populatedBooking = await booking.populate([
       { path: 'hotelId', select: 'name address' },
