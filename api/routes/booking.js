@@ -1,18 +1,18 @@
 import express from "express";
-import { createBooking, updateBookingStatus, getBookings, getBookingsByHotelId, deleteBooking } from "../controllers/booking.js";
+import { createBooking, updateBookingStatus, getBookings, getBookingsByHotelId, deleteBooking, checkUserBookedHotel } from "../controllers/booking.js";
 import { verifyUser, verifyAdmin } from "../utils/verifyToken.js";
 import Booking from "../models/Booking.js";
 
 const router = express.Router();
 //ADD
 router.post("/create", verifyUser, createBooking);
-//UPDATE 
-router.put("/update/status", updateBookingStatus); // Đảm bảo đường dẫn này khớp
+router.post("/update", updateBookingStatus);
 //DELETE
-router.delete("/:id", verifyAdmin, deleteBooking);
+router.delete("/:id", verifyUser, deleteBooking);
 //GET
 router.get("/hotel/:hotelId", getBookingsByHotelId);
 router.get("/user/:id", verifyUser, getBookings);
+router.get("/check/:userId/:hotelId", verifyUser, checkUserBookedHotel);
 router.get("/:id", async (req, res) => {
   try {
     const bookingId = req.params.id;

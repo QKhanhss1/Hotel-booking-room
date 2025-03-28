@@ -13,6 +13,7 @@ const BookingPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("all"); // Tab mặc định là "all"
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -90,26 +91,67 @@ const BookingPage = () => {
     return Array.from(uniqueBookings.values());
   };
 
+  // Lọc booking theo trạng thái
+  const getFilteredBookings = () => {
+    if (activeTab === "all") {
+      return bookings;
+    } else if (activeTab === "completed") {
+      return bookings.filter(booking => booking.paymentStatus === "success");
+    } else if (activeTab === "cancelled") {
+      return bookings.filter(booking => 
+        booking.paymentStatus === "cancelled" || 
+        booking.paymentStatus === "expired" || 
+        booking.paymentStatus === "failed"
+      );
+    } else {
+      return bookings;
+    }
+  };
+
   return (
     <>
       <Navbar />
       <Header />
       <div className="bookingPage">
         <h1>Lịch sử đặt phòng</h1>
+        
+        {/* Tabs */}
+        <div className="booking-tabs">
+          <button 
+            className={`tab-button ${activeTab === "all" ? "active" : ""}`} 
+            onClick={() => setActiveTab("all")}
+          >
+            Tất cả
+          </button>
+          <button 
+            className={`tab-button ${activeTab === "completed" ? "active" : ""}`} 
+            onClick={() => setActiveTab("completed")}
+          >
+            Đã hoàn thành
+          </button>
+          <button 
+            className={`tab-button ${activeTab === "cancelled" ? "active" : ""}`} 
+            onClick={() => setActiveTab("cancelled")}
+          >
+            Đã hủy
+          </button>
+        </div>
+
         <div className="historyBooking">
           {loading ? (
             <p>Đang tải...</p>
           ) : error ? (
             <p className="error">{error}</p>
-          ) : bookings.length === 0 ? (
-            <p>Bạn chưa có lịch sử đặt phòng.</p>
+          ) : getFilteredBookings().length === 0 ? (
+            <p>Không có đơn đặt phòng nào {activeTab !== "all" ? "trong mục này" : ""}.</p>
           ) : (
-            bookings.map((booking) => (
+            getFilteredBookings().map((booking) => (
               <BookingCard
                 key={booking._id}
                 booking={booking}
                 formatDate={formatDate}
                 user={user}
+                navigate={navigate}
               />
             ))
           )}
@@ -119,7 +161,7 @@ const BookingPage = () => {
   );
 };
 
-const BookingCard = ({ booking, formatDate, user }) => {
+const BookingCard = ({ booking, formatDate, user, navigate }) => {
   const getStatusText = (status) => {
     switch (status) {
       case "pending":
@@ -149,6 +191,17 @@ const BookingCard = ({ booking, formatDate, user }) => {
         return "text-red-500";
       default:
         return "text-gray-500";
+    }
+  };
+
+  // Hàm xử lý đánh giá
+  const handleReview = () => {
+    // Chuyển hướng đến trang chi tiết khách sạn với tab đánh giá đang mở
+    const hotelId = booking.hotelId?._id || booking.hotelId;
+    if (hotelId) {
+      navigate(`/hotels/${hotelId}?tab=reviews`);
+    } else {
+      toast.error("Không thể tìm thấy thông tin khách sạn.");
     }
   };
 
@@ -193,6 +246,18 @@ const BookingCard = ({ booking, formatDate, user }) => {
       <div className={`booking-status ${getStatusColor(booking.paymentStatus)}`}>
         <p>Trạng thái: {getStatusText(booking.paymentStatus)}</p>
       </div>
+      
+      {/* Nút đánh giá chỉ hiển thị khi booking đã thanh toán thành công */}
+      {booking.paymentStatus === "success" && (
+        <div className="booking-actions">
+          <button 
+            className="review-button"
+            onClick={handleReview}
+          >
+            Đánh giá
+          </button>
+        </div>
+      )}
     </div>
   );
 };

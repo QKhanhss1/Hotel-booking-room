@@ -177,7 +177,7 @@ router.get('/vnpay_return', async function (req, res, next) {
             try {
                 // Cập nhật trạng thái booking
                 console.log("Updating booking status to:", paymentStatus);
-                await axios.put('http://localhost:8800/api/booking/update/status', {
+                await axios.post('http://localhost:8800/api/booking/update', {
                     bookingId,
                     paymentStatus
                 });

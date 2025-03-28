@@ -10,6 +10,10 @@ const reviewSchema = mongoose.Schema(
       required: true,
       ref: 'User',
     },
+    images: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Image"
+    }],
   },
   {
     timestamps: true,

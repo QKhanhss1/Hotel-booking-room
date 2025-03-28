@@ -31,7 +31,7 @@ const PaymentStatus = () => {
         
         if (status === "success" && bookingId) {
           // Cập nhật trạng thái nếu cần thiết
-          await axios.put(`${API_URL}/booking/update/status`, {
+          await axios.post(`${API_URL}/booking/update`, {
             bookingId,
             paymentStatus: "success"
           });

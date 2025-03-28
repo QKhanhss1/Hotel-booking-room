@@ -31,11 +31,14 @@ import {
   faBed,
   faChevronLeft,
   faChevronRight,
-  faExpandArrowsAlt
+  faExpandArrowsAlt,
+  faCamera,
+  faUpload,
+  faMouse
 } from "@fortawesome/free-solid-svg-icons";
 import { useContext, useState, useEffect, useRef } from "react";
 import useFetch from "../../hooks/useFetch";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { SearchContext } from "../../context/SearchContext";
 import { FavoriteContext } from "../../context/FavoriteContext";
@@ -48,6 +51,7 @@ import Payment from "../payment/payment";
 const Hotel = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const id = location.pathname.split("/")[2];
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showAllImages, setShowAllImages] = useState(false);
@@ -66,11 +70,16 @@ const Hotel = () => {
     userId: "",
     rating: 0,
     comment: "",
+    images: []
   });
   const [loading, setLoading] = useState(true);
   const [currentRoomImages, setCurrentRoomImages] = useState({});
   const [currentImageIndexes, setCurrentImageIndexes] = useState({});
   const [showRoomDetail, setShowRoomDetail] = useState(null);
+  const [canReview, setCanReview] = useState(false);
+  const [checkingBookingStatus, setCheckingBookingStatus] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [uploadPreview, setUploadPreview] = useState([]);
   
   // Refs for scroll navigation
   const overviewRef = useRef(null);
@@ -487,6 +496,31 @@ const Hotel = () => {
     setCommentFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Add file upload handler 
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 5) {
+      toast.error("Chỉ được tải lên tối đa 5 ảnh!");
+      return;
+    }
+
+    const previews = files.map(file => URL.createObjectURL(file));
+    setUploadPreview(previews);
+    setUploadedImages(files);
+  };
+
+  // Remove preview image
+  const removePreviewImage = (index) => {
+    const newPreviews = [...uploadPreview];
+    const newImages = [...uploadedImages];
+    
+    newPreviews.splice(index, 1);
+    newImages.splice(index, 1);
+    
+    setUploadPreview(newPreviews);
+    setUploadedImages(newImages);
+  };
+
   // Submit comment/review
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -501,27 +535,64 @@ const Hotel = () => {
       return;
     }
 
-    const payload = {
-      ...commentFormData,
-      userId: user.details._id,
-    };
+    if (!commentFormData.rating || !commentFormData.comment.trim()) {
+      toast.error("Vui lòng nhập đánh giá và xếp hạng!");
+      return;
+    }
 
     try {
+      // Upload images first if any
+      let imageIds = [];
+      if (uploadedImages.length > 0) {
+        console.log("Uploading images:", uploadedImages.length);
+        const formData = new FormData();
+        uploadedImages.forEach(image => {
+          formData.append('images', image);
+        });
+
+        const uploadResponse = await axios.post(`${API_UPLOAD}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${user.token}`
+          }
+        });
+        
+        console.log("Upload response:", uploadResponse.data);
+        
+        // Lấy ID ảnh từ phản hồi
+        imageIds = uploadResponse.data.map(img => img._id);
+        console.log("Extracted image IDs:", imageIds);
+      }
+
+      // Then submit the review with image IDs
+      const payload = {
+        ...commentFormData,
+        userId: user.details._id,
+        images: imageIds
+      };
+
+      console.log("Sending review payload:", payload);
+      
       const response = await axios.post(`/hotels/reviews/${id}`, payload);
       
       // Reset form
       setCommentFormData({ 
         userId: user.details._id, 
         rating: 0, 
-        comment: "" 
+        comment: "",
+        images: []
       });
+      setUploadPreview([]);
+      setUploadedImages([]);
       
       // Refetch comments
       const commentsResponse = await axios.get(`/hotels/review/all/${id}`);
+      console.log("Updated comments:", commentsResponse.data);
       setComments(commentsResponse.data);
       
       toast.success("Đánh giá của bạn đã được gửi thành công!");
     } catch (error) {
+      console.error("Error submitting review:", error);
       if (error.response && error.response.status === 400) {
         toast.error(error.response.data.message || "Bạn đã đánh giá khách sạn này rồi!");
       } else {
@@ -542,7 +613,9 @@ const Hotel = () => {
 
       if (response.status === 200) {
         setComments(comments.filter((comment) => comment._id !== reviewId));
-        toast.success("Xóa đánh giá thành công!");
+        // Đặt lại trạng thái canReview để người dùng có thể đánh giá lại
+        setCanReview(true);
+        toast.success("Xóa đánh giá thành công! Bạn có thể đánh giá lại.");
       } else {
         toast.error("Không thể xóa đánh giá này.");
       }
@@ -551,6 +624,44 @@ const Hotel = () => {
       toast.error("Đã xảy ra lỗi khi xóa đánh giá. Vui lòng thử lại!");
     }
   };
+
+  // Kiểm tra tab từ URL query params và mở tab đánh giá nếu được chỉ định
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'reviews') {
+      setActiveTab('reviews');
+      // Scroll đến phần đánh giá nếu có ref
+      if (reviewsRef.current) {
+        reviewsRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [searchParams]);
+
+  // Kiểm tra xem người dùng có đặt phòng thành công ở khách sạn này chưa
+  useEffect(() => {
+    const checkBookingStatus = async () => {
+      if (!user || !id) return;
+      
+      try {
+        setCheckingBookingStatus(true);
+        const response = await axios.get(
+          `/booking/check/${user.details._id}/${id}`,
+          {
+            headers: { Authorization: `Bearer ${user.token}` }
+          }
+        );
+        
+        setCanReview(response.data.hasBooked);
+      } catch (error) {
+        console.error("Error checking booking status:", error);
+        setCanReview(false);
+      } finally {
+        setCheckingBookingStatus(false);
+      }
+    };
+
+    checkBookingStatus();
+  }, [id, user]);
 
   // Render rating stars
   const renderRatingStars = (rating) => {
@@ -670,6 +781,192 @@ const Hotel = () => {
   // Hiển thị chi tiết phòng
   const showRoomDetails = (room) => {
     setShowRoomDetail(room);
+  };
+
+  // Render review section in Traveloka style
+  const renderCommentSection = () => {
+    if (!user) {
+      return (
+        <div className="login-to-comment">
+          <p>Vui lòng đăng nhập để đánh giá</p>
+          <button
+            className="login-button"
+            onClick={() => navigate("/login")}
+          >
+            Đăng nhập
+          </button>
+        </div>
+      );
+    }
+
+    if (checkingBookingStatus) {
+      return <div className="checking-status">Đang kiểm tra thông tin đặt phòng...</div>;
+    }
+
+    if (!canReview) {
+      return <div className="cannot-review">Bạn cần đặt phòng và hoàn thành thanh toán trước khi đánh giá khách sạn này.</div>;
+    }
+
+    return (
+      <div className="comment-form">
+        <h3 className="review-form-title">Đánh giá:</h3>
+        
+        <div className="rating-input">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span
+              key={star}
+              className={`star ${commentFormData.rating >= star ? "filled" : ""}`}
+              onClick={() => handleRatingChange(star)}
+            >
+              ★
+            </span>
+          ))}
+          <span className="rating-text">
+            {commentFormData.rating > 0 ? 
+              (commentFormData.rating === 5 ? "Xuất sắc" : 
+               commentFormData.rating === 4 ? "Rất tốt" : 
+               commentFormData.rating === 3 ? "Bình thường" : 
+               commentFormData.rating === 2 ? "Tạm được" : "Kém") 
+              : "Chọn đánh giá"}
+          </span>
+        </div>
+        
+        <div className="comment-input-container">
+          <textarea
+            className="comment-textarea"
+            placeholder="Chia sẻ trải nghiệm của bạn với khách sạn này..."
+            value={commentFormData.comment}
+            onChange={(e) =>
+              setCommentFormData({
+                ...commentFormData,
+                comment: e.target.value,
+              })
+            }
+          ></textarea>
+          
+          <div className="image-upload-container">
+            <div className="upload-instruction">
+              <FontAwesomeIcon icon={faCamera} className="camera-icon" />
+              <span>Thêm ảnh (tối đa 5 ảnh)</span>
+            </div>
+            
+            <label className="upload-button">
+              <FontAwesomeIcon icon={faUpload} />
+              <span>Tải ảnh lên</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                multiple 
+                onChange={handleFileChange} 
+                style={{ display: 'none' }}
+              />
+            </label>
+            
+            {uploadPreview.length > 0 && (
+              <div className="image-preview-container">
+                {uploadPreview.map((preview, index) => (
+                  <div key={index} className="image-preview-item">
+                    <img src={preview} alt={`Preview ${index}`} />
+                    <button 
+                      className="remove-image" 
+                      onClick={() => removePreviewImage(index)}
+                    >
+                      <FontAwesomeIcon icon={faCircleXmark} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <button
+          className="submit-review-btn"
+          onClick={handleSubmitComment}
+          disabled={!commentFormData.rating || !commentFormData.comment.trim()}
+        >
+          Gửi đánh giá
+        </button>
+      </div>
+    );
+  };
+
+  // Render reviews with better formatting like Traveloka
+  const renderReviews = () => {
+    if (comments.length === 0) {
+      return (
+        <div className="no-reviews">
+          <p>Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá khách sạn này!</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="reviews-list">
+        {comments.map((comment, index) => (
+          <div className="review-item" key={index}>
+            <div className="review-header">
+              <div className="reviewer-info">
+                <div className="reviewer-name">{comment.username}</div>
+                <div className="review-meta">
+                  <div className="review-rating">
+                    <span className="rating-value">{comment.rating}/5</span>
+                    <div className="rating-stars">
+                      {renderRatingStars(comment.rating)}
+                    </div>
+                  </div>
+                  <div className="review-date">
+                    Đánh giá cách đây {Math.floor((new Date() - new Date(comment.createdAt)) / (1000 * 60 * 60 * 24))} ngày
+                  </div>
+                </div>
+              </div>
+              {(user?.isAdmin === true || (user?.details && user.details._id === comment.user)) && (
+                <button
+                  className="delete-review-btn"
+                  onClick={() => handleDeleteComment(comment._id)}
+                  title="Xóa đánh giá"
+                >
+                  <FontAwesomeIcon icon={faCircleXmark} />
+                </button>
+              )}
+            </div>
+            
+            {comment.stayType && (
+              <div className="stay-type">
+                <FontAwesomeIcon icon={faMouse} />
+                <span>Kỳ nghỉ {comment.stayType}</span>
+              </div>
+            )}
+            
+            <p className="review-content">{comment.comment}</p>
+            
+            {comment.images && comment.images.length > 0 && (
+              <div className="review-images">
+                {comment.images.map((image, idx) => (
+                  <div className="review-image" key={idx}>
+                    <img 
+                      src={image} 
+                      alt={`Review image ${idx}`} 
+                      onError={(e) => {
+                        console.error("Failed to load review image:", image);
+                        e.target.onerror = null;
+                        e.target.src = "/images/placeholder.png";
+                      }} 
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="review-helpful">
+              <button className="helpful-btn">
+                <FontAwesomeIcon icon={faCheck} /> Đánh giá này hữu ích không?
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -1080,82 +1377,29 @@ const Hotel = () => {
               <h2>Đánh giá từ khách hàng</h2>
               <div className="review-summary">
                 <div className="review-score">
-                  <span className="big-score">{hotel.rating?.toFixed(1) || "N/A"}</span>
+                  <span className="big-score">{hotel.rating?.toFixed(1) || "5.0"}</span>
                   <div className="score-stars">
                     {hotel.rating && renderRatingStars(hotel.rating)}
                     <span>{hotel.numReviews || 0} đánh giá</span>
                   </div>
                 </div>
+                
+            
               </div>
             </div>
             
             <div className="reviews-container">
-              {/* Review Form */}
-              {user && (
-                <div className="review-form-container">
-                  <h3>Viết đánh giá của bạn</h3>
-                  <form onSubmit={handleSubmitComment} className="review-form">
-                    <div className="rating-selection">
-                      <label>Đánh giá của bạn:</label>
-                      <div className="rating-stars">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <span
-                            key={star}
-                            className={`rating-star ${commentFormData.rating >= star ? "active" : ""}`}
-                            onClick={() => handleRatingChange(star)}
-                          >
-                            <FontAwesomeIcon icon={faStar} />
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="comment-input">
-                      <textarea
-                        name="comment"
-                        placeholder="Chia sẻ trải nghiệm của bạn..."
-                        value={commentFormData.comment}
-                        onChange={handleCommentChange}
-                        required
-                      ></textarea>
-                    </div>
-                    <button type="submit" className="submit-review-btn">Gửi đánh giá</button>
-                  </form>
-                </div>
-              )}
+              <div className="review-filter-container">
+                
+                
+              </div>
+              
+              {/* Comment Form */}
+              {renderCommentSection()}
               
               {/* Reviews List */}
-              <div className="reviews-list">
-                {comments.length > 0 ? (
-                  comments.map((comment, index) => (
-                    <div className="review-item" key={index}>
-                      <div className="review-header">
-                        <div className="reviewer-info">
-                          <h4>{comment.username}</h4>
-                          <div className="review-rating">
-                            {renderRatingStars(comment.rating)}
-                            <span className="review-date">
-                              {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          </div>
-                        </div>
-                        {(user?.isAdmin === true || (user?.details && user.details._id === comment.user)) && (
-                          <button
-                            className="delete-review-btn"
-                            onClick={() => handleDeleteComment(comment._id)}
-                          >
-                            <FontAwesomeIcon icon={faCircleXmark} />
-                          </button>
-                        )}
-                      </div>
-                      <p className="review-content">{comment.comment}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-reviews">
-                    <p>Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá khách sạn này!</p>
-                  </div>
-                )}
-              </div>
+              {renderReviews()}
+              
             </div>
           </div>
 
@@ -1170,19 +1414,33 @@ const Hotel = () => {
                 <div className="policy-item">
                   <p><strong>Nhận phòng:</strong> Từ 14:00</p>
                   <p><strong>Trả phòng:</strong> Trước 12:00</p>
+                  <p><strong>Nhận phòng sớm/trễ:</strong> Tùy thuộc vào tình trạng phòng</p>
                 </div>
               </div>
+              
               <div className="policy-group">
                 <h3>Chính sách hủy phòng</h3>
                 <div className="policy-item">
                   <p>Đặt phòng này <strong>không hoàn tiền</strong></p>
+                  <p>Khi đã xác nhận đặt phòng, khách hàng sẽ không được hoàn tiền nếu hủy hoặc không đến.</p>
                 </div>
               </div>
+              
+              <div className="policy-group">
+                <h3>Trẻ em & Giường phụ</h3>
+                <div className="policy-item">
+                  <p><strong>Trẻ em dưới 6 tuổi:</strong> Miễn phí khi ở cùng giường với người lớn</p>
+                  <p><strong>Trẻ em từ 6-12 tuổi:</strong> Phụ thu 50% giá phòng</p>
+                  <p><strong>Giường phụ:</strong> Có sẵn với phụ phí</p>
+                </div>
+              </div>
+              
               <div className="policy-group">
                 <h3>Lưu ý quan trọng</h3>
                 <div className="policy-item">
                   <p>Vui lòng xuất trình giấy tờ tùy thân có ảnh và thẻ tín dụng khi nhận phòng.</p>
                   <p>Khách sạn có thể yêu cầu đặt cọc hoặc thế chấp cho các chi phí phát sinh.</p>
+                  <p>Không hút thuốc trong phòng và các khu vực công cộng.</p>
                 </div>
               </div>
             </div>

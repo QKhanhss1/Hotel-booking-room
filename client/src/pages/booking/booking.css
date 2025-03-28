@@ -15,6 +15,35 @@
   text-align: center;
 }
 
+/* Tab styling */
+.booking-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  margin: 0 5px;
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #004080;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  background-color: #f0f8ff;
+}
+
+.tab-button.active {
+  border-bottom: 3px solid #004080;
+  font-weight: 700;
+}
+
 /* Container for all booking cards */
 .historyBooking {
   display: flex;
@@ -29,6 +58,7 @@
   border-radius: 8px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s;
+  position: relative;
 }
 
 .bookingCard:hover {
@@ -60,18 +90,26 @@
   margin: 4px 0;
 }
 
-/* Button styles for future interactivity */
-.bookingCard button {
+/* Booking actions */
+.booking-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+/* Button styles for review */
+.review-button {
   background-color: #004080;
   color: white;
-  padding: 10px 15px;
+  padding: 8px 15px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  font-size: 14px;
 }
 
-.bookingCard button:hover {
+.review-button:hover {
   background-color: #003366;
 }
 
@@ -89,4 +127,33 @@
 
 .cancelButton:hover {
   background-color: #d9363e; /* Đậm hơn khi hover */
+}
+
+.booking-status {
+  font-weight: bold;
+  padding: 5px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .booking-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tab-button {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+  
+  .bookingCard {
+    padding: 15px;
+  }
+  
+  .bookingCard h2 {
+    font-size: 18px;
+  }
+  
+  .bookingCard p, .bookingCard li {
+    font-size: 14px;
+  }
 }

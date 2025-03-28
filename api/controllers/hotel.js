@@ -2,6 +2,7 @@ import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
+import mongoose from "mongoose";
 
 export const createHotel = async (req, res, next) => {
   const newHotel = new Hotel(req.body);
@@ -270,9 +271,11 @@ export const getHotelRooms = async (req, res, next) => {
 
 //review
 export const createReview = async (req, res) => {
-  const { userId, rating, comment } = req.body;
+  const { userId, rating, comment, images } = req.body;
 
   try {
+    console.log("Creating review for user:", userId, "with images:", images);
+    
     const user = await User.findById(userId);
     if (!userId) {
       return res.status(400).json({ message: "Thiếu userId trong yêu cầu!" });
@@ -299,8 +302,10 @@ export const createReview = async (req, res) => {
       rating: Number(rating),
       comment,
       user: userId,
+      images: images || []
     };
 
+    // Thêm vào mảng reviews
     hotel.reviews.push(review);
 
     // Cập nhật số lượng đánh giá và điểm trung bình
@@ -309,38 +314,84 @@ export const createReview = async (req, res) => {
       hotel.reviews.reduce((acc, item) => item.rating + acc, 0) /
       hotel.reviews.length;
 
-    await hotel.save();
+    // Lưu khách sạn với đánh giá mới
+    const updatedHotel = await hotel.save();
+    
+    // Lấy đánh giá vừa thêm (phần tử cuối cùng trong mảng reviews)
+    const newReview = updatedHotel.reviews[updatedHotel.reviews.length - 1];
+    
+    console.log("Review saved successfully:", newReview._id);
 
-    res.status(201).json({ message: "Thêm bình luận thành công!" });
+    // Trả về thông tin đánh giá mới
+    res.status(201).json({ 
+      message: "Thêm bình luận thành công!",
+      review: newReview
+    });
   } catch (error) {
     console.error("Error creating review:", error.message);
     res.status(500).json({ message: "Lỗi server" });
   }
 };
-  //get all
-  export const getReviewsByHotelId = async (req, res, next) => {
-    try {
-      const hotelId = req.params.id;
 
-      // Tìm khách sạn theo ID và chỉ lấy trường `reviews` và `name`
-      const hotel = await Hotel.findById(hotelId);
-      
-      if (!hotel) {
-        return res.status(404).json({ message: "Khách sạn không tồn tại" });
-      }
+export const getReviewsByHotelId = async (req, res, next) => {
+  try {
+    const hotelId = req.params.id;
 
-      // Trả về các đánh giá kèm tên khách sạn
-      const reviews = hotel.reviews.map((review) => ({
-        ...review._doc,
-        hotelName: hotel.name,
-      }));
-
-      res.status(200).json(reviews);
-    } catch (err) {
-      console.error("Lỗi:", err);
-      next(err);
+    // Tìm khách sạn theo ID
+    const hotel = await Hotel.findById(hotelId);
+    
+    if (!hotel) {
+      return res.status(404).json({ message: "Khách sạn không tồn tại" });
     }
-  };
+
+    // Xử lý ảnh trong review nếu có
+    const reviews = await Promise.all(hotel.reviews.map(async (review) => {
+      let reviewObj = review._doc || review;
+      
+      console.log("Processing review:", reviewObj._id, "Images:", reviewObj.images);
+      
+      // Nếu review có trường images và không rỗng
+      if (reviewObj.images && reviewObj.images.length > 0) {
+        try {
+          // Lấy URL thực từ các imageId
+          const imageUrls = await Promise.all(
+            reviewObj.images.map(async (imageId) => {
+              try {
+                console.log("Fetching image:", imageId);
+                const image = await mongoose.model('Image').findById(imageId);
+                console.log("Image result:", image ? image._id : "not found", image ? image.url : "no url");
+                return image ? image.url : null;
+              } catch (error) {
+                console.error(`Error fetching image ${imageId}:`, error);
+                return null;
+              }
+            })
+          );
+          
+          // Lọc null và undefined
+          const filteredUrls = imageUrls.filter(url => url);
+          console.log("Filtered image URLs:", filteredUrls.length);
+          reviewObj.images = filteredUrls;
+        } catch (error) {
+          console.error("Error processing images for review:", reviewObj._id, error);
+          reviewObj.images = [];
+        }
+      } else {
+        reviewObj.images = [];
+      }
+      
+      return {
+        ...reviewObj,
+        hotelName: hotel.name
+      };
+    }));
+
+    res.status(200).json(reviews);
+  } catch (err) {
+    console.error("Lỗi:", err);
+    next(err);
+  }
+};
 
 //
 export const getHotelsByType = async (req, res, next) => {

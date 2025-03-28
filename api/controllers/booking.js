@@ -243,3 +243,31 @@ export const deleteBooking = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi xóa booking!" });
   }
 };
+
+// Thêm endpoint mới để kiểm tra xem người dùng đã đặt phòng thành công ở khách sạn chưa
+export const checkUserBookedHotel = async (req, res) => {
+  try {
+    const { userId, hotelId } = req.params;
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!userId || !hotelId) {
+      return res.status(400).json({ error: "Vui lòng cung cấp đủ thông tin userId và hotelId!" });
+    }
+
+    // Tìm booking thành công của user đối với khách sạn
+    const booking = await Booking.findOne({
+      customer: userId,
+      hotelId: hotelId,
+      paymentStatus: "success", // Chỉ xét các booking đã thanh toán thành công
+    });
+
+    // Trả về kết quả
+    res.status(200).json({
+      hasBooked: booking !== null,
+      booking: booking
+    });
+  } catch (error) {
+    console.error("Lỗi khi kiểm tra booking của người dùng:", error.message);
+    res.status(500).json({ error: "Lỗi server khi kiểm tra booking!" });
+  }
+};
