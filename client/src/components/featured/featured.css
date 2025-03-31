@@ -1,29 +1,124 @@
-.featured{
+.featured {
   width: 100%;
   max-width: 1024px;
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  z-index: 1;
+  margin: 30px auto;
 }
 
-.featuredItem{
+.featuredTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.featuredContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .featuredContainer {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .featuredContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+.featuredItem {
   position: relative;
   color: white;
   border-radius: 10px;
   overflow: hidden;
   height: 250px;
-  flex:1
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+  cursor: pointer;
 }
 
-.featuredImg{
+.featuredItem:hover {
+  transform: translateY(-5px);
+}
+
+.featuredImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.5s ease;
 }
 
-.featuredTitles{
+.featuredItem:hover .featuredImg {
+  transform: scale(1.05);
+}
+
+.featuredTitles {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  text-align: left;
+}
+
+.featuredTitles h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+  color: white;
+}
+
+.featuredTitles h2 {
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+  color: white;
+}
+
+.cityHotelCount {
+  color: white;
+}
+
+.viewMoreButton {
+  display: block;
+  margin: 20px auto 0;
+  padding: 12px 24px;
+  background-color: #ff5e1f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.viewMoreButton:hover {
+  background-color: #e94e0f;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #ff5e1f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

@@ -14,7 +14,8 @@ import {
   getHotelsByType,
   getCitiesByQuery,
   deleteReview,
-  getAllHotel
+  getAllHotel,
+  getCities
 } from "../controllers/hotel.js";
 import Hotel from "../models/Hotel.js";
 import { verifyAdmin, verifyUser } from "../utils/verifyToken.js";
@@ -44,6 +45,7 @@ router.post("/reviews/:id", createReview);
 router.get("/review/all/:id", getReviewsByHotelId);
 router.delete("/:hotelId/reviews/:reviewId", verifyAdmin, deleteReview);
 router.get("/type/:type", getHotelsByType);
-router.get("/cities", getCitiesByQuery);
+router.get("/cities/search", getCitiesByQuery);
+router.get("/cities", getCities);
 
 export default router;

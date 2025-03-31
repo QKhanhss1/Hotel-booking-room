@@ -1,75 +1,94 @@
-import useFetch from "../../hooks/useFetch";
 import { useNavigate } from "react-router-dom";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { SearchContext } from "../../context/SearchContext";
-
+import axios from "axios";
 import "./featured.css";
 
 const Featured = () => {
   const navigate = useNavigate();
-
-  
   const { dispatch } = useContext(SearchContext);
+  const [cities, setCities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  
   const [dates, setDates] = useState([
     {
       startDate: new Date(),
-      endDate: new Date(),
+      endDate: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
       key: "selection",
     },
   ]);
+  
   const [options, setOptions] = useState({
     adult: 1,
     children: 0,
     room: 1,
   });
-  const { data, loading, error } = useFetch(
-    "/hotels/countByCity?cities=Nha Trang,Đà Nẵng,Hội An"
-  );
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("/hotels/cities");
+        setCities(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching cities:", err);
+        setError(true);
+        setLoading(false);
+      }
+    };
+
+    fetchCities();
+  }, []);
+
   const handleCityClick = (destination) => {
     dispatch({ type: "NEW_SEARCH", payload: { destination, dates, options } });
     navigate("/hotels", { state: { destination, dates, options } });
   };
 
+  // Lấy 6 thành phố để hiển thị trước
+  const displayedCities = showAll ? cities : cities.slice(0, 6);
+
   return (
     <div className="featured">
+      <h2 className="featuredTitle">Điểm đến hot nhất do Secondbooking đề xuất</h2>
+      
       {loading ? (
-        "Loading please wait"
+        <div className="loadingContainer">
+          <div className="loadingSpinner"></div>
+        </div>
+      ) : error ? (
+        <div className="errorMessage">
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+        </div>
       ) : (
         <>
-          <div className="featuredItem" onClick={() => handleCityClick("Nha Trang")}>
-            <img
-              src="https://res.cloudinary.com/djfdpoafb/image/upload/v1742632477/photo0jpg_m6mhev.jpg"
-              alt=""
-              className="featuredImg"
-            />
-            <div className="featuredTitles">
-              <h1>Nha Trang</h1>
-              <h2>{data[0]} Khách sạn</h2>
-            </div>
+          <div className="featuredContainer">
+            {displayedCities.map((city, index) => (
+              <div className="featuredItem" key={index} onClick={() => handleCityClick(city.name)}>
+                <img
+                  src={city.imageUrl || `https://source.unsplash.com/300x300/?${city.name}`}
+                  alt={city.name}
+                  className="featuredImg"
+                />
+                <div className="featuredTitles">
+                  <h1>{city.name}</h1>
+                  <h2 className="cityHotelCount">Có {city.count} khách sạn</h2>
+                </div>
+              </div>
+            ))}
           </div>
-
-          <div className="featuredItem" onClick={() => handleCityClick("Đà Nẵng")}>
-            <img
-              src="https://res.cloudinary.com/djfdpoafb/image/upload/v1742632668/da-nang_sxxh6x.jpg"
-              alt=""
-              className="featuredImg"
-            />
-            <div className="featuredTitles">
-              <h1>Đà Nẵng</h1>
-              <h2>{data[1]} Khách sạn</h2>
-            </div>
-          </div>
-          <div className="featuredItem"onClick={() => handleCityClick("Hội An")}>
-            <img
-              src="https://res.cloudinary.com/djfdpoafb/image/upload/v1742632677/shutterstock_1506184586_resize_oueflj.jpg"
-              alt=""
-              className="featuredImg"
-            />
-            <div className="featuredTitles">
-              <h1>Hội An</h1>
-              <h2>{data[2]} Khách sạn</h2>
-            </div>
-          </div>
+          
+          {cities.length > 6 && (
+            <button 
+              className="viewMoreButton" 
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? "Thu gọn" : "Xem thêm điểm đến"}
+            </button>
+          )}
         </>
       )}
     </div>

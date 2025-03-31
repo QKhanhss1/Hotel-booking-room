@@ -564,6 +564,54 @@ export const getCitiesByQuery = async (req, res, next) => {
   }
 };
 
+// Thêm API endpoint để lấy tất cả các city từ database
+export const getCities = async (req, res, next) => {
+  try {
+    // Lấy tất cả các cities từ database
+    const cities = await Hotel.aggregate([
+      { $group: { 
+        _id: "$city", 
+        count: { $sum: 1 },
+        // Lấy image ID đầu tiên từ một khách sạn ngẫu nhiên trong city đó
+        sampleHotel: { $first: "$imageIds" }
+      }},
+      { $sort: { count: -1 } }, // Sắp xếp theo số lượng khách sạn giảm dần
+      { $project: { 
+        _id: 0, 
+        name: "$_id", 
+        count: 1,
+        imageId: { $arrayElemAt: ["$sampleHotel", 0] } // Lấy hình ảnh đầu tiên
+      }}
+    ]);
+
+    // Thêm URL hình ảnh cho mỗi city
+    const citiesWithImages = await Promise.all(cities.map(async (city) => {
+      let imageUrl = null;
+      
+      if (city.imageId) {
+        try {
+          // Tìm URL hình ảnh từ image ID
+          const image = await mongoose.model('Image').findById(city.imageId);
+          if (image && image.url) {
+            imageUrl = image.url;
+          }
+        } catch (err) {
+          console.error(`Error fetching image for city ${city.name}:`, err);
+        }
+      }
+      
+      return {
+        ...city,
+        imageUrl: imageUrl || `https://source.unsplash.com/300x200/?${city.name},city`,
+      };
+    }));
+
+    res.status(200).json(citiesWithImages);
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 
