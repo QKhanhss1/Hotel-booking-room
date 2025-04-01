@@ -35,13 +35,13 @@ const Navbar = () => {
           <span className="logo">SECONDBOOKING</span>
         </Link>
         {console.log("USER DETAILS", user)}
-        {user && user.details ? (
+        {user ? (
           <div className="userMenu">
             <span
               className="userName"
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              {user.details.username}
+              {user.username}
             </span>
             {dropdownOpen && (
               <div className="dropdownMenu">

@@ -6,6 +6,7 @@ const INITIAL_STATE = {
   error: null,
 };
 
+
 export const AuthContext = createContext(INITIAL_STATE);
 
 const AuthReducer = (state, action) => {
@@ -18,7 +19,8 @@ const AuthReducer = (state, action) => {
       };
     case "LOGIN_SUCCESS":
       return {
-        user: action.payload,
+        user: action.payload.user,  // Lưu user vào state
+        token: action.payload.token,
         loading: false,
         error: null,
       };
@@ -31,6 +33,7 @@ const AuthReducer = (state, action) => {
     case "LOGOUT":
       return {
         user: null,
+        token: null,
         loading: false,
         error: null,
       };
@@ -43,7 +46,11 @@ export const AuthContextProvider = ({ children }) => {
   const [state, dispatch] = useReducer(AuthReducer, INITIAL_STATE);
 
   useEffect(() => {
-    localStorage.setItem("user", JSON.stringify(state.user));
+    if (state.user) {
+      localStorage.setItem("user", JSON.stringify(state.user));
+    } else {
+      localStorage.removeItem("user");
+    }
   }, [state.user]);
 
   return (

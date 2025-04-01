@@ -1,3 +1,5 @@
+import https from 'https';
+import axios from "axios"; 
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
@@ -15,7 +17,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import authRoutes from "./routes/auth.js";
-
+import userRoutes from "./routes/users.js";
 
 const app = express();
 
@@ -63,17 +65,22 @@ mongoose.connection.on("disconnected", () => {
   console.log("mongoDB disconnected!");
 });
 
+// **Chạy Server với HTTPS**
+const SSL_OPTIONS = {
+  key: fs.readFileSync(path.join(__dirname, "localhost-key.pem")),
+  cert: fs.readFileSync(path.join(__dirname, "localhost.pem")),
+};
+
 //middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3002"],
+    origin: ["https://localhost:3000", "https://localhost:3002"],
     credentials: true, // Cho phép gửi cookie
   })
 );
 
 app.use(cookieParser());
 app.use(express.json());
-app.use("/api/auth", authRoutes);
 
 app.use("/api/images", imageRoutes);
 app.use("/api/users", usersRoute);
@@ -85,6 +92,8 @@ app.use("/api/vnpay", vnpayRoute);
 
 app.use("/api/favorites", favoriteRoute);
 
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 app.use((req, res, next) => {
   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -105,7 +114,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(8800, () => {
+// Chạy server HTTPS thay vì HTTP**
+https.createServer(SSL_OPTIONS, app).listen(8800, () => {
   connect();
-  console.log("Connected to backend.");
+  console.log("Server đang chạy tại: https://localhost:8800");
 });
+
+// app.listen(8800, () => {
+//   connect();
+//   console.log("Connected to backend.");
+// });

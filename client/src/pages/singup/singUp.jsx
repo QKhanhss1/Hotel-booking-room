@@ -47,7 +47,7 @@ function SingUp() {
         phone: userData.phone,
       });
       const response = await axios.post(
-        "http://localhost:8800/api/auth/register",
+        "https://localhost:8800/api/auth/register",
         userData,
         {
           headers: {

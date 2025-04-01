@@ -10,7 +10,7 @@ const VerifyEmail = () => {
     const verify = async () => {
       try {
         console.log("Verifying with token:", token);
-        const res = await fetch(`http://localhost:8800/api/auth/verify/${token}`, {
+        const res = await fetch(`https://localhost:8800/api/auth/verify/${token}`, {
           method: "GET",
           credentials: "include", 
         });

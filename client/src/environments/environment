@@ -1,0 +1,8 @@
+const environment = {
+    BASE_API: process.env.REACT_APP_BASE_API || "https://localhost:8800/api",
+    GG_CLIENT_ID: process.env.REACT_APP_GG_CLIENT_ID,
+    FB_CLIENT_ID: process.env.REACT_APP_FB_CLIENT_ID,
+  };
+  
+  export default environment;
+  

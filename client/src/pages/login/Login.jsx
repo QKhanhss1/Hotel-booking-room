@@ -1,10 +1,11 @@
 import axios from "axios";
-import { useContext, useState } from "react";
+import React, { useState, useContext } from "react";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthContext } from "../../context/AuthContext";
-import FacebookLogin from "react-facebook-login";
-import { facebookAuth } from "../../utils/auth";
+import { googleLogin } from "../../utils/auth";
 import "./login.css";
+import environment from'../../environments/environment';
+import { AuthContext, login } from "../../context/AuthContext"; 
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -20,66 +21,95 @@ const Login = () => {
     setCredentials((prev) => ({ ...prev, [e.target.id]: e.target.value }));
   };
 
-  const handleClick = async (e) => {
+  const handleClick = (e) => {
     e.preventDefault();
-    //   dispatch({ type: "LOGIN_START" });
-    //   try {
-    //     const res = await axios.post("/auth/login", credentials);
-    //     dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
-    //     navigate("/");
-    //   } catch (err) {
-    //     dispatch({ type: "LOGIN_FAILURE", payload: err.response.data });
-    //   }
-    // };
-    try {
-      const response = await axios.post(
-        "http://localhost:8800/api/auth/login",
-        {
-          username: credentials.username,
-          password: credentials.password,
+    axios
+      .post("https://localhost:8800/api/auth/login", {
+        username: credentials.username,
+        password: credentials.password,
+      })
+      .then((res) => {
+        if (res.data) {
+          // Đăng nhập thành công, lưu vào context
+          // dispatch({ type: "LOGIN_SUCCESS", payload: res.data }); 
+          // navigate("/"); 
+          const { details, token } = res.data;
+          dispatch({
+            type: "LOGIN_SUCCESS",
+            payload: {
+              user: details,
+              token: token,
+              // loginMethod: "FORM",  
+            },
+            });
+            navigate("/");
         }
-      );
-
-      // Log để debug
-      console.log("Login response:", response.data);
-
-      if (response.data) {
-        dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
-        navigate("/");
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      dispatch({ type: "LOGIN_FAILURE", payload: err.response?.data });
-    }
+      })
+      .catch((err) => {
+        console.error("Login error:", err);
+        dispatch({ type: "LOGIN_FAILURE", payload: err.response?.data });
+      });
   };
 
+  
   // Xử lý đăng nhập bằng Facebook
-  const handleResponseFacebook = async (data) => {
-    try {
-      const result = await facebookAuth.facebookAuth(data.accessToken);
-      if (result?.role === "user") {
-        dispatch({ type: "LOGIN_SUCCESS", payload: result });
-        navigate("/");
-        alert("Đăng nhập thành công");
-      } else {
-        alert("Đăng nhập thất bại");
-      }
-    } catch (error) {
-      alert("Đăng nhập Facebook thất bại");
+  const handleResponseFacebook = (response) => {
+    if (response.authResponse) {
+      console.log("Đăng nhập Facebook thành công!", response);
+      // Gửi accessToken lên backend để xử lý
+      const { accessToken, userID } = response.authResponse;
+  
+      // Gửi token lên backend để xác thực
+      axios.post("https://localhost:8800/api/auth/facebook-login", { accessToken, userID })
+      .then(res => {
+        console.log("Dữ liệu từ server:", res.data); 
+        if (res.data.token) {
+          localStorage.setItem("access_token", res.data.token); 
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+    
+          console.log("Token đã lưu:", localStorage.getItem("access_token"));
+          console.log("User đã lưu:", localStorage.getItem("user"));
+
+          dispatch({ type: "LOGIN_SUCCESS", payload: res.data }); // Cập nhật context
+          navigate("/"); // Chuyển về Home
+        } else {
+          console.error("Lỗi: Không nhận được token từ server.");
+        }
+      })
+      .catch(err => {
+        console.error("Lỗi đăng nhập Facebook:", err.response?.data || err);
+      });
+    } else {
+      console.log("Người dùng hủy đăng nhập hoặc không cấp quyền.");
+    }
+  };  
+
+  const handleFacebookLogin = () => {
+    window.FB.login(handleResponseFacebook, { scope: "email,public_profile" });
+  };
+
+  const handleSuccess = async (credentialResponse) =>{
+    try{
+      const result = await googleLogin(credentialResponse.credential);
+      console.log("Google Login Result:", result); // Debug dữ liệu trả về
+      if (result?.user?.isAdmin === false) {
+          dispatch({ type: "LOGIN_SUCCESS", payload: {
+            user: result.user, 
+            token: result.token, 
+          }, });
+          navigate("/");
+        } else {
+          alert("không có quyền truy cập");
+        }
+    } catch (error){
+      console.error("Google Login Error:", error);
+      const data = error?.response?.data;
+      alert(data?.message || "đăng nhập thất bại");
     }
   };
 
-  // Xử lý đăng nhập bằng Google
-  const handleGoogleLogin = async () => {
-    try {
-      dispatch({ type: "LOGIN_START" });
-      // Gọi API đăng nhập Google
-      const res = await axios.get("/auth/google");
-      dispatch({ type: "LOGIN_SUCCESS", payload: res.data.details });
-      navigate("/");
-    } catch (err) {
-      dispatch({ type: "LOGIN_FAILURE", payload: err.response.data });
-    }
+  const handleError = () => {
+    alert('Login Failed');
   };
 
   // Xử lý quên mật khẩu
@@ -106,26 +136,24 @@ const Login = () => {
         <h1 className="tieu-de-dang-nhap">Đăng nhập</h1>
 
         <div className="khung-nut-mxh">
-        <FacebookLogin
-          appId={process.env.REACT_APP_FB_CLIENT_ID}
-          autoLoad={false}
-          fields="name,email,picture"
-          callback={handleResponseFacebook}
-          render={(renderProps) => (
-            <button className="nut-mxh nut-facebook" onClick={renderProps.onClick}>
-              <img src="/assets/images/facebook1.png" alt="Facebook" className="icon-mxh" />
-              <span className="text-nut-mxh">Facebook</span>
-            </button>
-          )}
-        />
+        <button className="nut-mxh nut-facebook" onClick={handleFacebookLogin}>
+          <img src="/assets/images/facebook1.png" alt="Facebook" className="icon-mxh" />
+          <span className="text-nut-mxh">Facebook</span>
+        </button>
 
-          <button className="nut-mxh nut-google" onClick={handleGoogleLogin}>
+          <button className="nut-mxh nut-google" >
             <img
               src="/assets/images/google.png"
               alt="Google"
               className="icon-mxh"
             />
             <span className="text-nut-mxh">Google</span>
+            <GoogleOAuthProvider clientId="450363751315-u27m3q55deu9oqg5tetc5gkfoss5b846.apps.googleusercontent.com">
+                <GoogleLogin
+                    onSuccess={handleSuccess}
+                    onError={handleError}
+                />
+            </GoogleOAuthProvider>
           </button>
         </div>
 

@@ -38,7 +38,7 @@ export const sendBookingConfirmation = async (booking, email) => {
       return `Phòng ${room.roomNumber} (${roomInfo?.title || 'Phòng khách sạn'}) - Tối đa ${roomInfo?.maxPeople || 2} người`;
     }).join('<br>');
     
-    const paymentUrl = `http://localhost:8800/api/vnpay/create_payment_url?bookingId=${booking._id}&amount=${booking.totalPrice}`;
+    const paymentUrl = `https://localhost:8800/api/vnpay/create_payment_url?bookingId=${booking._id}&amount=${booking.totalPrice}`;
     
     const mailOptions = {
       from: process.env.EMAIL_USER,

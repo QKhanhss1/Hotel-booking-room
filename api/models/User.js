@@ -25,17 +25,22 @@ const UserSchema = new mongoose.Schema(
     // },
     phone: {
       type: String,
-      required: true,
+      default: ""
     },
     password: {
       type: String,
-      required: true,
+      default: ""
     },
     isAdmin: {
       type: Boolean,
       default: false,
     },
     facebookId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    googleId: {
       type: String,
       unique: true,
       sparse: true,
