@@ -74,7 +74,7 @@ const SSL_OPTIONS = {
 //middlewares
 app.use(
   cors({
-    origin: ["https://localhost:3000", "https://localhost:3002"],
+    origin: ["https://localhost:3000", "https://localhost:3001"],
     credentials: true, // Cho phép gửi cookie
   })
 );

@@ -102,10 +102,12 @@ const Hotel = () => {
     return Math.ceil(timeDiff / MILLISECONDS_PER_DAY);
   }
 
+  const USD_TO_VND = 24000;
+
   // Total price calculation
   const [totalprice, setTotalPrice] = useState(() => {
     const storedPrice = localStorage.getItem("totalprice");
-    return storedPrice ? parseFloat(storedPrice) : 1;
+    return storedPrice ? parseFloat(storedPrice) : 0;
   });
 
   const days = dates?.[0] ? dayDifference(dates[0].endDate, dates[0].startDate) : 0;
@@ -159,8 +161,13 @@ const Hotel = () => {
 
   // Calculate total price for hotel (not selected rooms)
   useEffect(() => {
-    if (data && days) {
-      const calculatedPrice = days * data.cheapestPrice;
+// <<<<<<< Updated upstream
+//     if (data && days) {
+//       const calculatedPrice = days * data.cheapestPrice;
+// =======
+    if (data && options.room && days) {
+      const calculatedPrice = days * data.cheapestPrice * options.room * USD_TO_VND;
+// >>>>>>> Stashed changes
       const roundedPrice = Math.round(calculatedPrice);
       setTotalPrice(roundedPrice);
       // Không cần lưu vào localStorage nữa vì chúng ta sẽ sử dụng totalRoomsPrice cho việc thanh toán
@@ -1092,8 +1099,9 @@ const Hotel = () => {
                       Tọa lạc tại trung tâm thực sự của Vaa, khách sạn này có một Điểm vị trí xuất sắc!
                     </span>
                     <h2>
-                      <b>{data && data.cheapestPrice ? data.cheapestPrice.toLocaleString('vi-VN') : 0} VND</b> /đêm
+                      <b>{totalprice.toLocaleString('vi-VN')} VND</b> ({days} đêm)
                     </h2>
+
                     <button onClick={handleBookingClick}>Đặt chỗ hoặc Đặt ngay!</button>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ const transporter = nodemailer.createTransport({
     port: 587,
     secure: false, // Gmail dùng TLS, không dùng SSL
     auth: {
-      user: process.env.EMAIL_USER || "2254810193@vaa.edu.vn",
+      user: process.env.EMAIL_REGISTER_USER || "2254810193@vaa.edu.vn",
       pass: process.env.EMAIL_PASS || "njtl yzxy umqh cynq",
     },
     tls: {

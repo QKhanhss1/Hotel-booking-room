@@ -16,7 +16,7 @@ const StatusRoom = () => {
   useEffect(() => {
     const fetchHotels = async () => {
       try {
-        const response = await axios.get("http://localhost:8800/api/hotels");
+        const response = await axios.get("https://localhost:8800/api/hotels");
         setHotels(response.data);
       } catch (error) {
         console.error(
@@ -38,7 +38,7 @@ const StatusRoom = () => {
       if (selectedHotelId) {
         try {
           const response = await axios.get(
-            `http://localhost:8800/api/booking/hotel/${selectedHotelId}`
+            `https://localhost:8800/api/booking/hotel/${selectedHotelId}`
           );
           
           // Lấy tất cả booking
@@ -89,7 +89,7 @@ const StatusRoom = () => {
   
       // Sử dụng roomIdNumber thay vì roomId
       const response = await axios.put(
-        `http://localhost:8800/api/rooms/availability/${roomIdNumber}`,
+        `https://localhost:8800/api/rooms/availability/${roomIdNumber}`,
         { dates },
         {
           headers: {
@@ -99,7 +99,7 @@ const StatusRoom = () => {
       );
       // Xóa booking
       const deleteResponse = await axios.delete(
-        `http://localhost:8800/api/booking/${bookingId}`,
+        `https://localhost:8800/api/booking/${bookingId}`,
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,

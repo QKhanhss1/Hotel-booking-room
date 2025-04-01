@@ -137,24 +137,18 @@ const Login = () => {
 
         <div className="khung-nut-mxh">
         <button className="nut-mxh nut-facebook" onClick={handleFacebookLogin}>
-          <img src="/assets/images/facebook1.png" alt="Facebook" className="icon-mxh" />
+          {/* <img src="/assets/images/facebook1.png" alt="Facebook" className="icon-mxh" /> */}
           <span className="text-nut-mxh">Facebook</span>
         </button>
 
-          <button className="nut-mxh nut-google" >
-            <img
-              src="/assets/images/google.png"
-              alt="Google"
-              className="icon-mxh"
-            />
-            <span className="text-nut-mxh">Google</span>
+          
             <GoogleOAuthProvider clientId="450363751315-u27m3q55deu9oqg5tetc5gkfoss5b846.apps.googleusercontent.com">
                 <GoogleLogin
                     onSuccess={handleSuccess}
                     onError={handleError}
                 />
             </GoogleOAuthProvider>
-          </button>
+         
         </div>
 
         <div className="duong-phan-cach">

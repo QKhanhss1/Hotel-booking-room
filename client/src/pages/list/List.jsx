@@ -2,7 +2,7 @@ import "./list.css";
 import Navbar from "../../components/navbar/Navbar";
 import Header from "../../components/header/Header";
 import { SearchContext } from "../../context/SearchContext";
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { DateRange } from "react-date-range";
 import SearchItem from "../../components/searchItem/SearchItem";
@@ -13,11 +13,12 @@ import {
   faChevronUp, 
   faStar, 
   faTimesCircle,
-  faSpinner
+  // faSpinner
 } from "@fortawesome/free-solid-svg-icons";
 
 const List = () => {
-  const { destination, dates, options, dispatch } = useContext(SearchContext);
+  // const { destination, dates, options, dispatch } = useContext(SearchContext);
+  const { destination, dates = [{ startDate: new Date(), endDate: new Date(), key: "selection" }], options, dispatch } = useContext(SearchContext);
   const [openDate, setOpenDate] = useState(false);
   const [min, setMin] = useState(0);
   const [max, setMax] = useState(999999999);
@@ -30,6 +31,35 @@ const List = () => {
     amenities: true,
     roomAmenities: true
   });
+
+  const defaultDates = [{ startDate: new Date(), endDate: new Date(), key: "selection" }];
+  const validDates =
+  dates && dates.length > 0 && dates[0]?.startDate && dates[0]?.endDate
+    ? [
+        {
+          startDate: new Date(dates[0].startDate), 
+          endDate: new Date(dates[0].endDate), 
+          key: "selection"
+        }
+      ]
+    : defaultDates;
+  
+  const isDateValid = () => {
+    if (!dates || dates.length === 0 || !dates[0].startDate || !dates[0].endDate) {
+      return false;
+    }
+  
+    const startDate = new Date(dates[0].startDate);
+    const endDate = new Date(dates[0].endDate);
+  
+    // Kiểm tra nếu ngày hợp lệ
+    return (
+      !isNaN(startDate.getTime()) && // Kiểm tra ngày hợp lệ
+      !isNaN(endDate.getTime()) &&
+      startDate.getTime() < endDate.getTime()
+    );
+  };
+  
 
   // Filter options
   const [selectedFilters, setSelectedFilters] = useState({
@@ -170,7 +200,7 @@ const List = () => {
   }, [queryParams]);
 
   // Tính toán số lượng cho mỗi bộ lọc
-  const calculateFilterCounts = (items) => {
+  const calculateFilterCounts = useCallback((items) => {
     if (!items || !Array.isArray(items)) return;
 
     const counts = {
@@ -230,7 +260,62 @@ const List = () => {
 
     console.log("Final room amenities counts:", counts.roomAmenities);
     setFilterCounts(counts);
-  };
+  }, []);
+
+    // Apply all filters and sorting
+    const applyFilters = useCallback(() => {
+      if (!data || !Array.isArray(data)) return;
+  
+      let result = [...data];
+  
+      // Apply rating filter
+      if (selectedFilters.ratings.length > 0) {
+        result = result.filter(item => 
+          item.rating && selectedFilters.ratings.includes(Math.floor(item.rating))
+        );
+      }
+  
+      // Apply property type filter
+      if (selectedFilters.propertyTypes.length > 0) {
+        result = result.filter(item => 
+          selectedFilters.propertyTypes.includes(item.type)
+        );
+      }
+  
+      // Apply hotel amenities filter
+      if (selectedFilters.amenities.length > 0) {
+        result = result.filter(item => 
+          item.amenities && selectedFilters.amenities.every(amenity => 
+            item.amenities.includes(amenity)
+          )
+        );
+      }
+  
+      // Apply room amenities filter
+      if (selectedFilters.roomAmenities.length > 0) {
+        result = result.filter(item => {
+          // Check if hotel has rooms with these amenities
+          if (!item.rooms || !Array.isArray(item.rooms)) return false;
+          
+          return item.rooms.some(room => 
+            room.amenities && selectedFilters.roomAmenities.every(amenity => 
+              room.amenities.includes(amenity)
+            )
+          );
+        });
+      }
+  
+      // Apply sorting
+      if (sortOption === "rating") {
+        result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      } else if (sortOption === "price-asc") {
+        result.sort((a, b) => (a.cheapestPrice || 0) - (b.cheapestPrice || 0));
+      } else if (sortOption === "price-desc") {
+        result.sort((a, b) => (b.cheapestPrice || 0) - (a.cheapestPrice || 0));
+      }
+  
+      setFilteredData(result);
+    }, [data, selectedFilters, sortOption]);
 
   // Cập nhật useEffect để tính toán số lượng khi data thay đổi
   useEffect(() => {
@@ -241,62 +326,63 @@ const List = () => {
       calculateFilterCounts(data);
       applyFilters();
     }
-  }, [data, error, selectedFilters, sortOption]);
+  }, [data, error, destination, min, max, selectedFilters, sortOption, calculateFilterCounts, applyFilters]);
 
-  // Apply all filters and sorting
-  const applyFilters = () => {
-    if (!data || !Array.isArray(data)) return;
 
-    let result = [...data];
+  // // Apply all filters and sorting
+  // const applyFilters = () => {
+  //   if (!data || !Array.isArray(data)) return;
 
-    // Apply rating filter
-    if (selectedFilters.ratings.length > 0) {
-      result = result.filter(item => 
-        item.rating && selectedFilters.ratings.includes(Math.floor(item.rating))
-      );
-    }
+  //   let result = [...data];
 
-    // Apply property type filter
-    if (selectedFilters.propertyTypes.length > 0) {
-      result = result.filter(item => 
-        selectedFilters.propertyTypes.includes(item.type)
-      );
-    }
+  //   // Apply rating filter
+  //   if (selectedFilters.ratings.length > 0) {
+  //     result = result.filter(item => 
+  //       item.rating && selectedFilters.ratings.includes(Math.floor(item.rating))
+  //     );
+  //   }
 
-    // Apply hotel amenities filter
-    if (selectedFilters.amenities.length > 0) {
-      result = result.filter(item => 
-        item.amenities && selectedFilters.amenities.every(amenity => 
-          item.amenities.includes(amenity)
-        )
-      );
-    }
+  //   // Apply property type filter
+  //   if (selectedFilters.propertyTypes.length > 0) {
+  //     result = result.filter(item => 
+  //       selectedFilters.propertyTypes.includes(item.type)
+  //     );
+  //   }
 
-    // Apply room amenities filter
-    if (selectedFilters.roomAmenities.length > 0) {
-      result = result.filter(item => {
-        // Check if hotel has rooms with these amenities
-        if (!item.rooms || !Array.isArray(item.rooms)) return false;
+  //   // Apply hotel amenities filter
+  //   if (selectedFilters.amenities.length > 0) {
+  //     result = result.filter(item => 
+  //       item.amenities && selectedFilters.amenities.every(amenity => 
+  //         item.amenities.includes(amenity)
+  //       )
+  //     );
+  //   }
+
+  //   // Apply room amenities filter
+  //   if (selectedFilters.roomAmenities.length > 0) {
+  //     result = result.filter(item => {
+  //       // Check if hotel has rooms with these amenities
+  //       if (!item.rooms || !Array.isArray(item.rooms)) return false;
         
-        return item.rooms.some(room => 
-          room.amenities && selectedFilters.roomAmenities.every(amenity => 
-            room.amenities.includes(amenity)
-          )
-        );
-      });
-    }
+  //       return item.rooms.some(room => 
+  //         room.amenities && selectedFilters.roomAmenities.every(amenity => 
+  //           room.amenities.includes(amenity)
+  //         )
+  //       );
+  //     });
+  //   }
 
-    // Apply sorting
-    if (sortOption === "rating") {
-      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else if (sortOption === "price-asc") {
-      result.sort((a, b) => (a.cheapestPrice || 0) - (b.cheapestPrice || 0));
-    } else if (sortOption === "price-desc") {
-      result.sort((a, b) => (b.cheapestPrice || 0) - (a.cheapestPrice || 0));
-    }
+  //   // Apply sorting
+  //   if (sortOption === "rating") {
+  //     result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  //   } else if (sortOption === "price-asc") {
+  //     result.sort((a, b) => (a.cheapestPrice || 0) - (b.cheapestPrice || 0));
+  //   } else if (sortOption === "price-desc") {
+  //     result.sort((a, b) => (b.cheapestPrice || 0) - (a.cheapestPrice || 0));
+  //   }
 
-    setFilteredData(result);
-  };
+  //   setFilteredData(result);
+  // };
 
   // Handle destination input change
   const handleDestinationChange = (e) => {
@@ -320,12 +406,40 @@ const List = () => {
   };
 
   // Handle date range selection
-  const handleDateChange = (item) => {
-    dispatch({ type: "UPDATE_DATES", payload: [item.selection] });
+  // const handleDateChange = (item) => {
+  //   dispatch({ type: "UPDATE_DATES", payload: [item.selection] });
+  // };
+  const handleDateChange = (ranges) => {
+    const { startDate, endDate } = ranges.selection;
+  
+    if (!startDate || !endDate || isNaN(new Date(startDate)) || isNaN(new Date(endDate))) {
+      alert("Ngày không hợp lệ, vui lòng chọn lại.");
+      return;
+    }
+  
+    if (new Date(startDate).getTime() > new Date(endDate).getTime()) {
+      alert("Ngày nhận phòng không thể lớn hơn ngày trả phòng.");
+      return;
+    }
+  
+    dispatch({
+      type: "NEW_SEARCH",
+      payload: { 
+        destination, 
+        dates: [{ startDate, endDate, key: "selection" }], 
+        options 
+      }
+    });
   };
+  
+  
 
   // Handle search button click
   const handleSearch = () => {
+    if (!dates?.length || !dates[0]?.startDate || !dates[0]?.endDate) {
+      alert("Vui lòng chọn ngày nhận phòng trước khi tìm kiếm!");
+      return;
+    }
     // Check price range
     if (min > max) {
       alert("Giá tối thiểu không thể lớn hơn Giá tối đa");
@@ -338,6 +452,7 @@ const List = () => {
       city: destination,
       name: destination // Also search by name
     });
+
   };
 
   // Toggle filter sections
@@ -454,15 +569,20 @@ const List = () => {
             <div className="lsItem">
               <label>Ngày nhận phòng</label>
               <span onClick={() => setOpenDate(!openDate)}>
-                {`${format(dates[0].startDate, "dd/MM/yyyy")} → ${format(dates[0].endDate, "dd/MM/yyyy")}`}
+                {/* {`${format(dates[0].startDate, "dd/MM/yyyy")} → ${format(dates[0].endDate, "dd/MM/yyyy")}`} */}
+                {dates?.length > 0 && dates[0]?.startDate && dates[0]?.endDate
+                  ? `${format(new Date(dates[0].startDate), "dd/MM/yyyy")} → ${format(new Date(dates[0].endDate), "dd/MM/yyyy")}`
+                  : "Chọn ngày nhận phòng"}
               </span>
               {openDate && (
-                <DateRange
-                  onChange={handleDateChange}
-                  minDate={new Date()}
-                  ranges={dates}
-                  className="date"
-                />
+               <DateRange
+               onChange={handleDateChange}
+               minDate={new Date()}
+               ranges={validDates}
+               className="date"
+             />
+             
+             
               )}
             </div>
             
@@ -696,65 +816,75 @@ const List = () => {
           </div>
           
           <div className="listResult">
-            {/* Sorting options */}
-            <div className="sortOptions">
-              <span className="sortLabel">Sắp xếp theo:</span>
-              <button
-                className={`sortOption ${sortOption === 'recommended' ? 'active' : ''}`}
-                onClick={() => setSortOption('recommended')}
-              >
-                Đề xuất
-              </button>
-              <button
-                className={`sortOption ${sortOption === 'rating' ? 'active' : ''}`}
-                onClick={() => setSortOption('rating')}
-              >
-                Đánh giá
-              </button>
-              <button
-                className={`sortOption ${sortOption === 'price-asc' ? 'active' : ''}`}
-                onClick={() => setSortOption('price-asc')}
-              >
-                Giá thấp - cao
-              </button>
-              <button
-                className={`sortOption ${sortOption === 'price-desc' ? 'active' : ''}`}
-                onClick={() => setSortOption('price-desc')}
-              >
-                Giá cao - thấp
-              </button>
-            </div>
-            
-            {/* Results count */}
-            {!loading && filteredData && (
-              <div className="searchItemsHeader">
-                <div className="resultsCount">
-                  {filteredData.length} chỗ nghỉ được tìm thấy {destination && `ở ${destination}`}
-                </div>
-              </div>
-            )}
-            
-            {/* Loading state */}
-            {loading ? (
-              <div className="loading">
-                <div className="loadingSpinner"></div>
+          {!isDateValid() ? (
+              <div className="noResults">
+                <p>Vui lòng chọn ngày nhận phòng và trả phòng hợp lệ trước khi tìm kiếm khách sạn.</p>
               </div>
             ) : (
               <>
-                {/* No results */}
-                {filteredData && filteredData.length === 0 ? (
-                  <div className="noResults">
-                    <p>Không tìm thấy kết quả</p>
-                    <p>Đã thử tìm: {destination} (giá từ {min || 0} đến {max || 'không giới hạn'})</p>
-                    <p>Hãy thử điều chỉnh các bộ lọc hoặc tìm kiếm địa điểm khác</p>
+                {/* Sorting options */}
+                {filteredData && filteredData.length > 0 && (
+                <div className="sortOptions">
+                  <span className="sortLabel">Sắp xếp theo:</span>
+                  <button
+                    className={`sortOption ${sortOption === 'recommended' ? 'active' : ''}`}
+                    onClick={() => setSortOption('recommended')}
+                  >
+                    Đề xuất
+                  </button>
+                  <button
+                    className={`sortOption ${sortOption === 'rating' ? 'active' : ''}`}
+                    onClick={() => setSortOption('rating')}
+                  >
+                    Đánh giá
+                  </button>
+                  <button
+                    className={`sortOption ${sortOption === 'price-asc' ? 'active' : ''}`}
+                    onClick={() => setSortOption('price-asc')}
+                  >
+                    Giá thấp - cao
+                  </button>
+                  <button
+                    className={`sortOption ${sortOption === 'price-desc' ? 'active' : ''}`}
+                    onClick={() => setSortOption('price-desc')}
+                  >
+                    Giá cao - thấp
+                  </button>
+                </div>
+                )}
+                
+                {/* Results count */}
+                {!loading && filteredData && filteredData.length > 0 && (
+                  <div className="searchItemsHeader">
+                    <div className="resultsCount">
+                      {filteredData.length} chỗ nghỉ được tìm thấy {destination && `ở ${destination}`}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Loading state */}
+                {loading ? (
+                  <div className="loading">
+                    <div className="loadingSpinner"></div>
                   </div>
                 ) : (
-                  // Results list
-                  filteredData.map((item) => (
-                    <SearchItem item={item} key={item._id} />
-                  ))
+                  <>
+                    {/* No results */}
+                    {filteredData && filteredData.length === 0 ? (
+                      <div className="noResults">
+                        <p>Không tìm thấy kết quả</p>
+                        <p>Đã thử tìm: {destination} (giá từ {min || 0} đến {max || 'không giới hạn'})</p>
+                        <p>Hãy thử điều chỉnh các bộ lọc hoặc tìm kiếm địa điểm khác</p>
+                      </div>
+                    ) : (
+                      // Results list
+                      filteredData.map((item) => (
+                        <SearchItem item={item} key={item._id} />
+                      ))
+                    )}
+                  </>
                 )}
-              </>
+            </>
             )}
           </div>
         </div>

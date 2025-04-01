@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import "./searchItem.css";
+const USD_TO_VND = 24000; 
 
 const SearchItem = ({ item }) => {
+  const convertedPrice = item.cheapestPrice * USD_TO_VND;
   return (
     <div className="searchItem">
       {item.imageIds && item.imageIds.length > 0 ? (
@@ -36,7 +38,11 @@ const SearchItem = ({ item }) => {
           <button>{item.rating}</button>
         </div>}
         <div className="siDetailTexts">
+{/* <<<<<<< Updated upstream
           <span className="siPrice">{item.cheapestPrice ? item.cheapestPrice.toLocaleString('vi-VN') : 0} VND</span>
+======= */}
+        <span className="siPrice">{convertedPrice.toLocaleString('vi-VN')} VND</span>
+{/* >>>>>>> Stashed changes */}
           <span className="siTaxOp">Đã bao gồm thuế và phí</span>
           <span className="siPricePerNight">/đêm</span>
           <Link to={`/hotels/${item._id}`}>

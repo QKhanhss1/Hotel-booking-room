@@ -120,7 +120,7 @@ function Rooms() {
 
   const fetchHotels = async () => {
     try {
-      const response = await axios.get("http://localhost:8800/api/hotels");
+      const response = await axios.get("https://localhost:8800/api/hotels");
       setHotels(response.data);
     } catch (error) {
       console.error("Error fetching hotels:", error);
@@ -129,7 +129,7 @@ function Rooms() {
   const checkData = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8800/api/hotels/check/rooms"
+        "https://localhost:8800/api/hotels/check/rooms"
       );
       console.log("Database check:", response.data);
     } catch (error) {
@@ -145,7 +145,7 @@ function Rooms() {
 
         if (hotelId) {
           const roomsResponse = await axios.get(
-            `http://localhost:8800/api/hotels/${hotelId}/rooms`,
+            `https://localhost:8800/api/hotels/${hotelId}/rooms`,
             {
               headers: {
                 Authorization: `Bearer ${user?.token}`
