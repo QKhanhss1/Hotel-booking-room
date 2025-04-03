@@ -23,27 +23,37 @@ const Login = () => {
 
   const handleClick = (e) => {
     e.preventDefault();
+    console.log("Login attempt with:", credentials);
+    
     axios
       .post("https://localhost:8800/api/auth/login", {
         username: credentials.username,
         password: credentials.password,
       })
       .then((res) => {
+        console.log("Login response:", res.data);
         if (res.data) {
-          // Đăng nhập thành công, lưu vào context
-          // dispatch({ type: "LOGIN_SUCCESS", payload: res.data }); 
-          // navigate("/"); 
           const { details, token } = res.data;
+          console.log("User details:", details);
+          console.log("Token from login:", token);
+          
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: {
               user: details,
               token: token,
-              // loginMethod: "FORM",  
             },
+          });
+          
+          // Verify what's in localStorage after dispatch
+          setTimeout(() => {
+            console.log("LocalStorage after login:", {
+              user: localStorage.getItem("user"),
+              token: localStorage.getItem("token")
             });
-            console.log("Token from user:", token);
-            navigate("/");
+          }, 100);
+          
+          navigate("/");
         }
       })
       .catch((err) => {
@@ -65,13 +75,13 @@ const Login = () => {
       .then(res => {
         console.log("Dữ liệu từ server:", res.data); 
         if (res.data.token) {
-          localStorage.setItem("access_token", res.data.token); 
-          localStorage.setItem("user", JSON.stringify(res.data.user));
-    
-          console.log("Token đã lưu:", localStorage.getItem("access_token"));
-          console.log("User đã lưu:", localStorage.getItem("user"));
-
-          dispatch({ type: "LOGIN_SUCCESS", payload: res.data }); // Cập nhật context
+          dispatch({ 
+            type: "LOGIN_SUCCESS", 
+            payload: {
+              user: res.data.user,
+              token: res.data.token
+            }
+          }); // Cập nhật context
           navigate("/"); // Chuyển về Home
         } else {
           console.error("Lỗi: Không nhận được token từ server.");

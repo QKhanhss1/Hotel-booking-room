@@ -14,6 +14,9 @@ import { AuthContext } from "../../context/AuthContext";
 import "./paymentStatus.css";
 import { API_URL } from "../../utils/apiConfig";
 
+// Tạo axios instance phù hợp cho môi trường trình duyệt
+const axiosInstance = axios.create();
+
 const PaymentStatus = () => {
   const { status } = useParams();
   const { user } = useContext(AuthContext);
@@ -30,8 +33,8 @@ const PaymentStatus = () => {
         const bookingId = localStorage.getItem("bookingId");
         
         if (status === "success" && bookingId) {
-          // Cập nhật trạng thái nếu cần thiết
-          await axios.post(`${API_URL}/booking/update`, {
+          // Sử dụng axiosInstance để gọi API
+          await axiosInstance.post(`${API_URL}/booking/update`, {
             bookingId,
             paymentStatus: "success"
           });

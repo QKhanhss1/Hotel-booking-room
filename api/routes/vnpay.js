@@ -3,10 +3,19 @@ import config from 'config';
 import crypto from 'crypto';
 import moment from 'moment';
 import querystring from 'qs';
-import axios from 'axios'; // Thêm import axios
+import axios from 'axios';
+import https from 'https';
+// Import controller booking để sử dụng trực tiếp
+import { updateBookingStatus } from "../controllers/booking.js";
 
 const router = express.Router();
 
+// Tạo một instance của axios bỏ qua chứng chỉ SSL khi gọi localhost
+const axiosInstance = axios.create({
+    httpsAgent: new https.Agent({
+        rejectUnauthorized: false // Bỏ qua xác minh chứng chỉ SSL
+    })
+});
 
 // Route xử lý tạo URL thanh toán VNPay
 router.post('/vnpay', (req, res) => {
@@ -147,7 +156,7 @@ router.get('/create_payment_url', function (req, res, next) {
     res.redirect(vnpUrl);
 });
 
-// Route xử lý phản hồi từ VNPay chỉ nên xuất hiện một lần
+// Route xử lý phản hồi từ VNPay
 router.get('/vnpay_return', async function (req, res, next) {
     try {
         console.log("VNPay callback received", new Date().toISOString());
@@ -175,12 +184,29 @@ router.get('/vnpay_return', async function (req, res, next) {
             console.log("Signature verified. Payment status:", paymentStatus);
             
             try {
-                // Cập nhật trạng thái booking
+                // Thay vì gọi API qua axios, gọi trực tiếp controller function
                 console.log("Updating booking status to:", paymentStatus);
-                await axios.post('https://localhost:8800/api/booking/update', {
+                
+                // Tạo req.body giả lập cho controller
+                req.body = {
                     bookingId,
                     paymentStatus
-                });
+                };
+                
+                // Tạo response object mới để nhận kết quả từ controller
+                const updateResponse = {
+                    status: function(code) {
+                        console.log("Update response status:", code);
+                        return this;
+                    },
+                    json: function(data) {
+                        console.log("Update response data:", data);
+                        return data;
+                    }
+                };
+                
+                // Gọi controller trực tiếp
+                await updateBookingStatus(req, updateResponse);
                 
                 console.log("Redirecting to frontend:", `${config.get('frontend_url')}/payment/${paymentStatus}?amount=${amount}`);
                 // Thêm amount vào URL redirect

@@ -90,7 +90,7 @@ const Hotel = () => {
   const policiesRef = useRef(null);
   
   const { data, error } = useFetch(`/hotels/find/${id}`);
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const { favorites, dispatch } = useContext(FavoriteContext);
   const { dates = [], options = {} } = useContext(SearchContext);
 
@@ -148,10 +148,10 @@ const Hotel = () => {
         setHotel(hotelWithImage);
         setLoading(false);
         
-        if (user && user.details && user.details._id) {
+        if (user) {
           setCommentFormData(prev => ({
             ...prev,
-            userId: user.details._id
+            userId: user.details?._id || user._id
           }));
         }
       }
@@ -448,25 +448,15 @@ const Hotel = () => {
 
   // Handle favorite button click
   const handleFavoriteClick = async () => {
-    if (!user) {
+    if (!user || !token) {
       navigate("/login");
       return;
     }
 
     try {
-      // Lấy token từ cấu trúc phù hợp
-      const authToken = user.token || user.details?.token;
-      
-      if (!authToken) {
-        console.error("Token không tồn tại");
-        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
-        setTimeout(() => navigate("/login"), 2000);
-        return;
-      }
-      
       if (isFavorite) {
         await axios.delete(`/favorites/${id}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
         dispatch({ type: "REMOVE_FAVORITE", payload: id });
         toast.info('Đã xóa khỏi danh sách yêu thích');
@@ -474,7 +464,7 @@ const Hotel = () => {
         await axios.post(
           "/favorites",
           { hotelId: id },
-          { headers: { Authorization: `Bearer ${authToken}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         dispatch({ type: "ADD_FAVORITE", payload: { _id: id } });
         toast.info("Đã thêm vào danh sách yêu thích!");
@@ -554,7 +544,7 @@ const Hotel = () => {
       return;
     }
 
-    if (!user || !user.details._id) {
+    if (!user || !token) {
       toast.error("Vui lòng đăng nhập để đánh giá!");
       return;
     }
@@ -577,7 +567,7 @@ const Hotel = () => {
         const uploadResponse = await axios.post(`${API_UPLOAD}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${user.token}`
+            'Authorization': `Bearer ${token}`
           }
         });
         
@@ -591,7 +581,7 @@ const Hotel = () => {
       // Then submit the review with image IDs
       const payload = {
         ...commentFormData,
-        userId: user.details._id,
+        userId: user.details?._id || user._id,
         images: imageIds
       };
 
@@ -601,7 +591,7 @@ const Hotel = () => {
       
       // Reset form
       setCommentFormData({ 
-        userId: user.details._id, 
+        userId: user.details?._id || user._id, 
         rating: 0, 
         comment: "",
         images: []
@@ -628,7 +618,6 @@ const Hotel = () => {
   // Delete comment/review
   const handleDeleteComment = async (reviewId) => {
     try {
-      const token = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).token : null;
       const response = await axios.delete(`/hotels/${id}/reviews/${reviewId}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -664,14 +653,14 @@ const Hotel = () => {
   // Kiểm tra xem người dùng có đặt phòng thành công ở khách sạn này chưa
   useEffect(() => {
     const checkBookingStatus = async () => {
-      if (!user || !id) return;
+      if (!user || !token || !id) return;
       
       try {
         setCheckingBookingStatus(true);
         const response = await axios.get(
-          `/booking/check/${user.details._id}/${id}`,
+          `/booking/check/${user.details?._id || user._id}/${id}`,
           {
-            headers: { Authorization: `Bearer ${user.token}` }
+            headers: { Authorization: `Bearer ${token}` }
           }
         );
         
@@ -685,7 +674,7 @@ const Hotel = () => {
     };
 
     checkBookingStatus();
-  }, [id, user]);
+  }, [id, user, token]);
 
   // Render rating stars
   const renderRatingStars = (rating) => {
@@ -809,7 +798,7 @@ const Hotel = () => {
 
   // Render review section in Traveloka style
   const renderCommentSection = () => {
-    if (!user) {
+    if (!user || !token) {
       return (
         <div className="login-to-comment">
           <p>Vui lòng đăng nhập để đánh giá</p>
@@ -944,7 +933,7 @@ const Hotel = () => {
                   </div>
                 </div>
               </div>
-              {(user?.isAdmin === true || (user?.details && user.details._id === comment.user)) && (
+              {(user?.isAdmin === true || (user && (user.details?._id === comment.user || user._id === comment.user))) && (
                 <button
                   className="delete-review-btn"
                   onClick={() => handleDeleteComment(comment._id)}

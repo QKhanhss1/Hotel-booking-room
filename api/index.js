@@ -19,6 +19,11 @@ import fs from 'fs';
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 
+// Cấu hình axios mặc định cho toàn bộ ứng dụng
+axios.defaults.httpsAgent = new https.Agent({
+  rejectUnauthorized: false // Bỏ qua xác minh chứng chỉ trong môi trường phát triển
+});
+
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);

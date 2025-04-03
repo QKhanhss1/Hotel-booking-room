@@ -10,14 +10,14 @@ import { faHeart, faStar, faLocationDot, faCheck, faMoneyBill } from "@fortaweso
 import { API_IMAGES } from "../../utils/apiConfig";
 
 const FavoritePage = () => {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !token) {
       navigate("/login");
     } else {
       const fetchFavorites = async () => {
@@ -25,7 +25,7 @@ const FavoritePage = () => {
           setLoading(true);
           const res = await axios.get("/favorites", {
             headers: {
-              Authorization: `Bearer ${user.token}`,
+              Authorization: `Bearer ${token}`,
             },
           });
           
@@ -58,13 +58,13 @@ const FavoritePage = () => {
       };
       fetchFavorites();
     }
-  }, [user, navigate]);
+  }, [user, token, navigate]);
 
   const handleRemoveFavorite = async (hotelId) => {
     try {
       await axios.delete(`/favorites/${hotelId}`, {
         headers: {
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       setFavorites(favorites.filter((hotel) => hotel._id !== hotelId));
