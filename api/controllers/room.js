@@ -3,6 +3,7 @@ import Hotel from "../models/Hotel.js";
 import Image from "../models/Image.js";
 import { createError } from "../utils/error.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { updateCheapestPrice } from "./hotel.js";
 
 export const createRoom = async (req, res, next) => {
   const hotelId = req.params.hotelId;
@@ -41,8 +42,8 @@ export const createRoom = async (req, res, next) => {
       $push: { rooms: savedRoom._id },
     });
 
-    // Cập nhật giá rẻ nhất của khách sạn nếu cần
-    await updateHotelCheapestPrice(hotelId);
+    // Cập nhật giá phòng nhỏ nhất của khách sạn
+    await updateCheapestPrice(hotelId);
 
     res.status(201).json(savedRoom);
   } catch (err) {
@@ -63,12 +64,13 @@ export const updateRoom = async (req, res, next) => {
       { $set: req.body },
       { new: true }
     );
-
-    // Cập nhật giá rẻ nhất của khách sạn nếu cần
-    if (updatedRoom && req.body.price) {
-      await updateHotelCheapestPrice(updatedRoom.hotelId);
+    
+    // Tìm khách sạn chứa phòng này để cập nhật giá phòng nhỏ nhất
+    const hotel = await Hotel.findOne({ rooms: req.params.id });
+    if (hotel) {
+      await updateCheapestPrice(hotel._id);
     }
-
+    
     res.status(200).json(updatedRoom);
   } catch (err) {
     next(err);
@@ -150,7 +152,7 @@ export const deleteRoom = async (req, res, next) => {
     });
 
     // Cập nhật giá rẻ nhất của khách sạn
-    await updateHotelCheapestPrice(hotelId);
+    await updateCheapestPrice(hotelId);
 
     console.log("Room deleted successfully");
     res.status(200).json({ message: "Xóa phòng thành công!" });

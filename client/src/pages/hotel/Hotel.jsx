@@ -161,13 +161,8 @@ const Hotel = () => {
 
   // Calculate total price for hotel (not selected rooms)
   useEffect(() => {
-// <<<<<<< Updated upstream
-//     if (data && days) {
-//       const calculatedPrice = days * data.cheapestPrice;
-// =======
-    if (data && options.room && days) {
-      const calculatedPrice = days * data.cheapestPrice * options.room * USD_TO_VND;
-// >>>>>>> Stashed changes
+    if (data && days) {
+      const calculatedPrice = days * data.cheapestPrice;
       const roundedPrice = Math.round(calculatedPrice);
       setTotalPrice(roundedPrice);
       // Không cần lưu vào localStorage nữa vì chúng ta sẽ sử dụng totalRoomsPrice cho việc thanh toán
@@ -338,11 +333,19 @@ const Hotel = () => {
   useEffect(() => {
     if (selectedRooms.length > 0 && days > 0 && roomsData.length > 0) {
       const calculatedTotal = selectedRooms.reduce((total, roomId) => {
-        const roomData = roomsData.find((room) => 
-          room.roomNumbers.some(roomNumber => roomNumber._id === roomId)
+        const roomNumber = roomsData
+          .flatMap(room => room.roomNumbers)
+          .find(roomNumber => roomNumber._id === roomId);
+        
+        if (!roomNumber) return total;
+        
+        const roomData = roomsData.find(room => 
+          room.roomNumbers.some(rn => rn._id === roomId)
         );
+        
         return total + (roomData?.price || 0) * days;
       }, 0);
+      
       setTotalRoomsPrice(calculatedTotal);
     } else {
       setTotalRoomsPrice(0);
@@ -351,11 +354,14 @@ const Hotel = () => {
 
   // Handle booking button
   const handleBookRooms = () => {
+    // Kiểm tra user đã đăng nhập chưa
     if (!user) {
       toast.error("Vui lòng đăng nhập để đặt phòng!");
       navigate("/login");
       return;
     }
+
+    console.log("Current user:", user); // Debug thông tin user
 
     if (selectedRooms.length === 0 || !days || days <= 0) {
       toast.error("Vui lòng chọn phòng và kiểm tra lại ngày đặt!");
@@ -448,9 +454,19 @@ const Hotel = () => {
     }
 
     try {
+      // Lấy token từ cấu trúc phù hợp
+      const authToken = user.token || user.details?.token;
+      
+      if (!authToken) {
+        console.error("Token không tồn tại");
+        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      }
+      
       if (isFavorite) {
         await axios.delete(`/favorites/${id}`, {
-          headers: { Authorization: `Bearer ${user.token}` },
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         dispatch({ type: "REMOVE_FAVORITE", payload: id });
         toast.info('Đã xóa khỏi danh sách yêu thích');
@@ -458,7 +474,7 @@ const Hotel = () => {
         await axios.post(
           "/favorites",
           { hotelId: id },
-          { headers: { Authorization: `Bearer ${user.token}` } }
+          { headers: { Authorization: `Bearer ${authToken}` } }
         );
         dispatch({ type: "ADD_FAVORITE", payload: { _id: id } });
         toast.info("Đã thêm vào danh sách yêu thích!");
@@ -466,6 +482,7 @@ const Hotel = () => {
       setIsFavorite(!isFavorite);
     } catch (error) {
       console.error("Error updating favorites:", error);
+      toast.error("Lỗi khi cập nhật yêu thích. Vui lòng thử lại!");
     }
   };
 

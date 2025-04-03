@@ -612,6 +612,33 @@ export const getCities = async (req, res, next) => {
   }
 };
 
+// Thêm hàm cập nhật giá phòng nhỏ nhất cho khách sạn
+export const updateCheapestPrice = async (hotelId) => {
+  try {
+    // Tìm tất cả phòng của khách sạn
+    const hotel = await Hotel.findById(hotelId).populate('rooms');
+    
+    if (!hotel || !hotel.rooms || hotel.rooms.length === 0) {
+      console.log(`Không có phòng cho khách sạn ${hotelId}`);
+      return;
+    }
+    
+    // Tìm giá phòng nhỏ nhất
+    const cheapestPrice = Math.min(...hotel.rooms.map(room => room.price || Infinity));
+    
+    if (cheapestPrice === Infinity) {
+      console.log(`Không tìm thấy giá phòng hợp lệ cho khách sạn ${hotelId}`);
+      return;
+    }
+    
+    // Cập nhật giá phòng nhỏ nhất cho khách sạn
+    await Hotel.findByIdAndUpdate(hotelId, { cheapestPrice: cheapestPrice });
+    console.log(`Đã cập nhật giá phòng nhỏ nhất cho khách sạn ${hotelId}: ${cheapestPrice}`);
+  } catch (error) {
+    console.error(`Lỗi khi cập nhật giá phòng nhỏ nhất cho khách sạn ${hotelId}:`, error);
+  }
+};
+
 
 
 
