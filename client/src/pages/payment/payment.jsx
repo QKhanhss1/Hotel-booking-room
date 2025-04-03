@@ -12,13 +12,13 @@ const Payment = ({ onClose }) => {
   const [reservationData, setReservationData] = useState(null);
   const [reservationDates, setReservationDates] = useState(null);
   const { user } = useContext(AuthContext);
-  const token = user?.token;
+  const token = localStorage.getItem("token");
   const [email, setEmail] = useState("");
 
   useEffect(() => {
     const data = localStorage.getItem("reservationData");
     const datesData = localStorage.getItem("dates");
-
+ 
     console.log("Loaded reservationData from localStorage:", data);
 
     if (data) {
@@ -54,7 +54,7 @@ const Payment = ({ onClose }) => {
 
   const createBooking = async (inputEmail) => {
     try {
-      if (!user?.details?._id) {
+      if (!user || !user._id) {
         toast.warn("Vui lòng đăng nhập để đặt phòng!", {
           position: "top-center",
           autoClose: 2000,
@@ -66,10 +66,11 @@ const Payment = ({ onClose }) => {
         hotelId: hotelId,
         selectedRooms: selectedRooms,
         totalPrice: totalPrice,
-        customer: user.details._id,
+        customer: user._id,
         dates: reservationDates
       });
 
+      console.log("Token from localStorage:", localStorage.getItem("token"));  
       const bookingData = {
         hotelId: hotelId,
         selectedRooms: selectedRooms.map(room => ({
@@ -78,7 +79,7 @@ const Payment = ({ onClose }) => {
           idRoomNumber: room.roomId
         })),
         totalPrice: totalPrice,
-        customer: user.details._id,
+        customer: user._id,
         paymentInfo: {
           checkinDate: new Date(reservationDates.checkinDate).toISOString(),
           checkoutDate: new Date(reservationDates.checkoutDate).toISOString()
@@ -86,10 +87,13 @@ const Payment = ({ onClose }) => {
         paymentStatus: "pending",
         email: inputEmail // Sử dụng email được nhập vào
       };
-
+      if (!token) {
+        console.error("Token không hợp lệ hoặc hết hạn.");
+        return;
+      }
       const response = await axios.post(`${API_URL}/booking/create`, bookingData, {
         headers: {
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });

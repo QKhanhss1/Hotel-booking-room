@@ -2,6 +2,7 @@ import { createContext, useEffect, useReducer } from "react";
 
 const INITIAL_STATE = {
   user: JSON.parse(localStorage.getItem("user")) || null,
+  token: localStorage.getItem("token") || null,
   loading: false,
   error: null,
 };
@@ -19,7 +20,7 @@ const AuthReducer = (state, action) => {
       };
     case "LOGIN_SUCCESS":
       return {
-        user: action.payload.user,  // Lưu user vào state
+        user: action.payload.user,  
         token: action.payload.token,
         loading: false,
         error: null,
@@ -51,7 +52,12 @@ export const AuthContextProvider = ({ children }) => {
     } else {
       localStorage.removeItem("user");
     }
-  }, [state.user]);
+    if (state.token) { 
+      localStorage.setItem("token", state.token);
+    } else {
+      localStorage.removeItem("token"); 
+    }
+  }, [state.user,state.token]);
 
   return (
     <AuthContext.Provider

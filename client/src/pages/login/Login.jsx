@@ -42,6 +42,7 @@ const Login = () => {
               // loginMethod: "FORM",  
             },
             });
+            console.log("Token from user:", token);
             navigate("/");
         }
       })

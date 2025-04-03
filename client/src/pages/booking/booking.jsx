@@ -13,7 +13,8 @@ const BookingPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // Tab mặc định là "all"
+  const [activeTab, setActiveTab] = useState("all"); 
+  const token = localStorage.getItem("token");
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -33,13 +34,13 @@ const BookingPage = () => {
       const fetchBookings = async () => {
         try {
           setLoading(true);
-          console.log("Fetching bookings for user:", user.details._id);
+          console.log("Fetching bookings for user:", user._id);
           
           const res = await axios.get(
-            `${API_URL}/booking/user/${user.details._id}`,
+            `${API_URL}/booking/user/${user._id}`,
             {
               headers: {
-                Authorization: `Bearer ${user.token}`,
+                Authorization: `Bearer ${token}`,
               },
             }
           );
