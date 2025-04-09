@@ -110,21 +110,34 @@ export const getHotels = async (req, res, next) => {
         .trim();
     };
     
+    // Mảng chứa các điều kiện tìm kiếm
+    const conditions = [];
+    
     // Xử lý tìm kiếm city không phân biệt hoa thường và dấu
     if (city) {
-      query.$or = [
-        { city: { $regex: city, $options: "i" } },
-        { city: { $regex: normalizeString(city), $options: "i" } }
-      ];
+      const cityCondition = {
+        $or: [
+          { city: { $regex: city, $options: "i" } },  // Tìm chuỗi gốc
+          { normalizedCity: { $regex: normalizeString(city), $options: "i" } }  // Tìm chuỗi đã chuẩn hóa
+        ]
+      };
+      conditions.push(cityCondition);
     }
     
     // Xử lý tìm kiếm tên khách sạn không phân biệt hoa thường và dấu
     if (name) {
-      query.$or = query.$or || [];
-      query.$or.push(
-        { name: { $regex: name, $options: "i" } },
-        { name: { $regex: normalizeString(name), $options: "i" } }
-      );
+      const nameCondition = {
+        $or: [
+          { name: { $regex: name, $options: "i" } },  // Tìm chuỗi gốc
+          { normalizedName: { $regex: normalizeString(name), $options: "i" } }  // Tìm chuỗi đã chuẩn hóa
+        ]
+      };
+      conditions.push(nameCondition);
+    }
+    
+    // Nếu có điều kiện tìm kiếm, thêm vào query
+    if (conditions.length > 0) {
+      query.$or = conditions;
     }
     
     const hotels = await Hotel.find(query)
@@ -135,7 +148,34 @@ export const getHotels = async (req, res, next) => {
         select: 'amenities'
       });
     
-    res.status(200).json(hotels);
+    // Thêm trường normalizedName và normalizedCity vào kết quả để so sánh
+    const hotelsWithNormalizedFields = hotels.map(hotel => {
+      const hotelObj = hotel.toObject();
+      hotelObj.normalizedName = normalizeString(hotel.name);
+      hotelObj.normalizedCity = normalizeString(hotel.city);
+      return hotelObj;
+    });
+    
+    // Lọc kết quả dựa trên các trường đã chuẩn hóa
+    let filteredHotels = hotelsWithNormalizedFields;
+    
+    if (city) {
+      const normalizedCityQuery = normalizeString(city);
+      filteredHotels = filteredHotels.filter(hotel => 
+        hotel.city.toLowerCase().includes(city.toLowerCase()) || 
+        hotel.normalizedCity.includes(normalizedCityQuery)
+      );
+    }
+    
+    if (name) {
+      const normalizedNameQuery = normalizeString(name);
+      filteredHotels = filteredHotels.filter(hotel => 
+        hotel.name.toLowerCase().includes(name.toLowerCase()) || 
+        hotel.normalizedName.includes(normalizedNameQuery)
+      );
+    }
+    
+    res.status(200).json(filteredHotels);
   } catch (err) {
     console.error("Error in getHotels:", err);
     next(err);
@@ -469,6 +509,7 @@ export const deleteReview = async (req, res) => {
 export const getCitiesByQuery = async (req, res, next) => {
   try {
     const { query } = req.query;
+    console.log("Original query in getCitiesByQuery:", query);
 
     // Hàm chuẩn hóa chuỗi (bỏ dấu và chuyển thành chữ thường)
     const normalizeString = (str) => {
@@ -480,22 +521,57 @@ export const getCitiesByQuery = async (req, res, next) => {
         .trim();
     };
 
-    // Chuẩn hóa query
-    const normalizedQuery = normalizeString(query);
-
-    // Tạo regex pattern để tìm kiếm không phân biệt hoa thường và dấu
-    const regexPattern = query ? new RegExp(normalizeString(query), 'i') : /.*/;
-
     // Tìm tất cả khách sạn
     const hotels = await Hotel.find({});
+    console.log(`Found ${hotels.length} hotels in database`);
     
-    // Tạo danh sách thành phố và loại phòng đã được lọc
-    const filteredCities = hotels
-      .filter(hotel => normalizeString(hotel.city).match(regexPattern))
+    // Nếu không có query hoặc query rỗng, trả về các thành phố phổ biến
+    if (!query || query.trim() === '') {
+      const popularCities = hotels
+        .reduce((acc, hotel) => {
+          const cityKey = hotel.city.toLowerCase();
+          if (!acc[cityKey]) {
+            acc[cityKey] = {
+              name: hotel.city,
+              count: 1,
+              category: 'city'
+            };
+          } else {
+            acc[cityKey].count++;
+          }
+          return acc;
+        }, {});
+      
+      const cities = Object.values(popularCities)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+      
+      console.log(`Returning ${cities.length} popular cities`);
+      return res.status(200).json(cities);
+    }
+    
+    // Chuẩn hóa query để tìm kiếm
+    const normalizedQuery = normalizeString(query);
+    const originalQuery = query.toLowerCase();
+    console.log("Normalized query:", normalizedQuery);
+    console.log("Original lowercase query:", originalQuery);
+    
+    // Mảng kết quả tìm kiếm
+    let results = [];
+    
+    // 1. Tìm các thành phố phù hợp
+    const matchingCities = hotels
+      .filter(hotel => {
+        const normalizedCity = normalizeString(hotel.city);
+        const cityMatch = normalizedCity.includes(normalizedQuery) || 
+                         hotel.city.toLowerCase().includes(originalQuery);
+        return cityMatch;
+      })
       .reduce((acc, hotel) => {
         const cityKey = hotel.city.toLowerCase();
         if (!acc[cityKey]) {
           acc[cityKey] = {
+            _id: hotel._id,
             name: hotel.city,
             count: 1,
             category: 'city'
@@ -505,58 +581,77 @@ export const getCitiesByQuery = async (req, res, next) => {
         }
         return acc;
       }, {});
-
-    // Chuyển đổi đối tượng thành mảng và sắp xếp theo số lượng
-    const cities = Object.values(filteredCities)
+    
+    const cities = Object.values(matchingCities)
       .sort((a, b) => b.count - a.count)
-      .slice(0, query ? 5 : 10);
-
-    // Tìm kiếm theo loại khách sạn nếu có query
-    let types = [];
-    if (query) {
-      const filteredTypes = hotels
-        .filter(hotel => normalizeString(hotel.type).match(regexPattern))
-        .reduce((acc, hotel) => {
-          const typeKey = hotel.type.toLowerCase();
-          if (!acc[typeKey]) {
-            acc[typeKey] = {
-              name: hotel.type,
-              count: 1,
-              category: 'type'
-            };
-          } else {
-            acc[typeKey].count++;
-          }
-          return acc;
-        }, {});
-
-      types = Object.values(filteredTypes)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
-    }
-
-    // Tìm kiếm theo tên khách sạn nếu có query
-    let hotelNames = [];
-    if (query) {
-      const filteredHotels = hotels
-        .filter(hotel => normalizeString(hotel.name).match(regexPattern))
-        .map(hotel => ({
-          name: hotel.name,
-          id: hotel._id,
-          city: hotel.city,
-          category: 'hotel',
-          type: hotel.type // Thêm thông tin loại khách sạn
-        }))
-        .slice(0, 5);
-
-      hotelNames = filteredHotels;
-    }
-
-    // Kết hợp kết quả
-    const results = query 
-      ? [...cities, ...types, ...hotelNames] 
-      : cities;
-
+      .slice(0, 5);
+    
+    results = [...results, ...cities];
+    console.log(`Found ${cities.length} matching cities`);
+    
+    // 2. Tìm các loại khách sạn phù hợp
+    const matchingTypes = hotels
+      .filter(hotel => {
+        const normalizedType = normalizeString(hotel.type);
+        const typeMatch = normalizedType.includes(normalizedQuery) || 
+                         hotel.type.toLowerCase().includes(originalQuery);
+        return typeMatch;
+      })
+      .reduce((acc, hotel) => {
+        const typeKey = hotel.type.toLowerCase();
+        if (!acc[typeKey]) {
+          acc[typeKey] = {
+            _id: hotel._id,
+            name: hotel.type,
+            count: 1,
+            category: 'type'
+          };
+        } else {
+          acc[typeKey].count++;
+        }
+        return acc;
+      }, {});
+    
+    const types = Object.values(matchingTypes)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    
+    results = [...results, ...types];
+    console.log(`Found ${types.length} matching types`);
+    
+    // 3. Tìm các khách sạn phù hợp theo tên và địa chỉ
+    const matchingHotels = hotels
+      .filter(hotel => {
+        const normalizedName = normalizeString(hotel.name);
+        const normalizedAddress = hotel.address ? normalizeString(hotel.address) : '';
+        
+        const nameMatch = normalizedName.includes(normalizedQuery) || 
+                         hotel.name.toLowerCase().includes(originalQuery);
+        
+        const addressMatch = normalizedAddress.includes(normalizedQuery) || 
+                           (hotel.address && hotel.address.toLowerCase().includes(originalQuery));
+        
+        return nameMatch || addressMatch;
+      })
+      .map(hotel => ({
+        _id: hotel._id,
+        name: hotel.name,
+        city: hotel.city,
+        category: 'hotel',
+        type: hotel.type,
+        address: hotel.address
+      }))
+      .slice(0, 5);
+    
+    results = [...results, ...matchingHotels];
+    console.log(`Found ${matchingHotels.length} matching hotels`);
+    
+    // Log kết quả trước khi trả về
+    console.log(`Total results: ${results.length}`);
+    results.forEach((item, index) => {
+      console.log(`Result ${index+1}: ${item.category} - ${item.name}`);
+    });
+    
     res.status(200).json(results);
   } catch (err) {
     console.error('Error in getCitiesByQuery:', err);
@@ -603,6 +698,7 @@ export const getCities = async (req, res, next) => {
       return {
         ...city,
         imageUrl: imageUrl || `https://source.unsplash.com/300x200/?${city.name},city`,
+        category: 'city'
       };
     }));
 

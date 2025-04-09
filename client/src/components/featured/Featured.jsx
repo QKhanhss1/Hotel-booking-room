@@ -30,7 +30,7 @@ const Featured = () => {
     const fetchCities = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("/hotels/cities");
+        const response = await axios.get("/hotels/cities/featured");
         setCities(response.data);
         setLoading(false);
       } catch (err) {

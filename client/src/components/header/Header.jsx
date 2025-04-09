@@ -121,24 +121,47 @@ const Header = ({ type }) => {
       // Trim spaces and make sure we don't send empty requests
       const trimmedQuery = query.trim();
       
+      // Log để kiểm tra
+      console.log("Fetching suggestions for query:", trimmedQuery);
+      
       // We want to send the original query with accents to the backend
       // so that we preserve the original user's input in suggestions
       const response = await axios.get(`/hotels/cities?query=${encodeURIComponent(trimmedQuery)}`);
       
-      setSuggestions(response.data);
-      setShowSuggestions(true);
+      // Kiểm tra dữ liệu trả về
+      console.log("Suggestion response data:", response.data);
+      
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        setSuggestions(response.data);
+        setShowSuggestions(true);
+      } else {
+        // Nếu không có kết quả, hiển thị message
+        console.log("No suggestions found");
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     } catch (error) {
       console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
   // Fetch popular locations when input is focused with empty query
   const fetchPopularLocations = async () => {
     try {
+      console.log("Fetching popular locations");
       const response = await axios.get(`/hotels/cities?query=`);
-      setPopularLocations(response.data);
+      console.log("Popular locations response:", response.data);
+      
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        setPopularLocations(response.data);
+      } else {
+        setPopularLocations([]);
+      }
     } catch (error) {
       console.error("Error fetching popular locations:", error);
+      setPopularLocations([]);
     }
   };
 
@@ -150,32 +173,37 @@ const Header = ({ type }) => {
     const value = e.target.value;
     setDestination(value);
     
-    if (value.length > 0) {
+    if (value.trim() === '') {
+      // Nếu input rỗng, hiển thị các địa điểm phổ biến và tìm kiếm gần đây
+      console.log("Input empty, showing popular locations and recent searches");
+      setShowSuggestions(false);
+      setShowRecentSearches(true);
+      fetchPopularLocations();
+    } else {
+      // Nếu có nội dung, thực hiện tìm kiếm
+      console.log("Input has content, fetching suggestions:", value);
       debouncedFetchSuggestions(value);
       setShowSuggestions(true);
       setShowRecentSearches(false);
-    } else {
-      setShowSuggestions(false);
-      setShowRecentSearches(true);
     }
+    
+    // Luôn hiển thị dropdown khi đang nhập
     setShowDropdown(true);
   };
 
   const handleInputFocus = () => {
+    console.log("Input focused with destination:", destination);
     setShowDropdown(true);
-    if (destination.length === 0) {
+    
+    if (!destination || destination.length === 0) {
       setShowRecentSearches(true);
       setShowSuggestions(false);
+      fetchPopularLocations();
     } else {
-      // Don't wait for fetchSuggestions to complete if we already have suggestions
-      if (suggestions.length > 0 && destination.trim() !== '') {
-        setShowSuggestions(true);
-        setShowRecentSearches(false);
-      } else {
-        fetchSuggestions(destination);
-        setShowSuggestions(true);
-        setShowRecentSearches(false);
-      }
+      // Tìm kiếm khi có nội dung trong input
+      fetchSuggestions(destination);
+      setShowSuggestions(true);
+      setShowRecentSearches(false);
     }
   };
 
@@ -389,82 +417,93 @@ const Header = ({ type }) => {
                     <div className="searchDropdown" ref={suggestionsRef}>
                       {/* Header for dropdown */}
                       <div className="dropdownHeader">
-                        <span>Kết quả tìm kiếm cuối cùng</span>
-                        <FontAwesomeIcon icon={faHistory} className="dropdownHeaderIcon" />
+                        <span>Kết quả tìm kiếm</span>
+                        <FontAwesomeIcon icon={faSearch} className="dropdownHeaderIcon" />
                       </div>
                       
                       {/* Recent searches section */}
-                      {showRecentSearches && (
+                      {showRecentSearches && recentSearches.length > 0 && (
                         <div className="recentSearchesContainer">
+                          <div className="recentSearchesHeader">
+                            <span>Tìm kiếm gần đây</span>
+                            <FontAwesomeIcon icon={faHistory} className="dropdownHeaderIcon" />
+                          </div>
                           <div className="recentSearches">
-                            {recentSearches.length > 0 && (
-                              <div className="recentSearchesList">
-                                {recentSearches.map((search, index) => (
-                                  <div
-                                    key={index}
-                                    className="searchResultItem"
-                                    onClick={() => handleRecentSearchClick(search)}
-                                  >
-                                    <div className="searchResultItemLeft">
-                                      <FontAwesomeIcon icon={faSearch} className="searchResultIcon" />
-                                      <span className="searchResultText">
-                                        {typeof search === 'string' ? search : search.term}
-                                      </span>
-                                    </div>
-                                    <div className="searchResultItemRight">
-                                      <span className="searchResultType">
-                                        {typeof search === 'object' && search.type 
-                                          ? formatHotelType(search.type) 
-                                          : "Khách sạn"}
-                                      </span>
-                                    </div>
+                            <div className="recentSearchesList">
+                              {recentSearches.map((search, index) => (
+                                <div
+                                  key={index}
+                                  className="searchResultItem"
+                                  onClick={() => handleRecentSearchClick(search)}
+                                >
+                                  <div className="searchResultItemLeft">
+                                    <FontAwesomeIcon icon={faSearch} className="searchResultIcon" />
+                                    <span className="searchResultText">
+                                      {typeof search === 'string' ? search : search.term}
+                                    </span>
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                  <div className="searchResultItemRight">
+                                    <span className="searchResultType">
+                                      {typeof search === 'object' && search.type 
+                                        ? formatHotelType(search.type) 
+                                        : "Khách sạn"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
                       
                       {/* Search suggestions section */}
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="suggestionsContainer">
-                          {suggestions.map((suggestion, index) => (
-                            <div 
-                              key={index} 
-                              className="searchResultItem"
-                              onClick={() => handleSuggestionClick(suggestion)}
-                            >
-                              <div className="searchResultItemLeft">
-                                <FontAwesomeIcon 
-                                  icon={getSuggestionIcon(suggestion.category)} 
-                                  className="searchResultIcon" 
-                                />
-                                <span className="searchResultText">
-                                  {suggestion.name}{getSuggestionAddition(suggestion)}
-                                </span>
-                              </div>
-                              <div className="searchResultItemRight">
-                                {suggestion.category !== 'hotel' ? (
-                                  <span className="searchResultCount">
-                                    {suggestion.count} khách sạn
-                                  </span>
-                                ) : (
-                                  <span className="searchResultType">
-                                    {formatHotelType(suggestion.type)}
-                                  </span>
-                                )}
-                              </div>
+                      {destination && destination.length > 0 && (
+                        <>
+                          {suggestions.length > 0 && showSuggestions ? (
+                            <div className="suggestionsContainer">
+                              {suggestions.map((suggestion, index) => (
+                                <div 
+                                  key={index} 
+                                  className="searchResultItem"
+                                  onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                  <div className="searchResultItemLeft">
+                                    <FontAwesomeIcon 
+                                      icon={getSuggestionIcon(suggestion.category)} 
+                                      className="searchResultIcon" 
+                                    />
+                                    <span className="searchResultText">
+                                      {suggestion.name}{getSuggestionAddition(suggestion)}
+                                    </span>
+                                  </div>
+                                  <div className="searchResultItemRight">
+                                    {suggestion.category !== 'hotel' ? (
+                                      <span className="searchResultCount">
+                                        {suggestion.count} khách sạn
+                                      </span>
+                                    ) : (
+                                      <span className="searchResultType">
+                                        {formatHotelType(suggestion.type)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          ) : (
+                            <div className="noResultsContainer">
+                              <span className="noResultsText">Không tìm thấy kết quả nào cho "{destination}"</span>
+                              <span className="noResultsHelp">Hãy thử tìm kiếm với từ khóa khác</span>
+                            </div>
+                          )}
+                        </>
                       )}
                       
                       {/* Popular locations section - shown when input is empty */}
-                      {showRecentSearches && popularLocations.length > 0 && (
+                      {(!destination || destination.length === 0) && popularLocations.length > 0 && (
                         <div className="popularLocationsContainer">
                           <div className="popularLocationsHeader">
-                            <span>Địa điểm</span>
+                            <span>Địa điểm phổ biến</span>
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="dropdownHeaderIcon" />
                           </div>
                           {popularLocations.map((location, index) => (

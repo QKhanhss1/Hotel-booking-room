@@ -45,7 +45,11 @@ router.post("/reviews/:id", createReview);
 router.get("/review/all/:id", getReviewsByHotelId);
 router.delete("/:hotelId/reviews/:reviewId", verifyAdmin, deleteReview);
 router.get("/type/:type", getHotelsByType);
-router.get("/cities/search", getCitiesByQuery);
-router.get("/cities", getCities);
+
+// Tìm kiếm theo query (thành phố, loại, tên khách sạn)
+router.get("/cities", getCitiesByQuery);
+
+// Lấy danh sách các thành phố có hình ảnh (cho Featured component)
+router.get("/cities/featured", getCities);
 
 export default router;

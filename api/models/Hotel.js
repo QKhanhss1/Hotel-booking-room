@@ -24,6 +24,10 @@ const HotelSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  normalizedName: {
+    type: String,
+    required: false,
+  },
   type: {
     type: String,
     required: true,
@@ -33,9 +37,17 @@ const HotelSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  normalizedCity: {
+    type: String,
+    required: false,
+  },
   address: {
     type: String,
     required: true,
+  },
+  normalizedAddress: {
+    type: String,
+    required: false,
   },
   distance: {
     type: String,
@@ -82,6 +94,47 @@ const HotelSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+});
+
+// Hàm chuẩn hóa chuỗi (bỏ dấu và chuyển thành chữ thường)
+const normalizeString = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+};
+
+// Middleware tự động cập nhật các trường normalized trước khi lưu
+HotelSchema.pre('save', function(next) {
+  if (this.name) {
+    this.normalizedName = normalizeString(this.name);
+  }
+  if (this.city) {
+    this.normalizedCity = normalizeString(this.city);
+  }
+  if (this.address) {
+    this.normalizedAddress = normalizeString(this.address);
+  }
+  next();
+});
+
+// Middleware để xử lý khi cập nhật
+HotelSchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate();
+  
+  if (update.name) {
+    update.normalizedName = normalizeString(update.name);
+  }
+  if (update.city) {
+    update.normalizedCity = normalizeString(update.city);
+  }
+  if (update.address) {
+    update.normalizedAddress = normalizeString(update.address);
+  }
+  
+  next();
 });
 
 export default mongoose.model("Hotel", HotelSchema)
